@@ -157,12 +157,16 @@ jobs:
 
   android-debug:
     name: Android debug (temporary test certificate)
-    # Pull requests skip Android signing; never expose signing Secrets to PR code.
+    # Fork-only test variant: the upstream job requires the official
+    # certificate Secrets and verifies its fingerprint, which a fork does
+    # not have. This variant generates a throwaway keystore per run, so
+    # each APK has a different test signature and must be installed after
+    # uninstalling any previous build with a different signature.
+    # Do not merge this variant upstream.
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || !inputs.android_release)
     needs: checks
     runs-on: ubuntu-22.04
     timeout-minutes: 35
-    
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -194,29 +198,30 @@ jobs:
         with:
           private-key: ${{ secrets.PRIVATE_EXTENSIONS_DEPLOY_KEY }}
       - name: Generate temporary test keystore
-  run: |
-    umask 077
-    mkdir -p "$RUNNER_TEMP/c001apk-signing"
-    ks_pass=$(openssl rand -hex 12)
-    keytool -genkey -v -keystore "$RUNNER_TEMP/c001apk-signing/release.jks" -alias testkey -keyalg RSA -keysize 2048 -validity 1 -storepass "$ks_pass" -keypass "$ks_pass" -dname "CN=Test, OU=Test, O=Test, C=CN"
-    printf 'KEYSTORE=%s\n' "$RUNNER_TEMP/c001apk-signing/release.jks" >> "$GITHUB_ENV"
-    printf 'KEY_ALIAS=testkey\n' >> "$GITHUB_ENV"
-    printf 'KEYSTORE_PASSWORD=%s\n' "$ks_pass" >> "$GITHUB_ENV"
-    printf 'KEY_PASSWORD=%s\n' "$ks_pass" >> "$GITHUB_ENV"
-    printf 'REVIA_KS_PASS=%s\n' "$ks_pass" >> "$GITHUB_ENV"
-- name: Build debug APKs with temporary test keystore
-  run: flutter build apk --debug --split-per-abi --no-pub
-- name: Remove temporary signing material
-  if: always()
-  run: |
-    rm -f "$RUNNER_TEMP/c001apk-signing/release.jks" "$RUNNER_TEMP/c001apk-signing/cert.der"
-    rmdir "$RUNNER_TEMP/c001apk-signing" 2>/dev/null || true
-- uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-  with:
-    name: c001apk-android-debug
-    path: apps/flutter/build/app/outputs/flutter-apk/*-debug.apk
-    if-no-files-found: error
-    retention-days: 7
+        run: |
+          umask 077
+          mkdir -p "$RUNNER_TEMP/c001apk-signing"
+          ks_pass=$(openssl rand -hex 12)
+          keytool -genkey -v -keystore "$RUNNER_TEMP/c001apk-signing/release.jks" -alias testkey -keyalg RSA -keysize 2048 -validity 1 -storepass "$ks_pass" -keypass "$ks_pass" -dname "CN=Test, OU=Test, O=Test, C=CN"
+          printf 'KEYSTORE=%s\n' "$RUNNER_TEMP/c001apk-signing/release.jks" >> "$GITHUB_ENV"
+          printf 'KEY_ALIAS=testkey\n' >> "$GITHUB_ENV"
+          printf 'KEYSTORE_PASSWORD=%s\n' "$ks_pass" >> "$GITHUB_ENV"
+          printf 'KEY_PASSWORD=%s\n' "$ks_pass" >> "$GITHUB_ENV"
+          printf 'REVIA_KS_PASS=%s\n' "$ks_pass" >> "$GITHUB_ENV"
+      - name: Build debug APKs with temporary test keystore
+        run: flutter build apk --debug --split-per-abi --no-pub
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/c001apk-signing/release.jks" "$RUNNER_TEMP/c001apk-signing/cert.der"
+          rmdir "$RUNNER_TEMP/c001apk-signing" 2>/dev/null || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: c001apk-android-debug
+          path: apps/flutter/build/app/outputs/flutter-apk/*-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
   android-release:
     name: Android signed release (three ABIs)
     if: github.event_name == 'workflow_dispatch' && inputs.android_release
