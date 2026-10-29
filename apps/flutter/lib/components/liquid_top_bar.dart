@@ -113,7 +113,11 @@ class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
             icon: const Icon(Icons.search),
             tooltip: '搜索',
           );
-          final glassTitle = opacity == 0
+          // glassTitle is only evaluated when glass is true: the original
+          // code only dereferenced it inside the glass branch, and building
+          // it eagerly here would crash with a null check when a page does
+          // not provide a glass title (glass == false).
+          final glassTitle = !glass || opacity == 0
               ? const SizedBox.shrink()
               : Opacity(
                   opacity: opacity,

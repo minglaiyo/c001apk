@@ -149,6 +149,7 @@ class _AdaptiveMainScaffoldState extends State<AdaptiveMainScaffold>
                 : floating
                     ? ScrollHidingAction(
                         animation: _barAnimation,
+                        maintainSize: true,
                         child: LiquidNavigationBar(
                           selectedIndex: widget.selectedIndex,
                           onDestinationSelected:
