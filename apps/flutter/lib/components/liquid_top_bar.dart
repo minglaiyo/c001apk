@@ -17,10 +17,10 @@ export 'basic_glass.dart' show LiquidGlassButton;
 /// search/tab bar so it does not cover the feed, and scrolling up brings
 /// it back. Horizontal tab/page swipes do not hide it.
 ///
-/// Hiding is two-stage so the bar never overflows while it collapses:
-/// first the title and actions fade out at full height, then, once they
-/// are invisible, the bar height and the body's top inset collapse.
-/// Showing runs the same stages in reverse.
+/// Hiding fades the title and actions out at full height first, then
+/// collapses the bar height and the body's top inset in a single frame
+/// at the end, so the body does not relayout on every animation frame.
+/// Showing expands in a single frame first, then fades back in.
 class LiquidTopBarScaffold extends StatefulWidget {
   const LiquidTopBarScaffold({
     super.key,
@@ -58,8 +58,17 @@ class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
   // whole scaffold and, through the changing body MediaQuery inset, the
   // feed pages below it on every frame - that is what made scrolling feel
   // laggy on a real device with images in the feed.
+  // Hiding is the laggy moment specifically: the height used to collapse
+  // frame by frame in the second half of the animation, so the body inset
+  // (and therefore the whole feed layout) changed on every frame while
+  // the list was already scrolling. Now the height stays full while the
+  // bar fades, and collapses in a single frame at the end, so the body
+  // relayouts once instead of once per frame.
   late final _barAnimation = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 200), value: 1);
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      reverseDuration: const Duration(milliseconds: 150),
+      value: 1);
 
   @override
   void dispose() {
@@ -100,10 +109,11 @@ class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
           final height = glass
               ? math.max(64.0, media.textScaler.scale(20) + 16)
               : kToolbarHeight;
-          // Stage 1 (value 1 -> 0.5): fade out at full height.
-          // Stage 2 (value 0.5 -> 0): collapse height with content gone.
+          // Fade out at full height (value 1 -> 0.5), then collapse the
+          // height in a single frame at value == 0. Collapsing frame by
+          // frame used to relayout the body on every animation tick.
           final value = _barAnimation.value;
-          final heightFactor = value >= 0.5 ? 1.0 : value * 2.0;
+          final heightFactor = value > 0 ? 1.0 : 0.0;
           final opacity = value >= 0.5 ? (value - 0.5) * 2.0 : 0.0;
           final animatedHeight = height * heightFactor;
           final inset = media.padding.top + animatedHeight;
