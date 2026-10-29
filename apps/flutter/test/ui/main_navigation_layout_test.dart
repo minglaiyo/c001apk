@@ -85,6 +85,23 @@ void main() {
   });
 
   testWidgets(
+      'floating navigation hides while scrolling down and returns on scroll up',
+      (tester) async {
+    await mount(tester);
+    Visibility barVisibility() => tester.widget<Visibility>(
+        find.ancestor(
+            of: find.byType(LiquidNavigationBar),
+            matching: find.byType(Visibility)));
+    expect(barVisibility().visible, isTrue);
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(barVisibility().visible, isFalse);
+    await tester.drag(find.byType(ListView), const Offset(0, 400));
+    await tester.pumpAndSettle();
+    expect(barVisibility().visible, isTrue);
+  });
+
+  testWidgets(
       'common feed reads the local reserved inset instead of the navigator inset',
       (tester) async {
     final controller = _FeedController()..isEnd = true;
