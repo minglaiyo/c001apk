@@ -53,18 +53,13 @@ class LiquidTopBarScaffold extends StatefulWidget {
 
 class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
     with SingleTickerProviderStateMixin {
+  // 200ms, and rebuilt only through AnimatedBuilder below. The previous
+  // version called setState on every animation tick, which rebuilt this
+  // whole scaffold and, through the changing body MediaQuery inset, the
+  // feed pages below it on every frame - that is what made scrolling feel
+  // laggy on a real device with images in the feed.
   late final _barAnimation = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 300), value: 1);
-
-  @override
-  void initState() {
-    super.initState();
-    // Rebuild only this scaffold (its body widget instance is unchanged,
-    // so list pages below it are not rebuilt) while the bar animates.
-    _barAnimation.addListener(() {
-      if (mounted) setState(() {});
-    });
-  }
+      vsync: this, duration: const Duration(milliseconds: 200), value: 1);
 
   @override
   void dispose() {
@@ -91,8 +86,14 @@ class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
           SettingsBoxKey.liquidGlass,
           SettingsBoxKey.liquidGlassLevel,
         ]),
-        builder: (context, _, __) {
-          final media = MediaQuery.of(context);
+        builder: (context, _, __) => AnimatedBuilder(
+          animation: _barAnimation,
+          // The body widget instance is passed as AnimatedBuilder's child,
+          // so animation ticks rebuild only the AppBar and the inset
+          // Padding/MediaQuery around it, not the feed pages themselves.
+          child: widget.body,
+          builder: (context, child) {
+            final media = MediaQuery.of(context);
           final glass = widget.glassTitle != null &&
               GStorage.floatingNavigation &&
               (GStorage.liquidGlass || widget.floatWithoutGlass);
@@ -192,11 +193,12 @@ class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
                   data: media.copyWith(
                     padding: media.padding.copyWith(top: overlay ? inset : 0),
                   ),
-                  child: widget.body,
+                  child: child!,
                 ),
               ),
             ),
           );
-        },
+          },
+        ),
       );
 }
