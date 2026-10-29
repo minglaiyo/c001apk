@@ -204,17 +204,19 @@ jobs:
     printf 'KEYSTORE_PASSWORD=%s\n' "$ks_pass" >> "$GITHUB_ENV"
     printf 'KEY_PASSWORD=%s\n' "$ks_pass" >> "$GITHUB_ENV"
     printf 'REVIA_KS_PASS=%s\n' "$ks_pass" >> "$GITHUB_ENV"
-          - name: Build debug APKs with temporary test keystore
-run: flutter build apk --debug --split-per-abi --no-pub - name: Remove temporary signing material     if: always() run: |
-          rm -f "$RUNNER_TEMP/c001apk-signing/release.jks" "$RUNNER_TEMP/c001apk-signing/cert.der"
-          rmdir "$RUNNER_TEMP/c001apk-signing" 2>/dev/null || true
-          - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: c001apk-android-debug
-          path: apps/flutter/build/app/outputs/flutter-apk/*-debug.apk
-          if-no-files-found: error
-          retention-days: 7
-
+- name: Build debug APKs with temporary test keystore
+  run: flutter build apk --debug --split-per-abi --no-pub
+- name: Remove temporary signing material
+  if: always()
+  run: |
+    rm -f "$RUNNER_TEMP/c001apk-signing/release.jks" "$RUNNER_TEMP/c001apk-signing/cert.der"
+    rmdir "$RUNNER_TEMP/c001apk-signing" 2>/dev/null || true
+- uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+  with:
+    name: c001apk-android-debug
+    path: apps/flutter/build/app/outputs/flutter-apk/*-debug.apk
+    if-no-files-found: error
+    retention-days: 7
   android-release:
     name: Android signed release (three ABIs)
     if: github.event_name == 'workflow_dispatch' && inputs.android_release
