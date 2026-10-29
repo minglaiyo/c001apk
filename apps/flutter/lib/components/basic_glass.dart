@@ -112,7 +112,7 @@ class LiquidGlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ClipRRect(
       borderRadius: borderRadius,
-      child: Stack(children: [
+      child: Stack(clipBehavior: Clip.hardEdge, alignment: Alignment.center, children: [
         Positioned.fill(
             child: IgnorePointer(
                 child: LayoutBuilder(
@@ -267,7 +267,10 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                             theme: theme,
                                             level: widget.level,
                                             shadow: false))),
-                                Row(
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
                                     for (var i = 0;
                                         i < widget.labels.length;
@@ -279,7 +282,19 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                               selected: selected == i,
                                               button: true,
                                               inMutuallyExclusiveGroup: true,
-                                              child: TextButton(
+                                              child: Stack(
+                                                  alignment: Alignment.center,
+                                                  children: [
+                                                    if (selected == i)
+                                                      Positioned.fill(
+                                                          child: Padding(
+                                                              padding: const EdgeInsets.symmetric(
+                                                                  horizontal: 2, vertical: 4),
+                                                              child: DecoratedBox(
+                                                                  decoration: BoxDecoration(
+                                                                      color: theme.colorScheme.primaryContainer,
+                                                                      borderRadius: BorderRadius.circular(height / 2))))),
+                                                    TextButton(
                                                   onPressed: () => widget
                                                       .onDestinationSelected(i),
                                                   style: TextButton.styleFrom(
@@ -287,15 +302,14 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                                           const EdgeInsets
                                                               .symmetric(
                                                               horizontal: 2),
-                                                      backgroundColor: selected == i
-                                                          ? theme.colorScheme
-                                                              .primaryContainer
-                                                          : Colors.transparent,
+                                                      backgroundColor: Colors.transparent,
                                                       foregroundColor: selected == i
                                                           ? theme.colorScheme
                                                               .onPrimaryContainer
                                                           : theme.colorScheme
-                                                              .onSurface),
+                                                              .onSurface,
+                                                      shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(height / 2))),
                                                   child: widget.tabs
                                                       ? Text(widget.labels[i],
                                                           maxLines: 1)
@@ -307,8 +321,10 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                                           ][i % 3]),
                                                           Text(widget.labels[i],
                                                               maxLines: 1),
-                                                        ]))))
+                                                        ])),
+                                                  ])))
                                   ],
+                                ),
                                 ),
                               ])),
                         )));
