@@ -36,7 +36,10 @@ class AdaptiveMainScaffold extends StatefulWidget {
 class _AdaptiveMainScaffoldState extends State<AdaptiveMainScaffold>
     with SingleTickerProviderStateMixin {
   late final _barAnimation = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 300), value: 1);
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      reverseDuration: const Duration(milliseconds: 150),
+      value: 1);
 
   @override
   void dispose() {
