@@ -107,7 +107,7 @@ class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
           final animatedHeight = height * heightFactor;
           final inset = media.padding.top + animatedHeight;
           final overlay = glass && widget.overlayBody;
-          final canHide = media.viewInsetsOf(context).bottom == 0;
+          final canHide = media.viewInsets.bottom == 0;
           final search = IconButton(
             onPressed: widget.onSearch,
             icon: const Icon(Icons.search),
