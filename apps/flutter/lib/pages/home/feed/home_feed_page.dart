@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 
+import '../../../components/back_to_top_action.dart';
 import '../../../components/common_body.dart';
 import '../../../components/scroll_hiding_action.dart';
 import '../../../components/home_publish_action.dart';
@@ -130,6 +131,18 @@ class _HomeFeedPageState extends State<HomeFeedPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    // The publish button hides while scrolling down, which is exactly when
+    // the back-to-top button is needed, so they rarely overlap. When both
+    // are visible (scrolling back up but still far from the top), stack the
+    // back-to-top button above the publish button instead of on top of it.
+    final publishVisible = GlobalData().isLogin &&
+        widget.tabType == TabType.FEED &&
+        !widget.useRail &&
+        _isFabVisible;
+    final bottomOffset = widget.useRail
+        ? 16.0
+        : MediaQuery.paddingOf(context).bottom +
+            (publishVisible ? 164.0 : 96.0);
     return Scaffold(
       floatingActionButton: GlobalData().isLogin &&
               widget.tabType == TabType.FEED &&
@@ -139,7 +152,21 @@ class _HomeFeedPageState extends State<HomeFeedPage>
               child: const HomePublishAction(),
             )
           : null,
-      body: commonBody(_homeFeedController),
+      body: Stack(
+        children: [
+          commonBody(_homeFeedController),
+          Positioned(
+            right: 16,
+            bottom: bottomOffset,
+            child: Tooltip(
+              message: '回到顶部',
+              child: BackToTopAction(
+                controller: _homeFeedController.scrollController,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
