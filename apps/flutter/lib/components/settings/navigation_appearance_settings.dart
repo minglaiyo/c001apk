@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../utils/storage_util.dart';
 import '../../constants/liquid_glass_level.dart';
 import '../expressive_list_section.dart';
+import 'drop_down_menu_item.dart';
 
 /// Separate floating/glass preferences, like KernelSU's theme settings.
 class NavigationAppearanceSettings extends StatelessWidget {
@@ -16,6 +17,8 @@ class NavigationAppearanceSettings extends StatelessWidget {
         SettingsBoxKey.floatingNavigation,
         SettingsBoxKey.liquidGlass,
         SettingsBoxKey.liquidGlassLevel,
+        SettingsBoxKey.backToTopEnabled,
+        SettingsBoxKey.backToTopSide,
       ]),
       builder: (context, _, __) {
         final enabled = GStorage.floatingNavigation && GStorage.liquidGlass;
@@ -58,6 +61,25 @@ class NavigationAppearanceSettings extends StatelessWidget {
                 ? (value) =>
                     GStorage.settings.put(SettingsBoxKey.liquidGlass, value)
                 : null,
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.vertical_align_top),
+            title: const Text('回顶键'),
+            subtitle: const Text('在首页信息流显示回顶键，长按刷新当前页'),
+            value: GStorage.backToTopEnabled,
+            onChanged: (value) =>
+                GStorage.settings.put(SettingsBoxKey.backToTopEnabled, value),
+          ),
+          DropDownMenuItem(
+            icon: Icons.swap_horiz,
+            title: '回顶键位置',
+            subtitle: '回顶键在屏幕左侧还是右侧',
+            boxKey: SettingsBoxKey.backToTopSide,
+            enabled: GStorage.backToTopEnabled,
+            items: const [
+              DropdownMenuItem<int>(value: 0, child: Text('靠右')),
+              DropdownMenuItem<int>(value: 1, child: Text('靠左')),
+            ],
           ),
           Semantics(
             container: true,

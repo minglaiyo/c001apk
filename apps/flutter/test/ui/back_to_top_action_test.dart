@@ -39,9 +39,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity,
         1);
-    expect(find.byIcon(Icons.arrow_upward), findsOneWidget);
+    expect(find.byIcon(Icons.vertical_align_top), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.arrow_upward));
+    await tester.tap(find.byIcon(Icons.vertical_align_top));
     await tester.pumpAndSettle();
     expect(controller.offset, 0);
   });
@@ -79,7 +79,7 @@ void main() {
       ),
     );
     expect(material.color, scheme.primaryContainer);
-    final icon = tester.widget<Icon>(find.byIcon(Icons.arrow_upward));
+    final icon = tester.widget<Icon>(find.byIcon(Icons.vertical_align_top));
     expect(icon.color, scheme.onPrimaryContainer);
   });
 
@@ -116,7 +116,7 @@ void main() {
     controller.jumpTo(1000);
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.byIcon(Icons.arrow_upward));
+    await tester.longPress(find.byIcon(Icons.vertical_align_top));
     await tester.pumpAndSettle();
     expect(refreshed, isTrue);
     expect(controller.offset, 0);
