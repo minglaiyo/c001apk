@@ -78,20 +78,24 @@ jobs:
       - name: Offline regression tests
         run: flutter test --no-pub
 
-  android-debug:
-    name: Android debug (temporary test certificate)
-    # Fork-only Android-only variant. Do not merge upstream.
-    # Desktop, android-release and ios jobs are removed: a run
-    # produces only the c001apk-android-debug artifact.
+  android-release:
+    name: Android release (own keystore)
+    # Fork-only Android-only release variant. Do not merge upstream.
+    # Desktop, android-release (official) and ios jobs are removed: a run
+    # produces only the c001apk-android-release artifact.
     # checks still runs in parallel (analyze/test, for information)
     # but no longer blocks this job, so an APK is produced even
     # if checks fail. workflow_dispatch inputs android_release / ios
     # are ignored on this branch: this job always runs (except PRs).
-    # Fork-only test variant: the upstream job requires the official
-    # certificate Secrets and verifies its fingerprint, which a fork does
-    # not have. This variant generates a throwaway keystore per run, so
-    # each APK has a different test signature and must be installed after
-    # uninstalling any previous build with a different signature.
+    # Fork-only variant: instead of the upstream official certificate
+    # Secrets and official fingerprint check, this variant restores the
+    # user's own long-term keystore from Secrets MY_KEYSTORE_BASE64 and
+    # MY_KS_PASS (alias myapp, same store/key password).
+    # No official fingerprint is checked, because this signature is the
+    # user's own, not the official one. Every build with this keystore
+    # has the same signature, so it can overwrite previous builds signed
+    # with the same keystore, but NOT an official-signed install or a
+    # temporary-certificate debug install: uninstall those first.
     # Do not merge this variant upstream.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-22.04
@@ -126,28 +130,30 @@ jobs:
         uses: ./.github/actions/private-extensions
         with:
           private-key: ${{ secrets.PRIVATE_EXTENSIONS_DEPLOY_KEY }}
-      - name: Generate temporary test keystore
+      - name: Restore own long-term keystore from Secrets
+        env:
+          MY_KEYSTORE_BASE64: ${{ secrets.MY_KEYSTORE_BASE64 }}
+          MY_KS_PASS: ${{ secrets.MY_KS_PASS }}
         run: |
           umask 077
           mkdir -p "$RUNNER_TEMP/c001apk-signing"
-          ks_pass=$(openssl rand -hex 12)
-          keytool -genkey -v -keystore "$RUNNER_TEMP/c001apk-signing/release.jks" -alias testkey -keyalg RSA -keysize 2048 -validity 1 -storepass "$ks_pass" -keypass "$ks_pass" -dname "CN=Test, OU=Test, O=Test, C=CN"
+          printf '%s' "$MY_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/c001apk-signing/release.jks"
           printf 'KEYSTORE=%s\n' "$RUNNER_TEMP/c001apk-signing/release.jks" >> "$GITHUB_ENV"
-          printf 'KEY_ALIAS=testkey\n' >> "$GITHUB_ENV"
-          printf 'KEYSTORE_PASSWORD=%s\n' "$ks_pass" >> "$GITHUB_ENV"
-          printf 'KEY_PASSWORD=%s\n' "$ks_pass" >> "$GITHUB_ENV"
-          printf 'REVIA_KS_PASS=%s\n' "$ks_pass" >> "$GITHUB_ENV"
-      - name: Build debug APKs with temporary test keystore
-        run: flutter build apk --debug --split-per-abi --no-pub
-      - name: Remove temporary signing material
+          printf 'KEY_ALIAS=myapp\n' >> "$GITHUB_ENV"
+          printf 'KEYSTORE_PASSWORD=%s\n' "$MY_KS_PASS" >> "$GITHUB_ENV"
+          printf 'KEY_PASSWORD=%s\n' "$MY_KS_PASS" >> "$GITHUB_ENV"
+          printf 'REVIA_KS_PASS=%s\n' "$MY_KS_PASS" >> "$GITHUB_ENV"
+      - name: Build release APKs with own keystore
+        run: flutter build apk --release --split-per-abi --no-pub
+      - name: Remove restored signing material
         if: always()
         run: |
           rm -f "$RUNNER_TEMP/c001apk-signing/release.jks" "$RUNNER_TEMP/c001apk-signing/cert.der"
           rmdir "$RUNNER_TEMP/c001apk-signing" 2>/dev/null || true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: c001apk-android-debug
-          path: apps/flutter/build/app/outputs/flutter-apk/*-debug.apk
+          name: c001apk-android-release
+          path: apps/flutter/build/app/outputs/flutter-apk/*-release.apk
           if-no-files-found: error
           retention-days: 7
 
