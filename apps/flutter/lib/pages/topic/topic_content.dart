@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 
 import '../../components/common_body.dart';
+import '../../components/product_discussion_sort_bar.dart';
 import '../../logic/state/loading_state.dart';
 import '../../pages/home/return_top_controller.dart';
 import '../../pages/topic/topic_content_controller.dart';
@@ -105,6 +106,16 @@ class _TopicContentState extends State<TopicContent>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    // 产品讨论 tab 才在列表顶部放可见排序条，其他 tab（参数、点评等）不放。
+    // 排序状态走同一个 TopicOrderController，⋮ 菜单里的「排序」与此条同步。
+    if (widget.entityType == 'product' && widget.title == '讨论') {
+      final orderController = Get.find<TopicOrderController>(
+          tag: (widget.tag ?? widget.id!) + widget.random);
+      return commonBody(
+        _topicController,
+        leading: ProductDiscussionSortBar(controller: orderController),
+      );
+    }
     return commonBody(_topicController);
   }
 }
