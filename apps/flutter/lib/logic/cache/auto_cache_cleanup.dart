@@ -35,7 +35,11 @@ class AutoCacheCleanupPreferences {
   DateTime? get lastCleaned {
     final value = box.get(_lastKey);
     if (value is int) {
-      return DateTime.fromMillisecondsSinceEpoch(value);
+      // Dart's DateTime == also compares isUtc, so a local-time value
+      // reconstructed from the same instant would not equal a UTC caller
+      // value. Normalise stored timestamps to UTC; difference() is
+      // instant-based and unaffected.
+      return DateTime.fromMillisecondsSinceEpoch(value, isUtc: true);
     }
     return null;
   }
