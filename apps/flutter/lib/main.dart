@@ -16,6 +16,7 @@ import 'components/app_keyboard_navigation.dart';
 import 'components/app_navigation_history.dart';
 import 'components/prompt_navigation.dart';
 import 'logic/accounts/account_store.dart';
+import 'logic/cache/auto_cache_cleanup.dart';
 import 'logic/media/media_load_policy.dart';
 import 'logic/content_filter/app_content_filter.dart';
 import 'components/announcement_monitor.dart';
@@ -26,6 +27,7 @@ import 'logic/onboarding/onboarding_state.dart';
 import 'pages/webview/captcha_page.dart';
 import 'router/app_pages.dart';
 import 'router/page_transitions.dart';
+import 'utils/cache_util.dart';
 import 'utils/storage_util.dart';
 import 'utils/app_theme.dart';
 import 'utils/desktop_window.dart';
@@ -96,6 +98,13 @@ void main() async {
       child: const C001APKAPP()));
   WidgetsBinding.instance.addPostFrameCallback((_) {
     if (links != null) unawaited(links.ready());
+  });
+  // Automatic cache cleanup, on launch only and never blocking startup:
+  // a failed cleanup simply retries on the next launch (see
+  // AutoCacheCleanupPreferences).
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(AutoCacheCleanupPreferences(GStorage.settings)
+        .runIfDue(DateTime.now(), CacheManage().clearCacheAll));
   });
 }
 
