@@ -7,11 +7,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../components/back_to_top_action.dart';
 import '../../../components/common_body.dart';
+import '../../../components/new_feed_tip.dart';
 import '../../../components/scroll_hiding_action.dart';
 import '../../../components/home_publish_action.dart';
 import '../../../pages/home/feed/home_feed_controller.dart';
 import '../../../pages/home/home_page.dart' show TabType;
 import '../../../pages/home/return_top_controller.dart';
+import '../../../utils/extensions.dart';
 import '../../../utils/global_data.dart';
 import '../../../utils/storage_util.dart';
 import '../../../utils/utils.dart';
@@ -44,6 +46,12 @@ class _HomeFeedPageState extends State<HomeFeedPage>
   StreamSubscription<int>? _returnTopSubscription;
   late bool _isFabVisible = true;
 
+  /// Last capsule opacity built, used only to throttle rebuilds from
+  /// the scroll listener. The opacity itself is computed in [build]
+  /// from the current scroll offset, so a newly shown capsule always
+  /// starts fully visible.
+  double _lastTipOpacity = 1;
+
   late final followType = widget.followType ?? GStorage.followType;
   late final _tag = widget.tabType == TabType.FOLLOW
       ? '${widget.tabType.name}-${UniqueKey()}'
@@ -72,6 +80,7 @@ class _HomeFeedPageState extends State<HomeFeedPage>
   @override
   void dispose() {
     _returnTopSubscription?.cancel();
+    _homeFeedController.scrollController?.removeListener(_onTipScroll);
     _homeFeedController.scrollController?.removeListener(() {});
     _homeFeedController.scrollController?.dispose();
     _fabAnimationCtr?.dispose();
@@ -79,6 +88,37 @@ class _HomeFeedPageState extends State<HomeFeedPage>
       tag: _tag,
     );
     super.dispose();
+  }
+
+  /// Fades the "更新了 N 条动态" capsule out as the user scrolls down
+  /// from the offset where it appeared (fully faded over 300px), and
+  /// hides it at 0. Scrolling back up restores it, since the opacity
+  /// is computed from the offset in [build].
+  void _onTipScroll() {
+    if (_homeFeedController.newFeedCount.value == null) return;
+    final scrollController = _homeFeedController.scrollController;
+    if (scrollController == null || !scrollController.hasClients) return;
+    final opacity = (1 -
+            (scrollController.offset -
+                    _homeFeedController.newFeedTipShownOffset) /
+                300)
+        .clamp(0.0, 1.0);
+    if (opacity <= 0) {
+      _homeFeedController.hideNewFeedTip();
+    } else if ((opacity - _lastTipOpacity).abs() > 0.02 && mounted) {
+      _lastTipOpacity = opacity;
+      setState(() {});
+    }
+  }
+
+  /// Capsule tap: hide the capsule, scroll to top, and refresh the
+  /// current tab's first page. The controller suppresses the tip for
+  /// this refresh, so the tap-to-hide is not undone when it completes.
+  void _onNewFeedTipTap() {
+    _homeFeedController.markTipTapRefresh();
+    _homeFeedController.scrollController?.animToTop();
+    _homeFeedController.onReset();
+    _homeFeedController.onGetData();
   }
 
   @override
@@ -96,6 +136,8 @@ class _HomeFeedPageState extends State<HomeFeedPage>
         _homeFeedController.animateToTop();
       }
     });
+
+    _homeFeedController.scrollController?.addListener(_onTipScroll);
 
     if (isLogin) {
       _fabAnimationCtr = AnimationController(
@@ -190,6 +232,34 @@ class _HomeFeedPageState extends State<HomeFeedPage>
               );
             },
           ),
+          // Floating "更新了 N 条动态" capsule, centred just below the
+          // top tab bar (this Stack sits below it), over the list like
+          // TiebaLite's TopCenter RefreshTip. It only exists while the
+          // controller reports a new-feed count.
+          Obx(() {
+            final count = _homeFeedController.newFeedCount.value;
+            if (count == null) return const SizedBox.shrink();
+            final scrollController = _homeFeedController.scrollController;
+            final offset = scrollController != null && scrollController.hasClients
+                ? scrollController.offset
+                : 0.0;
+            final opacity = (1 -
+                    (offset - _homeFeedController.newFeedTipShownOffset) /
+                        300)
+                .clamp(0.0, 1.0);
+            return Positioned(
+              top: 12,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: NewFeedTip(
+                  count: count,
+                  opacity: opacity,
+                  onTap: _onNewFeedTipTap,
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );
