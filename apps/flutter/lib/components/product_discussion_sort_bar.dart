@@ -4,12 +4,16 @@ import 'package:get/get.dart';
 import '../pages/topic/topic_order_controller.dart';
 import '../pages/topic/topic_page.dart' show TopicSortType;
 
-/// 产品页「讨论」tab 顶部的可见排序条，对齐 c001apk_next 的
+/// 讨论 tab 顶部的可见排序条，对齐 c001apk_next 的
 /// ProductSortHeaderAdapter：默认 / 最新 / 热度三段式，靠右排列。
+/// 产品讨论和话题讨论共用此条（c001apk_next 里同一个
+/// ProductSortHeaderAdapter 也是两边共用）。
 ///
 /// 它只改 [TopicOrderController.topicSortType]，真正的列表重载走
-/// TopicContent 里已有的监听（按 listType 拼 product/feedList 的 URL），
-/// 所以右上角 ⋮ 菜单里的「排序」和这条排序条用的是同一状态，互相同步。
+/// TopicContent 里的监听：产品讨论按 listType 拼 product/feedList
+/// 的 URL，话题讨论按 sortField 拼 topic/tagFeedList 的 URL。
+/// 产品讨论右上角 ⋮ 菜单里的「排序」和这条排序条用的是同一状态，
+/// 互相同步；话题讨论此前没有排序入口，现在只有这条。
 class ProductDiscussionSortBar extends StatelessWidget {
   const ProductDiscussionSortBar({
     super.key,
