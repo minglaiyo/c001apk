@@ -2,7 +2,6 @@ import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 
 import '../../components/common_body.dart';
-import '../../components/product_discussion_sort_bar.dart';
 import '../../logic/state/loading_state.dart';
 import '../../pages/home/return_top_controller.dart';
 import '../../pages/topic/discussion_sort_url.dart';
@@ -72,7 +71,7 @@ class _TopicContentState extends State<TopicContent>
       }
     });
 
-    if (_hasSortBar) {
+    if (_isSortableDiscussion) {
       _topicOrderController = Get.find<TopicOrderController>(
           tag: (widget.tag ?? widget.id!) + widget.random);
       _topicOrderController?.topicSortType.listen((type) {
@@ -97,24 +96,15 @@ class _TopicContentState extends State<TopicContent>
   bool get _isProductDiscussion =>
       widget.entityType == 'product' && widget.title == '讨论';
 
-  /// 话题讨论：tab URL 带 topic/tagFeedList 且 withSortCard=1。
-  /// 产品讨论和话题讨论都显示排序条，其他 tab（参数、点评等）不显示。
-  bool get _hasSortBar =>
+  /// 可排序的讨论：产品讨论，或 tab URL 带 topic/tagFeedList
+  /// 且 withSortCard=1 的话题讨论。排序入口统一走右上角 ⋮ 菜单，
+  /// 不在列表顶部另放排序条。
+  bool get _isSortableDiscussion =>
       _isProductDiscussion || isTopicDiscussionUrl(widget.url);
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    // 产品讨论和话题讨论才在列表顶部放可见排序条，其他 tab 不放。
-    // 排序状态走同一个 TopicOrderController，产品讨论的 ⋮ 菜单「排序」与此条同步。
-    if (_hasSortBar) {
-      final orderController = Get.find<TopicOrderController>(
-          tag: (widget.tag ?? widget.id!) + widget.random);
-      return commonBody(
-        _topicController,
-        leading: ProductDiscussionSortBar(controller: orderController),
-      );
-    }
     return commonBody(_topicController);
   }
 }
