@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../components/back_to_top_action.dart';
 import '../../../components/common_body.dart';
@@ -139,10 +140,6 @@ class _HomeFeedPageState extends State<HomeFeedPage>
         widget.tabType == TabType.FEED &&
         !widget.useRail &&
         _isFabVisible;
-    final bottomOffset = widget.useRail
-        ? 16.0
-        : MediaQuery.paddingOf(context).bottom +
-            (publishVisible ? 164.0 : 96.0);
     return Scaffold(
       floatingActionButton: GlobalData().isLogin &&
               widget.tabType == TabType.FEED &&
@@ -155,23 +152,43 @@ class _HomeFeedPageState extends State<HomeFeedPage>
       body: Stack(
         children: [
           commonBody(_homeFeedController),
-          Positioned(
-            right: 16,
-            bottom: bottomOffset,
-            child: Tooltip(
-              message: '回到顶部，长按刷新',
-              child: BackToTopAction(
-                controller: _homeFeedController.scrollController,
-                // TiebaLite long-press semantics: the button itself scrolls
-                // to top, this only reloads the current tab's first page.
-                // Direct reload (not RefreshIndicator.show) so it works
-                // even while the list is still animating back to the top.
-                onLongPress: () {
-                  _homeFeedController.onReset();
-                  _homeFeedController.onGetData();
-                },
-              ),
-            ),
+          ValueListenableBuilder(
+            valueListenable: GStorage.settings.listenable(keys: [
+              SettingsBoxKey.backToTopEnabled,
+              SettingsBoxKey.backToTopSide,
+            ]),
+            builder: (context, _, __) {
+              if (!GStorage.backToTopEnabled) {
+                return const SizedBox.shrink();
+              }
+              final onLeft = GStorage.backToTopOnLeft;
+              // On the left the publish button (right side) never overlaps,
+              // so no extra stacking offset is needed there.
+              final bottomOffset = widget.useRail
+                  ? 16.0
+                  : MediaQuery.paddingOf(context).bottom +
+                      (onLeft || !publishVisible ? 96.0 : 164.0);
+              return Positioned(
+                left: onLeft ? 16 : null,
+                right: onLeft ? null : 16,
+                bottom: bottomOffset,
+                child: Tooltip(
+                  message: '回到顶部，长按刷新',
+                  child: BackToTopAction(
+                    controller: _homeFeedController.scrollController,
+                    // TiebaLite long-press semantics: the button itself
+                    // scrolls to top, this only reloads the current tab's
+                    // first page. Direct reload (not RefreshIndicator.show)
+                    // so it works even while the list is still animating
+                    // back to the top.
+                    onLongPress: () {
+                      _homeFeedController.onReset();
+                      _homeFeedController.onGetData();
+                    },
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),

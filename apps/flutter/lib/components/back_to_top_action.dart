@@ -12,6 +12,9 @@ import '../utils/extensions.dart';
 /// colour when Material You is enabled, otherwise the configured seed
 /// colour), exactly like a Material 3 FAB in TiebaLite.
 ///
+/// The icon is TiebaLite's `VerticalAlignTop`: a horizontal line above an
+/// up arrow, not a bare arrow.
+///
 /// It only appears once the list has been scrolled past [threshold], so it
 /// never covers the first screen of content. Tapping it scrolls the list
 /// back to the top with the existing [ScrollControllerExt.animToTop]
@@ -105,7 +108,7 @@ class _BackToTopActionState extends State<BackToTopAction> {
                 width: 56,
                 height: 56,
                 child: Icon(
-                  Icons.arrow_upward,
+                  Icons.vertical_align_top,
                   color: colors.onPrimaryContainer,
                   size: 28,
                 ),

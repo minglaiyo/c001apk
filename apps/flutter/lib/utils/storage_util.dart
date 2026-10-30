@@ -33,6 +33,12 @@ class GStorage {
       settings.get(SettingsBoxKey.liquidGlass, defaultValue: true) == true;
   static LiquidGlassLevel get liquidGlassLevel => LiquidGlassLevel.fromStored(
       settings.get(SettingsBoxKey.liquidGlassLevel));
+  static bool get backToTopEnabled =>
+      settings.get(SettingsBoxKey.backToTopEnabled, defaultValue: true) ==
+      true;
+  // Stored as an int by DropDownMenuItem: 0 = right, 1 = left.
+  static bool get backToTopOnLeft =>
+      settings.get(SettingsBoxKey.backToTopSide, defaultValue: 0) == 1;
   static late final Box<dynamic> searchHistory;
   static late final Box<dynamic> historyFeed;
   static late final Box<dynamic> favFeed;
@@ -560,6 +566,8 @@ class SettingsBoxKey {
       floatingNavigation = 'floatingNavigation',
       liquidGlass = 'liquidGlass',
       liquidGlassLevel = 'liquidGlassLevel',
+      backToTopEnabled = 'backToTopEnabled',
+      backToTopSide = 'backToTopSide',
       followType = 'followType',
       imageQuality = 'imageQuality',
       mediaAutoLoad = MediaAutoLoadMode.storageKey,
