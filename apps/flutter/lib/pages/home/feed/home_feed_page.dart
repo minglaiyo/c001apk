@@ -159,9 +159,17 @@ class _HomeFeedPageState extends State<HomeFeedPage>
             right: 16,
             bottom: bottomOffset,
             child: Tooltip(
-              message: '回到顶部',
+              message: '回到顶部，长按刷新',
               child: BackToTopAction(
                 controller: _homeFeedController.scrollController,
+                // TiebaLite long-press semantics: the button itself scrolls
+                // to top, this only reloads the current tab's first page.
+                // Direct reload (not RefreshIndicator.show) so it works
+                // even while the list is still animating back to the top.
+                onLongPress: () {
+                  _homeFeedController.onReset();
+                  _homeFeedController.onGetData();
+                },
               ),
             ),
           ),
