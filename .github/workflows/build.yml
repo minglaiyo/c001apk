@@ -144,7 +144,14 @@ jobs:
           printf 'KEY_PASSWORD=%s\n' "$MY_KS_PASS" >> "$GITHUB_ENV"
           printf 'REVIA_KS_PASS=%s\n' "$MY_KS_PASS" >> "$GITHUB_ENV"
       - name: Build release APKs with own keystore
-        run: flutter build apk --release --split-per-abi --no-pub
+        # Do NOT use --no-pub here: release-mode plugin registration must exclude
+        # dev-only native plugins (flutter_native_splash is a dev_dependency with
+        # Android code). With --no-pub the stale registrant from pub get still
+        # imports net.jonhanson.flutter_native_splash, but release Gradle does not
+        # put its native code on the classpath, so javac fails with
+        # 'package net.jonhanson.flutter_native_splash does not exist'.
+        # Letting the build re-run pub get regenerates the registrant without it.
+        run: flutter build apk --release --split-per-abi
       - name: Remove restored signing material
         if: always()
         run: |
