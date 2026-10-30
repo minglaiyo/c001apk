@@ -7,6 +7,7 @@ import 'package:get/get_navigation/src/dialog/dialog_route.dart';
 
 import '../../logic/state/loading_state.dart';
 import '../../pages/home/return_top_controller.dart';
+import '../../pages/topic/discussion_sort_url.dart';
 import '../../pages/feed/reply/reply_page.dart';
 import '../../pages/topic/topic_content.dart';
 import '../../pages/topic/topic_controller.dart';
@@ -107,8 +108,12 @@ class _TopicPageState extends State<TopicPage> with TickerProviderStateMixin {
   }
 
   void setShouldShowActions(int index) {
-    _shouldShowActions = _topicController.entityType == 'product' &&
-        _topicController.tabList![index].title == '讨论';
+    final tab = _topicController.tabList![index];
+    // 排序入口统一走 ⋮ 菜单：产品讨论和话题讨论都显示，
+    // 其他 tab（参数、点评等）不显示。
+    _shouldShowActions = (_topicController.entityType == 'product' &&
+            tab.title == '讨论') ||
+        isTopicDiscussionUrl(tab.url ?? '');
   }
 
   Widget _buildBody(LoadingState topicState) {
