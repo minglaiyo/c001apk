@@ -128,8 +128,12 @@ void main() {
     for (final disabledKey in ['floatingNavigation', 'liquidGlass']) {
       await tester.runAsync(() => GStorage.settings.put(disabledKey, false));
       await mount(tester);
-      final picker = tester.widget<DropdownButton>(
-          find.byWidgetPredicate((widget) => widget is DropdownButton));
+      // Scope to the glass-level picker: the navigation section also has
+      // the back-to-top side picker, so a generic DropdownButton finder
+      // now matches more than one element.
+      final picker = tester.widget<DropdownButton<LiquidGlassLevel>>(
+          find.byWidgetPredicate(
+              (widget) => widget is DropdownButton<LiquidGlassLevel>));
       expect(picker.onChanged, isNull);
       expect(find.text('低档'), findsOneWidget);
       expect(GStorage.settings.get('liquidGlassLevel'), 'minimal');
@@ -217,7 +221,8 @@ void main() {
       (tester) async {
     final semantics = tester.ensureSemantics();
     await mount(tester);
-    final picker = find.byWidgetPredicate((widget) => widget is DropdownButton);
+    final picker = find.byWidgetPredicate(
+        (widget) => widget is DropdownButton<LiquidGlassLevel>);
     final row = find.widgetWithText(ListTile, '液态玻璃档位');
     expect(tester.getSemantics(picker).rect.height,
         lessThanOrEqualTo(tester.getSize(row).height));
