@@ -15,6 +15,7 @@ import '../../components/update_check_tile.dart';
 import '../../components/announcement_monitor.dart';
 import '../../logic/announcements/app_announcements.dart';
 import '../../logic/app_update/update_preferences.dart';
+import '../../logic/cache/auto_cache_cleanup.dart';
 import '../../logic/accounts/account_store.dart';
 import '../../components/settings/drop_down_menu_item.dart';
 import '../../components/settings/item_title.dart';
@@ -387,6 +388,18 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
                 ),
             ]),
             ExpressiveListSection(children: [
+              const DropDownMenuItem(
+                icon: Icons.auto_delete_outlined,
+                title: '自动清理缓存',
+                subtitle: '到期后下次启动时清理图片缓存，不删账号、设置和本地关注',
+                boxKey: AutoCacheCleanupPreferences.daysKey,
+                items: [
+                  DropdownMenuItem<int>(value: 0, child: Text('关闭')),
+                  DropdownMenuItem<int>(value: 3, child: Text('每 3 天')),
+                  DropdownMenuItem<int>(value: 7, child: Text('每 7 天')),
+                  DropdownMenuItem<int>(value: 15, child: Text('每 15 天')),
+                ],
+              ),
               Obx(
                 () => ListTile(
                   title: const Text('清理缓存'),
