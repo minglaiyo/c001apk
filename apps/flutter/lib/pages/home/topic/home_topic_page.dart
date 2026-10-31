@@ -51,7 +51,18 @@ class _HomeTopicPageState extends State<HomeTopicPage>
           children: [
             Expanded(
               flex: 22,
-              child: Column(
+              child: Padding(
+                // The rail is not a scroll view, so it never picks up
+                // the scaffold's top inset on its own: without this,
+                // the header and the first items start behind the
+                // floating top bar, and the last items end up behind
+                // the floating bottom pill (same 96 clearance the
+                // back-to-top button uses).
+                padding: EdgeInsets.only(
+                  top: MediaQuery.paddingOf(context).top,
+                  bottom: MediaQuery.paddingOf(context).bottom + 96,
+                ),
+                child: Column(
                 children: [
                   // Current-page readout: the left list holds the current
                   // top tab's sub-categories, not a second top-level
@@ -136,7 +147,17 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                         final count = widget.tabType == TabType.TOPIC
                             ? data![0].entities!.length
                             : data!.length;
-                        Widget railItem(int index) => IntrinsicHeight(
+                        // When the list is longer than the rail, rows
+                        // share the height via Expanded. A fixed 15px
+                        // text in a squeezed row used to paint outside
+                        // its row (a Column does not clip), so
+                        // adjacent rows' texts overlapped. FittedBox
+                        // scaleDown shrinks the text to its row
+                        // instead, and the compact path also cuts the
+                        // vertical padding, so the text stays legible
+                        // rather than being scaled to a sliver.
+                        Widget railItem(int index, {bool compact = false}) =>
+                            IntrinsicHeight(
                               child: Obx(
                                 () => InkWell(
                                   onTap: () {
@@ -170,17 +191,20 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                                           flex: 1,
                                           child: Container(
                                             alignment: Alignment.center,
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 10),
-                                            child: Text(
-                                              widget.tabType == TabType.TOPIC
-                                                  ? data![0]
-                                                      .entities![index]
-                                                      .title
-                                                      .toString()
-                                                  : data![index]
-                                                      .title
-                                                      .toString(),
+                                            padding: EdgeInsets.symmetric(
+                                                vertical:
+                                                    compact ? 4 : 10),
+                                            child: FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              child: Text(
+                                                widget.tabType == TabType.TOPIC
+                                                    ? data![0]
+                                                        .entities![index]
+                                                        .title
+                                                        .toString()
+                                                    : data![index]
+                                                        .title
+                                                        .toString(),
                                               style: TextStyle(
                                                 color: index ==
                                                         _homeTopicController
@@ -196,7 +220,8 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                            ),
+                                                ),
+                                              ),
                                           ),
                                         ),
                                       ],
@@ -205,25 +230,27 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                                 ),
                               ),
                             );
-                        final items =
-                            List<Widget>.generate(count, railItem);
-                        if (items.isEmpty) {
+                        if (count == 0) {
                           return const SizedBox.shrink();
                         }
                         const estimatedRowHeight = 44.0;
                         if (count * estimatedRowHeight <=
                             constraints.maxHeight) {
-                          return Column(children: items);
+                          return Column(children: [
+                            for (var i = 0; i < count; i++) railItem(i),
+                          ]);
                         }
                         return Column(
                           children: [
-                            for (final item in items) Expanded(child: item),
+                            for (var i = 0; i < count; i++)
+                              Expanded(child: railItem(i, compact: true)),
                           ],
                         );
                       },
                     ),
                   ),
                 ],
+                ),
               ),
             ),
             Expanded(
