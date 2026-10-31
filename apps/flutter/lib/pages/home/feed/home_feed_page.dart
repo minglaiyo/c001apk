@@ -211,25 +211,19 @@ class _HomeFeedPageState extends State<HomeFeedPage>
                   ? 16.0
                   : MediaQuery.paddingOf(context).bottom +
                       (onLeft || !publishVisible ? 96.0 : 164.0);
-              return Positioned(
-                left: onLeft ? 16 : null,
-                right: onLeft ? null : 16,
+              return DraggableBackToTop(
+                controller: _homeFeedController.scrollController,
                 bottom: bottomOffset,
-                child: Tooltip(
-                  message: '回到顶部，长按刷新',
-                  child: BackToTopAction(
-                    controller: _homeFeedController.scrollController,
-                    // TiebaLite long-press semantics: the button itself
-                    // scrolls to top, this only reloads the current tab's
-                    // first page. Direct reload (not RefreshIndicator.show)
-                    // so it works even while the list is still animating
-                    // back to the top.
-                    onLongPress: () {
-                      _homeFeedController.onReset();
-                      _homeFeedController.onGetData();
-                    },
-                  ),
-                ),
+                tooltip: '回到顶部，长按刷新',
+                // TiebaLite long-press semantics: the button itself
+                // scrolls to top, this only reloads the current tab's
+                // first page. Direct reload (not RefreshIndicator.show)
+                // so it works even while the list is still animating
+                // back to the top.
+                onLongPress: () {
+                  _homeFeedController.onReset();
+                  _homeFeedController.onGetData();
+                },
               );
             },
           ),

@@ -20,6 +20,8 @@ class NavigationAppearanceSettings extends StatelessWidget {
         SettingsBoxKey.liquidGlassLevel,
         SettingsBoxKey.backToTopEnabled,
         SettingsBoxKey.backToTopSide,
+        SettingsBoxKey.backToTopPosX,
+        SettingsBoxKey.backToTopPosY,
       ]),
       builder: (context, _, __) {
         final enabled = GStorage.floatingNavigation && GStorage.liquidGlass;
@@ -74,7 +76,7 @@ class NavigationAppearanceSettings extends StatelessWidget {
             child: SwitchListTile(
               secondary: const Icon(Icons.vertical_align_top),
               title: const Text('回顶键'),
-              subtitle: const Text('在信息流、话题、产品、搜索结果等长列表显示回顶键，长按刷新当前页'),
+              subtitle: const Text('在信息流、话题、产品、搜索结果等长列表显示回顶键，长按刷新当前页，拖动可调整位置'),
               value: GStorage.backToTopEnabled,
               onChanged: (value) => GStorage.settings
                   .put(SettingsBoxKey.backToTopEnabled, value),
@@ -85,7 +87,7 @@ class NavigationAppearanceSettings extends StatelessWidget {
             child: DropDownMenuItem(
               icon: Icons.swap_horiz,
               title: '回顶键位置',
-              subtitle: '回顶键在屏幕左侧还是右侧',
+              subtitle: '回顶键在屏幕左侧还是右侧，拖动后以拖动位置为准',
               boxKey: SettingsBoxKey.backToTopSide,
               enabled: GStorage.backToTopEnabled,
               items: const [
@@ -94,6 +96,14 @@ class NavigationAppearanceSettings extends StatelessWidget {
               ],
             ),
           ),
+          if (GStorage.backToTopHasCustomPos)
+            ListTile(
+              leading: const Icon(Icons.restart_alt_outlined),
+              title: const Text('复位回顶键位置'),
+              subtitle: const Text('清除拖动保存的位置，回到左右设置'),
+              enabled: GStorage.backToTopEnabled,
+              onTap: GStorage.clearBackToTopPos,
+            ),
           SettingsItemLocator(
             itemId: 'liquidGlassLevel',
             child: Semantics(
