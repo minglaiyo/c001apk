@@ -44,6 +44,20 @@ class GStorage {
   // Stored as an int by DropDownMenuItem: 0 = right, 1 = left.
   static bool get backToTopOnLeft =>
       settings.get(SettingsBoxKey.backToTopSide, defaultValue: 0) == 1;
+
+  // Dragged back-to-top position, normalized to the screen size (0..1),
+  // or null when the button uses the left/right setting's default spot.
+  // Stored as doubles by the drag handler; read defensively as num.
+  static double? get backToTopPosX =>
+      (settings.get(SettingsBoxKey.backToTopPosX) as num?)?.toDouble();
+  static double? get backToTopPosY =>
+      (settings.get(SettingsBoxKey.backToTopPosY) as num?)?.toDouble();
+  static bool get backToTopHasCustomPos =>
+      backToTopPosX != null && backToTopPosY != null;
+  static Future<void> clearBackToTopPos() async {
+    await settings.delete(SettingsBoxKey.backToTopPosX);
+    await settings.delete(SettingsBoxKey.backToTopPosY);
+  }
   static late final Box<dynamic> searchHistory;
   static late final Box<dynamic> historyFeed;
   static late final Box<dynamic> favFeed;
@@ -573,6 +587,8 @@ class SettingsBoxKey {
       liquidGlassLevel = 'liquidGlassLevel',
       backToTopEnabled = 'backToTopEnabled',
       backToTopSide = 'backToTopSide',
+      backToTopPosX = 'backToTopPosX',
+      backToTopPosY = 'backToTopPosY',
       clipboardLinkDetection = 'clipboardLinkDetection',
       clipboardLinkPrompted = 'clipboardLinkPrompted',
       followType = 'followType',
