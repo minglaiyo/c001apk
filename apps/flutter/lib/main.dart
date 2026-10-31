@@ -39,6 +39,12 @@ import 'utils/utils.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Feed lists decode large photos; the 100 MB default image cache
+  // evicts them after a few screens, so scrolling back re-decodes
+  // (and, once the disk cache also rolls over, re-downloads). 300 MB
+  // keeps several screens of list thumbnails resident.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

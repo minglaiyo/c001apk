@@ -103,6 +103,10 @@ Widget buildBody(
       if (isReply2Reply) {
         return ListView.separated(
           controller: commonController.scrollController,
+          // Default is 250 px: items just off-screen are disposed and
+          // their images must be re-resolved on scroll-back. 800 px
+          // keeps a few screens of cards (and their thumbnails) alive.
+          cacheExtent: 800,
           physics: AlwaysScrollableScrollPhysics(
             parent: isReply2Reply
                 ? const ClampingScrollPhysics()
