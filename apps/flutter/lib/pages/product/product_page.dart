@@ -49,7 +49,8 @@ class _ProductPageState extends State<ProductPage> {
                     width: 64,
                     height: 64,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const SizedBox(
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox(
                       width: 64,
                       height: 64,
                     ),
