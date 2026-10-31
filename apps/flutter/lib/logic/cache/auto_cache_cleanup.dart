@@ -2,17 +2,20 @@ import 'package:hive/hive.dart';
 
 /// Automatic image-cache cleanup, stored in the settings box.
 ///
-/// Interval is in days: 0 means off, otherwise one of 3, 7 or 15. Any other
-/// stored value is treated as off, so a corrupted or legacy value can never
-/// trigger an unexpected cleanup. The cleanup itself only removes the
-/// network image cache (see `CacheManage.clearCacheAll`); it never touches
-/// accounts, settings, local follows or other stored data.
+/// Interval is in days: 0 means off, -1 ("即时清理") means clean on every
+/// launch, otherwise one of 3, 7 or 15. Any other stored value is treated
+/// as off, so a corrupted or legacy value can never trigger an unexpected
+/// cleanup. The cleanup itself only removes the network image cache (see
+/// `CacheManage.clearCacheAll`); it never touches accounts, settings,
+/// local follows or other stored data.
 ///
 /// The check runs on app launch only, like the automatic update check:
 /// if the interval has elapsed since the last cleanup (or there has never
 /// been one), the cache is cleared and the timestamp is updated. A failed
 /// cleanup does not update the timestamp, so it is retried on the next
-/// launch instead of silently skipping a whole interval.
+/// launch instead of silently skipping a whole interval. The every-launch
+/// mode skips the timestamp comparison and clears the previous run's cache
+/// as soon as the app starts.
 class AutoCacheCleanupPreferences {
   AutoCacheCleanupPreferences(this.box);
 
@@ -21,16 +24,19 @@ class AutoCacheCleanupPreferences {
   static const daysKey = 'autoCacheCleanupDays';
   static const _lastKey = 'autoCacheCleanupLastMillis';
 
-  static const allowedDays = <int>[0, 3, 7, 15];
+  /// Clean on every launch, without waiting for a day interval.
+  static const immediate = -1;
+
+  static const allowedValues = <int>[immediate, 0, 3, 7, 15];
 
   int get intervalDays {
     final value = box.get(daysKey, defaultValue: 0);
-    if (value is int && allowedDays.contains(value)) return value;
+    if (value is int && allowedValues.contains(value)) return value;
     return 0;
   }
 
   Future<void> setIntervalDays(int days) =>
-      box.put(daysKey, allowedDays.contains(days) ? days : 0);
+      box.put(daysKey, allowedValues.contains(days) ? days : 0);
 
   DateTime? get lastCleaned {
     final value = box.get(_lastKey);
@@ -47,6 +53,7 @@ class AutoCacheCleanupPreferences {
   bool shouldClean(DateTime now) {
     final interval = intervalDays;
     if (interval == 0) return false;
+    if (interval == immediate) return true;
     final last = lastCleaned;
     if (last == null) return true;
     return now.difference(last) >= Duration(days: interval);

@@ -80,6 +80,18 @@ void main() {
     expect(preferences.intervalDays, 0);
   });
 
+  test('immediate mode cleans on every launch', () async {
+    await preferences
+        .setIntervalDays(AutoCacheCleanupPreferences.immediate);
+    expect(preferences.intervalDays,
+        AutoCacheCleanupPreferences.immediate);
+    await preferences.markCleaned(now);
+    expect(preferences.shouldClean(now), isTrue);
+    expect(await preferences.runIfDue(now, () async => true), isTrue);
+    expect(preferences.lastCleaned, now);
+    expect(preferences.shouldClean(now), isTrue);
+  });
+
   test('failed cleanup does not update the timestamp', () async {
     await preferences.setIntervalDays(7);
     expect(await preferences.runIfDue(now, () async => false), isFalse);
