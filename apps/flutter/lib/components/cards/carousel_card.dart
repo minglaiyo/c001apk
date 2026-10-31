@@ -18,7 +18,6 @@ class CarouselCard extends StatefulWidget {
 }
 
 class _CarouselCardState extends State<CarouselCard> {
-  int _currentPage = 0;
   late List<Entity> _filterList;
   late PageController _controller;
   Timer? _timer;
@@ -78,14 +77,6 @@ class _CarouselCardState extends State<CarouselCard> {
                             } else {
                               _timer?.cancel();
                             }
-                            setState(
-                                () => _currentPage = _filterList.length == 1
-                                    ? index
-                                    : index == 0
-                                        ? _filterList.length - 3
-                                        : index == _filterList.length - 1
-                                            ? 0
-                                            : index - 1);
                           }
                         },
                         itemBuilder: (context, page) {
@@ -105,38 +96,6 @@ class _CarouselCardState extends State<CarouselCard> {
                         },
                       ),
                     ),
-                    if (_filterList.length != 1)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 5, right: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: List.generate(
-                              _filterList.length == 1
-                                  ? 1
-                                  : _filterList.length - 2, (index) {
-                            return GestureDetector(
-                              onTap: () {
-                                _controller.animateToPage(
-                                  index + 1,
-                                  duration: const Duration(milliseconds: 255),
-                                  curve: Curves.ease,
-                                );
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.all(2),
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _currentPage == index
-                                      ? Colors.white
-                                      : Colors.white.withAlpha(128),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
                   ],
                 ),
               ),

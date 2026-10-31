@@ -70,7 +70,7 @@ class _IconLinkGridCardState extends State<IconLinkGridCard> {
       child: InkWell(
         onTap: () => Utils.onOpenLink(data.url.orEmpty, data.title, true, context),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
