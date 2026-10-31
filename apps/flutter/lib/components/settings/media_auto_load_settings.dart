@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../constants/media_auto_load_mode.dart';
+import '../../pages/settings/settings_search_index.dart';
 import '../../utils/storage_util.dart';
 
 class MediaAutoLoadSettings extends StatefulWidget {
@@ -63,11 +64,13 @@ class _MediaAutoLoadSettingsState extends State<MediaAutoLoadSettings> {
                 onChanged: _savingFrom == null ? _save : null,
               ),
             );
-            return Semantics(
-              container: true,
-              child: ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('自动加载实况图片'),
+            return SettingsItemLocator(
+              itemId: 'livePhotoAutoLoad',
+              child: Semantics(
+                container: true,
+                child: ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('自动加载实况图片'),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -76,6 +79,7 @@ class _MediaAutoLoadSettingsState extends State<MediaAutoLoadSettings> {
                   ],
                 ),
                 trailing: stackPicker ? null : picker,
+                ),
               ),
             );
           },

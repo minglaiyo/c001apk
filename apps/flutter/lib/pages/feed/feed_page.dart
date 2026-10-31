@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:get/get_navigation/src/dialog/dialog_route.dart';
@@ -43,7 +44,8 @@ enum FeedMenuItem {
   Block,
   Source,
   Report,
-  EditHistory;
+  EditHistory,
+  FloorJump;
 
   String get label => switch (this) {
         FeedMenuItem.Copy => '复制',
@@ -53,6 +55,7 @@ enum FeedMenuItem {
         FeedMenuItem.Source => '查看原文',
         FeedMenuItem.Report => '举报',
         FeedMenuItem.EditHistory => '编辑记录',
+        FeedMenuItem.FloorJump => '跳楼层',
       };
 }
 
@@ -74,6 +77,11 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
   AnimationController? _fabAnimationCtr;
   late bool _isFabVisible = true;
   late final _scrollController = ScrollController();
+  // One key per reply card, by list index, so floor jumps can
+  // Scrollable.ensureVisible the target card. Indices are stable:
+  // pagination only appends, and a refresh rebuilds the same index
+  // positions for the new sort order.
+  final _replyKeys = <int, GlobalKey>{};
   final _titleVisible = ValueNotifier<bool>(false);
   bool _showSource = false;
 
@@ -470,6 +478,136 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
     );
   }
 
+  /// Floor navigation, modelled on TiebaLite's thread comment navigation:
+  /// jump to a given floor, or to the last floor, in the current sort
+  /// order. Floors count reply cards from 1 (the first card in the
+  /// current list, pinned reply included); the total comes from the
+  /// detail's reply count when known. Arriving at the target gives a
+  /// medium haptic, like TiebaLite's last-floor feedback.
+  Future<void> _showFloorJumpDialog() async {
+    final replyState = _feedController.loadingState.value;
+    if (_feedController.repliesDeferred.value || replyState is! Success) {
+      SmartDialog.showToast('请先加载评论');
+      return;
+    }
+    final total = _feedController.replyNum;
+    final input = TextEditingController();
+    // -1 = last floor, chosen by the 末楼 button.
+    final floor = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('跳楼层'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (total != null) Text('共 $total 条评论，按当前排序计数'),
+            TextField(
+              controller: input,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                hintText: '输入楼层，如 42',
+              ),
+              onSubmitted: (value) {
+                final parsed = int.tryParse(value);
+                if (parsed != null && parsed > 0) {
+                  Navigator.of(context).pop(parsed);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(-1),
+            child: const Text('末楼'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final parsed = int.tryParse(input.text);
+              if (parsed != null && parsed > 0) {
+                Navigator.of(context).pop(parsed);
+              }
+            },
+            child: const Text('跳转'),
+          ),
+        ],
+      ),
+    );
+    input.dispose();
+    if (floor == null || !mounted) return;
+    await _jumpToFloor(floor);
+  }
+
+  int get _loadedReplyCount {
+    final state = _feedController.loadingState.value;
+    if (state is! Success) return 0;
+    return (state.response as List).length;
+  }
+
+  Future<void> _jumpToFloor(int floor) async {
+    // Wait out a footer auto-load already in progress, briefly.
+    for (var wait = 0;
+        _feedController.isLoading && wait < 50 && mounted;
+        wait++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    // Load pages until the target floor is loaded, or until the end
+    // for the last floor. A load that grows nothing (error / paused)
+    // breaks the loop instead of spinning.
+    var guard = 0;
+    if (floor == -1) {
+      while (!_feedController.isEnd && guard++ < 200 && mounted) {
+        final before = _loadedReplyCount;
+        await _feedController.onGetData(false);
+        if (_loadedReplyCount == before) break;
+      }
+      floor = _loadedReplyCount;
+    } else {
+      while (_loadedReplyCount < floor &&
+          !_feedController.isEnd &&
+          guard++ < 200 &&
+          mounted) {
+        final before = _loadedReplyCount;
+        await _feedController.onGetData(false);
+        if (_loadedReplyCount == before) break;
+      }
+      if (floor > _loadedReplyCount) {
+        if (!mounted) return;
+        SmartDialog.showToast('只有 $_loadedReplyCount 条评论，已定位到末楼');
+        floor = _loadedReplyCount;
+      }
+    }
+    if (floor <= 0 || !mounted) return;
+    // The target card may not be built yet (a lazy sliver far below the
+    // viewport): scroll toward the bottom until it builds, then reveal
+    // it precisely.
+    for (var attempt = 0; attempt < 25 && mounted; attempt++) {
+      final target = _replyKeys[floor - 1]?.currentContext;
+      if (target != null) {
+        await Scrollable.ensureVisible(
+          target,
+          duration: const Duration(milliseconds: 400),
+          alignment: 0.1,
+        );
+        await HapticFeedback.mediumImpact();
+        return;
+      }
+      if (!_scrollController.hasClients) return;
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    if (mounted) SmartDialog.showToast('未能定位到第 $floor 楼');
+  }
+
   Widget _buildFeedReply(LoadingState replyState) {
     if (_feedController.repliesDeferred.value && replyState is! Success) {
       return SliverToBoxAdapter(child: _buildDeferredReplyPrompt(replyState));
@@ -531,6 +669,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                 );
               } else {
                 return FeedReplyCard(
+                  key: _replyKeys.putIfAbsent(index, () => GlobalKey()),
                   data: dataList[index],
                   isTopReply: _feedController.topReply != null &&
                       index == 0 &&
@@ -725,6 +864,9 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                             break;
                           case FeedMenuItem.EditHistory:
                             showFeedChangeHistoryDialog(context, _id);
+                            break;
+                          case FeedMenuItem.FloorJump:
+                            _showFloorJumpDialog();
                             break;
                         }
                       },
