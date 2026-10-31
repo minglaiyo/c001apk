@@ -200,7 +200,7 @@ class _SearchPageState extends State<SearchPage> {
             },
           );
         }
-        // Empty query: hot searches (global only) above search history.
+        // Empty query: search history above hot searches (global only).
         final hotList = _searchPageController.hotList;
         final historyList = _searchPageController.historyList;
         if (hotList.isEmpty && historyList.isEmpty) {
@@ -216,44 +216,6 @@ class _SearchPageState extends State<SearchPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (hotList.isNotEmpty) ...[
-                const Row(
-                  children: [
-                    SizedBox(width: 10),
-                    Expanded(
-                      flex: 1,
-                      child: Text(
-                        '热门搜索',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: hotList
-                        .map(
-                          (text) => SearchHistoryCard(
-                            text: text,
-                            onTap: () {
-                              _controller.text = text;
-                              _clearStream.add(true);
-                              setState(() => _query = text);
-                              onSearch(text);
-                            },
-                            onLongPress: () {},
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-              ],
               if (historyList.isNotEmpty) ...[
                 Row(
                   children: [
@@ -308,6 +270,44 @@ class _SearchPageState extends State<SearchPage> {
                             },
                             onLongPress: () =>
                                 _searchPageController.handleSearch(text, true),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ],
+              if (hotList.isNotEmpty) ...[
+                const Row(
+                  children: [
+                    SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        '热门搜索',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: hotList
+                        .map(
+                          (text) => SearchHistoryCard(
+                            text: text,
+                            onTap: () {
+                              _controller.text = text;
+                              _clearStream.add(true);
+                              setState(() => _query = text);
+                              onSearch(text);
+                            },
+                            onLongPress: () {},
                           ),
                         )
                         .toList(),
