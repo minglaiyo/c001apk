@@ -9,8 +9,11 @@ void main() {
 
   test('title and keyword matches', () {
     final backToTop = searchSettings('回顶键');
+    expect(backToTop.map((entry) => entry.itemId), contains('backToTop'));
     expect(backToTop.map((entry) => entry.itemId),
-        containsAll(['backToTop', 'backToTopSide']));
+        isNot(contains('backToTopSide')));
+    expect(searchSettings('复位').map((entry) => entry.itemId),
+        contains('backToTop'));
 
     final cache = searchSettings('缓存');
     expect(cache.map((entry) => entry.itemId),
@@ -18,8 +21,7 @@ void main() {
   });
 
   test('every token must match', () {
-    expect(searchSettings('回顶键 左侧').map((entry) => entry.itemId),
-        ['backToTopSide']);
+    expect(searchSettings('回顶键 左侧'), isEmpty);
     expect(searchSettings('回顶键 不存在'), isEmpty);
   });
 

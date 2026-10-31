@@ -64,13 +64,7 @@ const List<SettingsSearchEntry> settingsSearchEntries = [
     title: '回顶键',
     section: SettingsSection.appearance,
     itemId: 'backToTop',
-    keywords: ['回到顶部', '长按刷新'],
-  ),
-  SettingsSearchEntry(
-    title: '回顶键位置',
-    section: SettingsSection.appearance,
-    itemId: 'backToTopSide',
-    keywords: ['靠左', '靠右', '左侧', '右侧'],
+    keywords: ['回到顶部', '长按刷新', '复位'],
   ),
   SettingsSearchEntry(
     title: '液态玻璃档位',
@@ -181,7 +175,7 @@ const List<SettingsSearchEntry> settingsSearchEntries = [
     title: '自动清理缓存',
     section: SettingsSection.storage,
     itemId: 'autoCacheCleanup',
-    keywords: ['缓存', '每3天', '每7天', '每15天', '图片缓存'],
+    keywords: ['缓存', '每3天', '每7天', '每15天', '即时清理', '图片缓存'],
   ),
   SettingsSearchEntry(
     title: '清理缓存',

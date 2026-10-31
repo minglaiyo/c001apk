@@ -511,13 +511,16 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
                 child: DropDownMenuItem(
                   icon: Icons.auto_delete_outlined,
                   title: '自动清理缓存',
-                  subtitle: '到期后下次启动时清理图片缓存，不删账号、设置和本地关注',
+                  subtitle: '到期后下次启动时清理图片缓存；即时清理为每次启动时清理，不删账号、设置和本地关注',
                   boxKey: AutoCacheCleanupPreferences.daysKey,
                   items: [
                     DropdownMenuItem<int>(value: 0, child: Text('关闭')),
                     DropdownMenuItem<int>(value: 3, child: Text('每 3 天')),
                     DropdownMenuItem<int>(value: 7, child: Text('每 7 天')),
                     DropdownMenuItem<int>(value: 15, child: Text('每 15 天')),
+                    DropdownMenuItem<int>(
+                        value: AutoCacheCleanupPreferences.immediate,
+                        child: Text('即时清理')),
                   ],
                 ),
               ),
