@@ -174,11 +174,11 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                                                 vertical: 10),
                                             child: Text(
                                               widget.tabType == TabType.TOPIC
-                                                  ? data[0]
+                                                  ? data![0]
                                                       .entities![index]
                                                       .title
                                                       .toString()
-                                                  : data[index]
+                                                  : data![index]
                                                       .title
                                                       .toString(),
                                               style: TextStyle(
@@ -235,15 +235,15 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                   scrollDirection: Axis.vertical,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: widget.tabType == TabType.TOPIC
-                      ? data[0].entities!.length
-                      : data.length,
+                      ? data![0].entities!.length
+                      : data!.length,
                   itemBuilder: (context, index) => TopicCategoryGrid(
                     url: widget.tabType == TabType.TOPIC
-                        ? data[0].entities![index].url
-                        : data[index].url,
+                        ? data![0].entities![index].url
+                        : data![index].url,
                     title: widget.tabType == TabType.TOPIC
-                        ? data[0].entities![index].title
-                        : data[index].title,
+                        ? data![0].entities![index].title
+                        : data![index].title,
                     gridEntityType:
                         widget.tabType == TabType.TOPIC ? 'topic' : 'product',
                   ),
