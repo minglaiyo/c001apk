@@ -92,6 +92,7 @@ class _SearchResultPageState extends State<SearchResultPage>
   final String? _title = Get.parameters['title'];
   final String? _pageType = Get.parameters['pageType'];
   final String? _pageParam = Get.parameters['pageParam'];
+  final String? _contentType = Get.parameters['contentType'];
 
   late final TabController _tabController;
   final _shouldShowActionsStream = StreamController<bool>();
@@ -110,9 +111,24 @@ class _SearchResultPageState extends State<SearchResultPage>
     _searchOrderController = Get.put(SearchOrderController(),
         tag: '$_keyword$_title$_pageType$_pageParam$_random');
 
+    // A suggestion row can preselect a result tab (user/topic/app/
+    // product). Only in global mode, where all tabs exist; scoped
+    // searches keep their single tab.
+    final initialIndex = _title.isNullOrEmpty
+        ? switch (_contentType) {
+            'user' => SearchContentType.USER.index,
+            'topic' => SearchContentType.TOPIC.index,
+            'app' => SearchContentType.APP.index,
+            'product' => SearchContentType.PRODUCT.index,
+            'feed' => SearchContentType.FEED.index,
+            'game' => SearchContentType.GAME.index,
+            _ => 0,
+          }
+        : 0;
     _tabController = TabController(
       vsync: this,
       length: _title.isNullOrEmpty ? SearchContentType.values.length : 1,
+      initialIndex: initialIndex,
     );
     _tabController.addListener(() {
       _shouldShowActionsStream.add(_tabController.index == 0);
@@ -165,7 +181,7 @@ class _SearchResultPageState extends State<SearchResultPage>
         ),
         actions: [
           StreamBuilder(
-            initialData: true,
+            initialData: _tabController.index == 0,
             stream: _shouldShowActionsStream.stream,
             builder: (_, snapshot) => snapshot.data == true
                 ? PopupMenuButton(

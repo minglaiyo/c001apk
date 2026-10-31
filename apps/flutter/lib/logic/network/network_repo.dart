@@ -9,6 +9,7 @@ import '../../logic/network/api.dart';
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/request.dart';
 import '../../logic/state/loading_state.dart';
+import '../../pages/search/search_suggestion.dart';
 import '../../utils/extensions.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/token_util.dart';
@@ -350,6 +351,44 @@ class NetworkRepo {
         'showAnonymous': -1,
       }),
     );
+  }
+
+  /// Hot-search keywords for the empty global search page, from
+  /// `GET /v6/search?type=hotSearch&refresh=1&returnType=all` (the same
+  /// request the official client and coolapk-desktop use). Returns an
+  /// empty list on any failure so the hot section simply stays hidden
+  /// instead of breaking the search page.
+  static Future<List<String>> getHotSearches() async {
+    try {
+      final response = await Request().get(Api.getSearch, queryParameters: {
+        'type': 'hotSearch',
+        'refresh': 1,
+        'returnType': 'all',
+      });
+      return parseHotSearchKeywords(readApiObject(response)['data']);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Input suggestions for a keyword, from
+  /// `GET /v6/search/suggestSearchWordsNew`. The `app` variant is tried
+  /// first by the caller (like coolapk-desktop); this method only runs
+  /// one variant. Returns an empty list on any failure.
+  static Future<List<SearchSuggestion>> getSearchSuggestions(
+    String query, {
+    bool app = false,
+  }) async {
+    try {
+      final response = await Request().get(Api.getSearchSuggest,
+          queryParameters: {
+            'searchValue': query,
+            if (app) 'type': 'app',
+          });
+      return parseSearchSuggestions(readApiObject(response)['data']);
+    } catch (_) {
+      return [];
+    }
   }
 
   static Future<Response> getAppDownloadUrl({

@@ -19,6 +19,9 @@ class Api {
 
   static String getSearch = '${Constants.URL_API_SERVICE}/v6/search';
 
+  static String getSearchSuggest =
+      '${Constants.URL_API_SERVICE}/v6/search/suggestSearchWordsNew';
+
   static String checkLoginInfo =
       '${Constants.URL_API_SERVICE}/v6/account/checkLoginInfo';
 
