@@ -71,9 +71,17 @@ class HomeFeedController extends CommonController {
     // items before it in the new list are the new items; if it is gone
     // entirely, the refreshed page size is used, exactly like
     // TiebaLite's RefreshSuccess(data.size).
-    final hadItems = filteredItems.isNotEmpty;
+    //
+    // The anchor and the new list must come from the visible list in
+    // loadingState, which is what commonBody actually renders. Do NOT
+    // use filteredItems here: CommonController.reapplyFilters fills
+    // it with the items filtered OUT by content filters, so it is
+    // empty for a normal feed and the tip could never appear (this
+    // was the Build #19 bug: the capsule never showed).
+    final previousVisible = _visibleItems();
+    final hadItems = previousVisible.isNotEmpty;
     final previousFirstKey =
-        hadItems ? _itemKey(filteredItems.first) : null;
+        hadItems ? _itemKey(previousVisible.first) : null;
     super.publishItems(items, append: append);
     if (append ||
         !_tipRefreshInProgress ||
@@ -82,7 +90,7 @@ class HomeFeedController extends CommonController {
         _suppressNextTip) {
       return;
     }
-    final newItems = filteredItems;
+    final newItems = _visibleItems();
     if (newItems.isEmpty) {
       newFeedCount.value = null;
       return;
@@ -92,6 +100,16 @@ class HomeFeedController extends CommonController {
     newFeedCount.value =
         previousIndex > 0 ? previousIndex : newItems.length;
     newFeedTipShownOffset = scrollController?.offset ?? 0;
+  }
+
+  /// The list actually rendered by commonBody, from loadingState's
+  /// Success response. Empty while loading or on error.
+  List<Datum> _visibleItems() {
+    final state = loadingState.value;
+    if (state is Success) {
+      return List<Datum>.from(state.response);
+    }
+    return const [];
   }
 
   /// The same identity key `CommonController.handleUnique` uses, so a
