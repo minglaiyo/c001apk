@@ -137,8 +137,9 @@ class _FeedChangeHistoryDialogState extends State<_FeedChangeHistoryDialog> {
                                         width: 72,
                                         height: 72,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, _, _) =>
-                                            const SizedBox.shrink(),
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const SizedBox.shrink(),
                                       ))
                                   .toList(),
                             ),
