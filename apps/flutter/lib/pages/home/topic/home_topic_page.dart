@@ -51,7 +51,80 @@ class _HomeTopicPageState extends State<HomeTopicPage>
           children: [
             Expanded(
               flex: 22,
-              child: ListView.builder(
+              child: Column(
+                children: [
+                  // Current-page readout: the left list holds the current
+                  // top tab's sub-categories, not a second top-level
+                  // navigation. Without it, the top pill and the left
+                  // highlight read as two peer selections, and both
+                  // sections happen to default to a sub-category named
+                  // 热门, which makes it look like the same page.
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                    ),
+                    child: Obx(
+                      () {
+                        final count = widget.tabType == TabType.TOPIC
+                            ? data![0].entities!.length
+                            : data!.length;
+                        final section = widget.tabType == TabType.TOPIC
+                            ? '话题'
+                            : '数码';
+                        final currentTitle = count == 0
+                            ? null
+                            : (widget.tabType == TabType.TOPIC
+                                ? data![0]
+                                    .entities![_homeTopicController
+                                        .currentIndex.value
+                                        .clamp(0, count - 1)]
+                                    .title
+                                    .toString()
+                                : data![_homeTopicController
+                                        .currentIndex.value
+                                        .clamp(0, count - 1)]
+                                    .title
+                                    .toString());
+                        return Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: section,
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              if (currentTitle != null)
+                                TextSpan(
+                                  text: ' · $currentTitle',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
                 ),
@@ -113,7 +186,10 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                       ),
                     ),
                   ),
+                    ),
+                  ),
                 ),
+                ],
               ),
             ),
             Expanded(
