@@ -33,6 +33,24 @@ void main() {
       expect(detail.tabs, isEmpty);
     });
 
+    test('rating dimensions use owner_average_score, zero rows dropped',
+        () {
+      final detail = parseProductDetail('123', {
+        'rating_item_info': [
+          {'name': '续航', 'owner_average_score': 8.5, 'average_score': 7.0},
+          {'name': '性能', 'average_score': 9.2},
+          {'name': '屏幕'},
+          {'name': '外观', 'average_score': 0},
+        ],
+        'tabList': [],
+      });
+      expect(detail.ratingItems.length, 2);
+      expect(detail.ratingItems[0].name, '续航');
+      expect(detail.ratingItems[0].score, 8.5);
+      expect(detail.ratingItems[1].name, '性能');
+      expect(detail.ratingItems[1].score, 9.2);
+    });
+
     test('non-map detail throws', () {
       expect(() => parseProductDetail('123', ['not', 'a', 'map']),
           throwsFormatException);

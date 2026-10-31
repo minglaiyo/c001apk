@@ -169,6 +169,12 @@ ProductDetail parseProductDetail(String productId, dynamic data) {
   if (data is! Map) {
     throw const FormatException('产品详情格式异常');
   }
+  // Product rating dimensions do NOT carry a `score` field: desktop
+  // reads `owner_average_score` (owner view) falling back to
+  // `average_score`, and drops dimensions with no positive score
+  // instead of showing a 0.0 row. Reading `score` here is what made
+  // every dimension render as 0.0 on device. `v4_score`/`score` stay
+  // as last-resort fallbacks for other rating payload shapes.
   final ratingItems = <ProductRatingItem>[];
   final rawRatingItems = data['rating_item_info'];
   if (rawRatingItems is List) {
@@ -176,8 +182,12 @@ ProductDetail parseProductDetail(String productId, dynamic data) {
       if (item is! Map) continue;
       final name = _firstText(item, ['name', 'title']);
       if (name.isEmpty) continue;
-      ratingItems.add(
-          ProductRatingItem(name: name, score: _toDouble(item['score'])));
+      final score = _toDouble(item['owner_average_score'] ??
+          item['average_score'] ??
+          item['v4_score'] ??
+          item['score']);
+      if (score <= 0) continue;
+      ratingItems.add(ProductRatingItem(name: name, score: score));
     }
   }
   final specs = <String>[];
