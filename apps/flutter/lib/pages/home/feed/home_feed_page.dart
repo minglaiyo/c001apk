@@ -233,9 +233,14 @@ class _HomeFeedPageState extends State<HomeFeedPage>
             },
           ),
           // Floating "更新了 N 条动态" capsule, centred just below the
-          // top tab bar (this Stack sits below it), over the list like
-          // TiebaLite's TopCenter RefreshTip. It only exists while the
-          // controller reports a new-feed count.
+          // top tab bar, over the list like TiebaLite's TopCenter
+          // RefreshTip. It only exists while the controller reports a
+          // new-feed count. The scaffold extends the body behind its
+          // glass AppBar, so a fixed top of 12 would land the capsule
+          // on the status bar and the tab bar itself; the scaffold
+          // instead reports the bar height through this MediaQuery
+          // padding (status bar + bar height in glass mode, 0 when the
+          // body is already padded below a plain AppBar).
           Obx(() {
             final count = _homeFeedController.newFeedCount.value;
             if (count == null) return const SizedBox.shrink();
@@ -248,7 +253,7 @@ class _HomeFeedPageState extends State<HomeFeedPage>
                         300)
                 .clamp(0.0, 1.0);
             return Positioned(
-              top: 12,
+              top: MediaQuery.paddingOf(context).top + 12,
               left: 0,
               right: 0,
               child: Center(
