@@ -128,14 +128,24 @@ List<ProductTab> parseProductTabs(String productId, dynamic tabList) {
     } catch (_) {
       continue;
     }
+    // Tab URLs are not always URL-encoded: in an unencoded
+    // `/page?url=/product/feedList&id=...&type=...` the `&` splits
+    // id/type onto the outer query, leaving the inner URL with only
+    // its path, so reading only the inner query rejects every tab.
+    // Fall back to the outer query for keys the inner URL does not
+    // carry; an encoded inner URL keeps precedence.
+    final query = <String, String>{
+      ...outer.queryParameters,
+      ...inner.queryParameters,
+    };
     if (inner.path != '/product/feedList') continue;
-    if ((inner.queryParameters['id'] ?? '') != productId) continue;
-    final feedType = inner.queryParameters['type'] ?? '';
+    if ((query['id'] ?? '') != productId) continue;
+    final feedType = query['type'] ?? '';
     if (feedType == 'main' || feedType == 'rating') continue;
     String? subId;
     String key;
     if (feedType == 'subTabFeed') {
-      subId = inner.queryParameters['subId'] ?? '';
+      subId = query['subId'] ?? '';
       if (!RegExp(r'^\d+$').hasMatch(subId)) continue;
       key = 'subtab:$subId';
     } else if (feedType.isNotEmpty) {
@@ -149,7 +159,7 @@ List<ProductTab> parseProductTabs(String productId, dynamic tabList) {
       label: label,
       feedType: feedType == 'subTabFeed' ? '' : feedType,
       subId: subId,
-      listType: inner.queryParameters['listType'],
+      listType: query['listType'],
     ));
   }
   return tabs;

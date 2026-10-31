@@ -91,6 +91,20 @@ void main() {
       expect(tabs[1].subId, '5');
     });
 
+    test('URL-encoded inner URLs parse the same way', () {
+      final tabs = parseProductTabs('123', [
+        {
+          'title': '讨论',
+          'url':
+              '/page?url=%2Fproduct%2FfeedList%3Fid%3D123%26type%3Dfeed',
+          'is_open': '1',
+        },
+      ]);
+      expect(tabs.length, 1);
+      expect(tabs[0].label, '讨论');
+      expect(tabs[0].feedType, 'feed');
+    });
+
     test('non-list tabList yields no tabs', () {
       expect(parseProductTabs('123', null), isEmpty);
       expect(parseProductTabs('123', 'nonsense'), isEmpty);
