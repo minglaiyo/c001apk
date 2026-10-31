@@ -25,6 +25,7 @@ class GlassSurface extends StatelessWidget {
     this.press = 0,
     this.borderRadius,
     this.shadow = true,
+    this.glow = 1,
   });
 
   factory GlassSurface.navigationBase({
@@ -35,6 +36,7 @@ class GlassSurface extends StatelessWidget {
     required LiquidGlassLevel level,
     bool shadow = true,
     double press = 0,
+    double glow = 1,
   }) =>
       GlassSurface(
           shader: shader,
@@ -45,7 +47,8 @@ class GlassSurface extends StatelessWidget {
           tint: theme.colorScheme.surfaceContainer,
           level: level,
           shadow: shadow,
-          press: press);
+          press: press,
+          glow: glow);
 
   factory GlassSurface.navigationLens({
     required ui.FragmentShader? shader,
@@ -56,6 +59,7 @@ class GlassSurface extends StatelessWidget {
     required double progress,
     bool shadow = true,
     Color? tint,
+    double glow = 1,
   }) =>
       GlassSurface(
           shader: shader,
@@ -67,12 +71,13 @@ class GlassSurface extends StatelessWidget {
           level: level,
           depthEffect: true,
           shadow: shadow,
-          press: progress);
+          press: progress,
+          glow: glow);
 
   final ui.FragmentShader? shader;
   final bool enabled, depthEffect, shadow;
   final Size extent;
-  final double depth, dispersion, refractionHeight, blur, press;
+  final double depth, dispersion, refractionHeight, blur, press, glow;
   final Color tint;
   final Color? fallbackTint;
   final LiquidGlassLevel level;
@@ -82,17 +87,96 @@ class GlassSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = borderRadius ?? BorderRadius.circular(extent.height / 2);
     final solid = !enabled || MediaQuery.highContrastOf(context);
-    final content = ColoredBox(
-      color: (fallbackTint ?? tint).withValues(alpha: solid ? 1 : .9),
-      child: const SizedBox.expand(),
-    );
+    final baseTint = fallbackTint ?? tint;
+    // Flat opaque surface for low level / disabled / high contrast,
+    // exactly as before.
+    if (solid || level == LiquidGlassLevel.low) {
+      return ClipRRect(
+        borderRadius: radius,
+        child: ColoredBox(
+          color: baseTint.withValues(alpha: solid ? 1 : .9),
+          child: const SizedBox.expand(),
+        ),
+      );
+    }
+    // Fake glass, made less flat: blur strength grows with the level
+    // (the old code used sigma 4 for every non-low level), the tint is
+    // a top-light gradient instead of one flat colour, a 1px rim catches
+    // light from above, and a soft top sheen sits over it all. This is
+    // still blur + tint, not refraction, but the levels now actually
+    // look different from each other.
+    double sigma;
+    double rimBase;
+    if (level == LiquidGlassLevel.medium) {
+      sigma = 10;
+      rimBase = 0.22;
+    } else if (level == LiquidGlassLevel.high) {
+      sigma = 16;
+      rimBase = 0.35;
+    } else {
+      sigma = 22;
+      rimBase = 0.5;
+    }
+    // Scroll-linked brightness: glow is the bar's show progress
+    // (1 = fully shown). As a bar hides with scrolling its glass dims
+    // slightly on top of the existing fade, instead of staying flat.
+    final glowFactor = 0.6 + 0.4 * glow.clamp(0.0, 1.0);
+    final rim = rimBase * glowFactor;
+    final sheen = Colors.white.withValues(alpha: 0.10 * glowFactor);
     return ClipRRect(
       borderRadius: radius,
-      child: solid || level == LiquidGlassLevel.low
-          ? content
-          : BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-              child: content),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white.withValues(alpha: rim),
+              Colors.white.withValues(alpha: rim * 0.3),
+              Colors.transparent,
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.3, 0.6, 1.0],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(1),
+          child: Stack(
+            children: [
+              BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        baseTint.withValues(alpha: 0.72),
+                        baseTint.withValues(alpha: 0.92),
+                      ],
+                    ),
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.center,
+                        colors: [sheen, Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -180,7 +264,8 @@ class LiquidNavigationBar extends StatefulWidget {
       required this.onDestinationSelected,
       this.program,
       this.refract = true,
-      this.level = LiquidGlassLevel.medium})
+      this.level = LiquidGlassLevel.medium,
+      this.glow = 1})
       : labels = const ['主页', '关注', '我的'],
         selectedPosition = null,
         tabs = false;
@@ -192,9 +277,13 @@ class LiquidNavigationBar extends StatefulWidget {
       this.selectedPosition,
       this.program,
       this.refract = true,
-      this.level = LiquidGlassLevel.medium})
+      this.level = LiquidGlassLevel.medium,
+      this.glow = 1})
       : tabs = true;
   final int selectedIndex;
+  // Bar show progress (1 = fully shown), driven by the scroll-hide
+  // animation. Scales the glass rim/sheen brightness with scrolling.
+  final double glow;
   // Fractional selected position (e.g. a TabController animation value).
   // When set, the selected pill slides continuously instead of jumping
   // between cells when selectedIndex flips at the end of a transition.
@@ -288,7 +377,8 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                                 Size(bounds.maxWidth, height),
                                             theme: theme,
                                             level: widget.level,
-                                            shadow: false))),
+                                            shadow: false,
+                                            glow: widget.glow))),
                                 // Sliding pill: same rect as the per-cell
                                 // pill at integer positions, but it moves
                                 // continuously with effectivePosition.

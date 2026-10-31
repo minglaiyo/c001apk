@@ -153,12 +153,16 @@ class _AdaptiveMainScaffoldState extends State<AdaptiveMainScaffold>
                     ? ScrollHidingAction(
                         animation: _barAnimation,
                         maintainSize: true,
-                        child: LiquidNavigationBar(
-                          selectedIndex: widget.selectedIndex,
-                          onDestinationSelected:
-                              widget.onDestinationSelected,
-                          refract: GStorage.liquidGlass,
-                          level: GStorage.liquidGlassLevel,
+                        child: AnimatedBuilder(
+                          animation: _barAnimation,
+                          builder: (context, _) => LiquidNavigationBar(
+                            selectedIndex: widget.selectedIndex,
+                            onDestinationSelected:
+                                widget.onDestinationSelected,
+                            refract: GStorage.liquidGlass,
+                            level: GStorage.liquidGlassLevel,
+                            glow: _barAnimation.value,
+                          ),
                         ),
                       )
                     : ExpressiveNavigationBar(
