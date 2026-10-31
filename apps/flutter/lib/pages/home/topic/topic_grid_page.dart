@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../components/expressive_refresh_indicator.dart';
 import '../../../components/network_image.dart';
 import '../../../logic/model/feed/datum.dart';
 import '../../../logic/state/loading_state.dart';
@@ -165,11 +166,31 @@ class _TopicCategoryGridState extends State<TopicCategoryGrid> {
               isHomeCard: true,
             );
           }
-          return RefreshIndicator(
+          // Same refresh indicator as every other list page
+          // (common_body.dart): the bare Material RefreshIndicator
+          // showed the default circular arrow, unlike the app's
+          // expressive capsule spinner.
+          return ExpressiveRefreshIndicator(
             onRefresh: () => _reload(controller),
             child: GridView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.all(12),
+              // Same convention as common_body.dart: the 12px grid gap
+              // plus the scaffold's top inset, so the first row starts
+              // below the floating top bar instead of sliding under
+              // it; the bottom adds the floating bottom pill's
+              // clearance (the 96 the back-to-top button uses), so the
+              // last row is not hidden behind the bottom bar either.
+              // An explicit padding used to ignore the MediaQuery
+              // inset entirely, which is what put content behind
+              // both floating bars.
+              padding: EdgeInsets.only(
+                left: 12,
+                right: 12,
+                top: 12 + MediaQuery.paddingOf(context).top,
+                bottom: 12 +
+                    MediaQuery.paddingOf(context).bottom +
+                    96,
+              ),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 mainAxisSpacing: 16,
