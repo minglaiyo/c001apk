@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../components/back_to_top_action.dart';
 import '../../components/common_body.dart';
 import '../../pages/product/product_detail.dart';
 import '../../pages/product/product_feed_controller.dart';
@@ -48,6 +49,17 @@ class _ProductFeedContentState extends State<ProductFeedContent>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return commonBody(_controller);
+    return Stack(
+      children: [
+        commonBody(_controller),
+        BackToTopOverlay(
+          controller: _controller.scrollController,
+          onLongPress: () {
+            _controller.onReset();
+            _controller.onGetData();
+          },
+        ),
+      ],
+    );
   }
 }

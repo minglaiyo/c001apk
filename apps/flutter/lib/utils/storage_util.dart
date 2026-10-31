@@ -36,6 +36,11 @@ class GStorage {
   static bool get backToTopEnabled =>
       settings.get(SettingsBoxKey.backToTopEnabled, defaultValue: true) ==
       true;
+  static bool get clipboardLinkDetection =>
+      settings.get(SettingsBoxKey.clipboardLinkDetection,
+          defaultValue: true) ==
+      true;
+
   // Stored as an int by DropDownMenuItem: 0 = right, 1 = left.
   static bool get backToTopOnLeft =>
       settings.get(SettingsBoxKey.backToTopSide, defaultValue: 0) == 1;
@@ -568,6 +573,8 @@ class SettingsBoxKey {
       liquidGlassLevel = 'liquidGlassLevel',
       backToTopEnabled = 'backToTopEnabled',
       backToTopSide = 'backToTopSide',
+      clipboardLinkDetection = 'clipboardLinkDetection',
+      clipboardLinkPrompted = 'clipboardLinkPrompted',
       followType = 'followType',
       imageQuality = 'imageQuality',
       mediaAutoLoad = MediaAutoLoadMode.storageKey,

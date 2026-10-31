@@ -30,6 +30,8 @@ import '../../utils/global_data.dart';
 import '../../logic/local_follow/local_follow_store.dart';
 import '../local_follow/local_follow_page.dart';
 import 'device_identity_page.dart';
+import 'settings_search_index.dart';
+import 'settings_search_page.dart';
 import 'content_filter_page.dart';
 
 enum ImageQuality {
@@ -120,7 +122,16 @@ class _SettingsPageState extends State<SettingsPage> {
           ]));
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('设置')),
+        appBar: AppBar(
+          title: const Text('设置'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: '搜索设置',
+              onPressed: () => Get.to(() => const SettingsSearchPage()),
+            ),
+          ],
+        ),
         body: SafeArea(
             top: false,
             child: LayoutBuilder(builder: (context, constraints) {
@@ -156,20 +167,63 @@ class _SettingsPageState extends State<SettingsPage> {
 
 class SettingsDetailPage extends StatefulWidget {
   const SettingsDetailPage(
-      {super.key, required this.section, this.embedded = false});
+      {super.key,
+      required this.section,
+      this.embedded = false,
+      this.initialItemId});
   final SettingsSection section;
   final bool embedded;
+
+  /// Item to scroll to after the first frame (from settings search).
+  final String? initialItemId;
   @override
   State<SettingsDetailPage> createState() => _SettingsDetailPageState();
 }
 
 class _SettingsDetailPageState extends State<SettingsDetailPage> {
   final _settingsController = SettingsController();
+  final _scrollController = ScrollController();
   @override
   void initState() {
     super.initState();
     if (widget.section == SettingsSection.storage) {
       _settingsController.getCacheSize();
+    }
+    if (widget.initialItemId != null) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _locateInitialItem());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Scrolls to the item a search result pointed at. Items are built
+  /// lazily, so if the target is not built yet, scroll to the bottom
+  /// first (which forces everything to build) and retry.
+  Future<void> _locateInitialItem() async {
+    final itemId = widget.initialItemId;
+    if (itemId == null) return;
+    for (var attempt = 0; attempt < 8 && mounted; attempt++) {
+      final target = SettingsItemLocator.contextFor(itemId);
+      if (target != null && target.mounted) {
+        await Scrollable.ensureVisible(
+          target,
+          duration: const Duration(milliseconds: 300),
+          alignment: 0.15,
+        );
+        return;
+      }
+      if (!_scrollController.hasClients) return;
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
     }
   }
 
@@ -177,58 +231,69 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
         SettingsSection.appearance => [
             const ItemTitle(title: '主题与配色'),
             ExpressiveListSection(children: [
-              const SwitchItem(
-                icon: Icons.palette_outlined,
-                title: '动态取色',
-                subtitle: '根据系统配色调整应用主题',
-                boxKey: SettingsBoxKey.useMaterial,
-                defaultValue: true,
+              const SettingsItemLocator(
+                itemId: 'dynamicColor',
+                child: SwitchItem(
+                  icon: Icons.palette_outlined,
+                  title: '动态取色',
+                  subtitle: '根据系统配色调整应用主题',
+                  boxKey: SettingsBoxKey.useMaterial,
+                  defaultValue: true,
+                ),
               ),
               ValueListenableBuilder(
                 valueListenable: GStorage.settings
                     .listenable(keys: [SettingsBoxKey.useMaterial]),
-                builder: (context, settings, _) => DropDownMenuItem(
-                  icon: Icons.format_color_fill,
-                  title: '主题颜色',
-                  subtitle: '关闭动态取色后可选择固定配色',
-                  boxKey: SettingsBoxKey.staticColor,
-                  enabled: !GStorage.useMaterial,
-                  items: Constants.themeType
-                      .map((type) => DropdownMenuItem<int>(
-                            value: Constants.themeType.indexOf(type),
-                            child: Text(type),
-                          ))
-                      .toList(),
+                builder: (context, settings, _) => SettingsItemLocator(
+                  itemId: 'themeColor',
+                  child: DropDownMenuItem(
+                    icon: Icons.format_color_fill,
+                    title: '主题颜色',
+                    subtitle: '关闭动态取色后可选择固定配色',
+                    boxKey: SettingsBoxKey.staticColor,
+                    enabled: !GStorage.useMaterial,
+                    items: Constants.themeType
+                        .map((type) => DropdownMenuItem<int>(
+                              value: Constants.themeType.indexOf(type),
+                              child: Text(type),
+                            ))
+                        .toList(),
+                  ),
                 ),
               ),
-              const DropDownMenuItem(
-                icon: Icons.dark_mode_outlined,
-                title: '深色模式',
-                subtitle: '选择浅色、深色或跟随系统',
-                boxKey: SettingsBoxKey.selectedTheme,
-                items: [
-                  DropdownMenuItem<int>(
-                    value: 1,
-                    child: Text('始终关闭'),
-                  ),
-                  DropdownMenuItem<int>(
-                    value: 2,
-                    child: Text('始终开启'),
-                  ),
-                  DropdownMenuItem<int>(
-                    value: 0,
-                    child: Text('跟随系统'),
-                  ),
-                ],
-                forceAppUpdate: true,
+              const SettingsItemLocator(
+                itemId: 'darkMode',
+                child: DropDownMenuItem(
+                  icon: Icons.dark_mode_outlined,
+                  title: '深色模式',
+                  subtitle: '选择浅色、深色或跟随系统',
+                  boxKey: SettingsBoxKey.selectedTheme,
+                  items: [
+                    DropdownMenuItem<int>(
+                      value: 1,
+                      child: Text('始终关闭'),
+                    ),
+                    DropdownMenuItem<int>(
+                      value: 2,
+                      child: Text('始终开启'),
+                    ),
+                    DropdownMenuItem<int>(
+                      value: 0,
+                      child: Text('跟随系统'),
+                    ),
+                  ],
+                  forceAppUpdate: true,
+                ),
               ),
               ValueListenableBuilder(
                 valueListenable: GStorage.settings
                     .listenable(keys: [SettingsBoxKey.hideHomePublishButton]),
-                builder: (context, _, __) => ListTile(
-                  leading: const Icon(Icons.edit_off_outlined),
-                  title: const Text('不写东西'),
-                  subtitle: const Text('开启后，将隐藏主页的发布入口'),
+                builder: (context, _, __) => SettingsItemLocator(
+                  itemId: 'hidePublish',
+                  child: ListTile(
+                    leading: const Icon(Icons.edit_off_outlined),
+                    title: const Text('不写东西'),
+                    subtitle: const Text('开启后，将隐藏主页的发布入口'),
                   trailing: Switch(
                     value: GStorage.hideHomePublishButton,
                     onChanged: (value) => GStorage.settings
@@ -237,6 +302,7 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
                   onTap: () => GStorage.settings.put(
                       SettingsBoxKey.hideHomePublishButton,
                       !GStorage.hideHomePublishButton),
+                  ),
                 ),
               ),
             ]),
@@ -244,32 +310,38 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
             const NavigationAppearanceSettings(),
             const ItemTitle(title: '阅读与字号'),
             const ExpressiveListSection(children: [
-              DropDownMenuItem(
-                icon: Icons.vertical_split_outlined,
-                title: '分栏阅读',
-                subtitle: '左侧查看动态，右侧继续浏览。自动适配大屏；手机开启后横屏生效，窄屏仍用单页',
-                boxKey: SettingsBoxKey.readingMode,
-                items: [
-                  DropdownMenuItem(value: 0, child: Text('自动')),
-                  DropdownMenuItem(value: 1, child: Text('开启')),
-                  DropdownMenuItem(value: 2, child: Text('关闭')),
-                ],
+              SettingsItemLocator(
+                itemId: 'readingMode',
+                child: DropDownMenuItem(
+                  icon: Icons.vertical_split_outlined,
+                  title: '分栏阅读',
+                  subtitle: '左侧查看动态，右侧继续浏览。自动适配大屏；手机开启后横屏生效，窄屏仍用单页',
+                  boxKey: SettingsBoxKey.readingMode,
+                  items: [
+                    DropdownMenuItem(value: 0, child: Text('自动')),
+                    DropdownMenuItem(value: 1, child: Text('开启')),
+                    DropdownMenuItem(value: 2, child: Text('关闭')),
+                  ],
+                ),
               ),
             ]),
             ExpressiveListSection(children: [
-              ListTile(
-                title: const Text('字体大小'),
+              SettingsItemLocator(
+                itemId: 'fontSize',
+                child: ListTile(
+                  title: const Text('字体大小'),
                 subtitle: Text(
                     '调整界面文字大小 · ${GStorage.fontScale.toStringAsFixed(2)}x'),
                 leading: const Icon(Icons.text_fields),
-                onTap: () => showDialog<void>(
-                  context: context,
-                  builder: (context) => SliderDialog(
-                    fontScale: GStorage.fontScale,
-                    setData: (newValue) {
-                      GStorage.setFontScale(newValue);
-                      if (mounted) setState(() {});
-                    },
+                  onTap: () => showDialog<void>(
+                    context: context,
+                    builder: (context) => SliderDialog(
+                      fontScale: GStorage.fontScale,
+                      setData: (newValue) {
+                        GStorage.setFontScale(newValue);
+                        if (mounted) setState(() {});
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -281,34 +353,46 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
                   GStorage.settings.listenable(keys: [SettingsBoxKey.isLogin]),
               builder: (context, _, __) => ExpressiveListSection(children: [
                 if (GlobalData().isLogin)
-                  const SwitchItem(
-                    icon: Icons.visibility_off_outlined,
-                    title: '悄悄关注',
-                    subtitle: '开启后，长按用户主页的关注按钮添加或取消。仅保存在本机，不会同步到账号',
-                    boxKey: LocalFollowStore.enabledKey,
-                    defaultValue: false,
+                  const SettingsItemLocator(
+                    itemId: 'quietFollow',
+                    child: SwitchItem(
+                      icon: Icons.visibility_off_outlined,
+                      title: '悄悄关注',
+                      subtitle: '开启后，长按用户主页的关注按钮添加或取消。仅保存在本机，不会同步到账号',
+                      boxKey: LocalFollowStore.enabledKey,
+                      defaultValue: false,
+                    ),
                   )
                 else
-                  const ListTile(
-                    leading: Icon(Icons.person_add_alt_outlined),
-                    title: Text('本地关注'),
-                    subtitle: Text('游客可在用户主页直接关注，并在底栏“关注”查看内容。名单仅保存在本机'),
+                  const SettingsItemLocator(
+                    itemId: 'localFollow',
+                    child: ListTile(
+                      leading: Icon(Icons.person_add_alt_outlined),
+                      title: Text('本地关注'),
+                      subtitle: Text('游客可在用户主页直接关注，并在底栏“关注”查看内容。名单仅保存在本机'),
+                    ),
                   ),
-                ListTile(
-                  leading: const Icon(Icons.manage_accounts_outlined),
-                  title: Text('管理$localFollowLabel'),
-                  subtitle: const Text('查看本机关注名单、进入用户主页或取消关注'),
-                  onTap: () => Get.to(() => const LocalFollowListPage()),
+                SettingsItemLocator(
+                  itemId: 'manageLocalFollow',
+                  child: ListTile(
+                    leading: const Icon(Icons.manage_accounts_outlined),
+                    title: Text('管理$localFollowLabel'),
+                    subtitle: const Text('查看本机关注名单、进入用户主页或取消关注'),
+                    onTap: () => Get.to(() => const LocalFollowListPage()),
+                  ),
                 ),
               ]),
             ),
             const ExpressiveListSection(children: [
-              SwitchItem(
-                icon: Icons.emoji_emotions_outlined,
-                title: '显示表情',
-                subtitle: '将内容中的酷安表情标记显示为图片',
-                boxKey: SettingsBoxKey.showEmoji,
-                defaultValue: true,
+              SettingsItemLocator(
+                itemId: 'showEmoji',
+                child: SwitchItem(
+                  icon: Icons.emoji_emotions_outlined,
+                  title: '显示表情',
+                  subtitle: '将内容中的酷安表情标记显示为图片',
+                  boxKey: SettingsBoxKey.showEmoji,
+                  defaultValue: true,
+                ),
               )
             ]),
           ],
@@ -317,47 +401,72 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
               MediaAutoLoadSettings(),
             ]),
             ExpressiveListSection(children: [
-              ListTile(
-                title: const Text('屏蔽傻逼内容'),
-                subtitle: const Text('本机内容过滤、规则与例外，默认关闭'),
-                leading: const Icon(Icons.filter_alt_outlined),
-                onTap: () => Get.to(() => const ContentFilterPage()),
+              SettingsItemLocator(
+                itemId: 'contentFilter',
+                child: ListTile(
+                  title: const Text('屏蔽傻逼内容'),
+                  subtitle: const Text('本机内容过滤、规则与例外，默认关闭'),
+                  leading: const Icon(Icons.filter_alt_outlined),
+                  onTap: () => Get.to(() => const ContentFilterPage()),
+                ),
               ),
             ]),
             ExpressiveListSection(children: [
-              ListTile(
-                title: const Text('用户黑名单'),
-                subtitle: const Text('管理屏蔽的用户，隐藏其动态'),
-                leading: const Icon(Icons.block),
-                onTap: () => Get.toNamed(
-                  '/blacklist/',
-                  arguments: {'type': BlackListType.user},
+              SettingsItemLocator(
+                itemId: 'userBlacklist',
+                child: ListTile(
+                  title: const Text('用户黑名单'),
+                  subtitle: const Text('管理屏蔽的用户，隐藏其动态'),
+                  leading: const Icon(Icons.block),
+                  onTap: () => Get.toNamed(
+                    '/blacklist/',
+                    arguments: {'type': BlackListType.user},
+                  ),
                 ),
               ),
-              ListTile(
-                title: const Text('话题黑名单'),
-                subtitle: const Text('按关键词过滤相关话题内容'),
-                leading: const Icon(Icons.block),
-                onTap: () => Get.toNamed(
-                  '/blacklist/',
-                  arguments: {'type': BlackListType.topic},
+              SettingsItemLocator(
+                itemId: 'topicBlacklist',
+                child: ListTile(
+                  title: const Text('话题黑名单'),
+                  subtitle: const Text('按关键词过滤相关话题内容'),
+                  leading: const Icon(Icons.block),
+                  onTap: () => Get.toNamed(
+                    '/blacklist/',
+                    arguments: {'type': BlackListType.topic},
+                  ),
                 ),
               ),
             ]),
             const ExpressiveListSection(children: [
-              SwitchItem(
-                icon: Icons.history,
-                title: '记录浏览历史',
-                subtitle: '将浏览过的动态保存在本机，便于再次查看',
-                boxKey: SettingsBoxKey.recordHistory,
-                defaultValue: true,
+              SettingsItemLocator(
+                itemId: 'recordHistory',
+                child: SwitchItem(
+                  icon: Icons.history,
+                  title: '记录浏览历史',
+                  subtitle: '将浏览过的动态保存在本机，便于再次查看',
+                  boxKey: SettingsBoxKey.recordHistory,
+                  defaultValue: true,
+                ),
               ),
-              SwitchItem(
-                icon: Icons.travel_explore,
-                title: '在浏览器中打开',
-                subtitle: '使用系统浏览器打开外部网页链接',
-                boxKey: SettingsBoxKey.openInBrowser,
-                defaultValue: false,
+              SettingsItemLocator(
+                itemId: 'openInBrowser',
+                child: SwitchItem(
+                  icon: Icons.travel_explore,
+                  title: '在浏览器中打开',
+                  subtitle: '使用系统浏览器打开外部网页链接',
+                  boxKey: SettingsBoxKey.openInBrowser,
+                  defaultValue: false,
+                ),
+              ),
+              SettingsItemLocator(
+                itemId: 'clipboardLink',
+                child: SwitchItem(
+                  icon: Icons.content_paste,
+                  title: '剪贴板链接检测',
+                  subtitle: '回到应用时检测剪贴板中的酷安链接并提示打开',
+                  boxKey: SettingsBoxKey.clipboardLinkDetection,
+                  defaultValue: true,
+                ),
               ),
             ]),
           ],
@@ -366,43 +475,57 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
               ValueListenableBuilder(
                 valueListenable: GStorage.settings
                     .listenable(keys: [UpdatePreferences.enabledKey]),
-                builder: (context, _, __) => SwitchListTile(
-                  secondary: const Icon(Icons.update),
-                  title: const Text('自动检查 c001apk 更新'),
-                  subtitle: const Text('每次启动时检查一次最新正式版本'),
-                  value: UpdatePreferences(GStorage.settings).enabled,
-                  onChanged: (value) =>
-                      UpdatePreferences(GStorage.settings).setEnabled(value),
+                builder: (context, _, __) => SettingsItemLocator(
+                  itemId: 'autoUpdateCheck',
+                  child: SwitchListTile(
+                    secondary: const Icon(Icons.update),
+                    title: const Text('自动检查 c001apk 更新'),
+                    subtitle: const Text('每次启动时检查一次最新正式版本'),
+                    value: UpdatePreferences(GStorage.settings).enabled,
+                    onChanged: (value) => UpdatePreferences(GStorage.settings)
+                        .setEnabled(value),
+                  ),
                 ),
               ),
-              const UpdateCheckTile(),
+              const SettingsItemLocator(
+                itemId: 'checkUpdateNow',
+                child: UpdateCheckTile(),
+              ),
               if (AppAnnouncements.service != null)
                 AnnouncementAutoCheckTile(service: AppAnnouncements.service!),
               if (Platform.isAndroid)
-                const SwitchItem(
-                  icon: Icons.system_update,
-                  title: '检查已安装应用更新',
-                  subtitle: '在应用列表中显示已安装应用的更新入口',
-                  boxKey: SettingsBoxKey.checkUpdate,
-                  defaultValue: true,
+                const SettingsItemLocator(
+                  itemId: 'checkInstalledAppUpdate',
+                  child: SwitchItem(
+                    icon: Icons.system_update,
+                    title: '检查已安装应用更新',
+                    subtitle: '在应用列表中显示已安装应用的更新入口',
+                    boxKey: SettingsBoxKey.checkUpdate,
+                    defaultValue: true,
+                  ),
                 ),
             ]),
             ExpressiveListSection(children: [
-              const DropDownMenuItem(
-                icon: Icons.auto_delete_outlined,
-                title: '自动清理缓存',
-                subtitle: '到期后下次启动时清理图片缓存，不删账号、设置和本地关注',
-                boxKey: AutoCacheCleanupPreferences.daysKey,
-                items: [
-                  DropdownMenuItem<int>(value: 0, child: Text('关闭')),
-                  DropdownMenuItem<int>(value: 3, child: Text('每 3 天')),
-                  DropdownMenuItem<int>(value: 7, child: Text('每 7 天')),
-                  DropdownMenuItem<int>(value: 15, child: Text('每 15 天')),
-                ],
+              const SettingsItemLocator(
+                itemId: 'autoCacheCleanup',
+                child: DropDownMenuItem(
+                  icon: Icons.auto_delete_outlined,
+                  title: '自动清理缓存',
+                  subtitle: '到期后下次启动时清理图片缓存，不删账号、设置和本地关注',
+                  boxKey: AutoCacheCleanupPreferences.daysKey,
+                  items: [
+                    DropdownMenuItem<int>(value: 0, child: Text('关闭')),
+                    DropdownMenuItem<int>(value: 3, child: Text('每 3 天')),
+                    DropdownMenuItem<int>(value: 7, child: Text('每 7 天')),
+                    DropdownMenuItem<int>(value: 15, child: Text('每 15 天')),
+                  ],
+                ),
               ),
               Obx(
-                () => ListTile(
-                  title: const Text('清理缓存'),
+                () => SettingsItemLocator(
+                  itemId: 'clearCache',
+                  child: ListTile(
+                    title: const Text('清理缓存'),
                   subtitle: _settingsController.cacheSize.value.isNotEmpty
                       ? Text(_settingsController.cacheSize.value)
                       : null,
@@ -424,22 +547,29 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
                     }
                   },
                 ),
+              ),
               )
             ]),
           ],
         SettingsSection.protocol => [
             ExpressiveListSection(children: [
-              ListTile(
-                leading: const Icon(Icons.smartphone),
-                title: const Text('设备标识'),
-                subtitle: const Text('自动获取 · 减少重复人机验证（可手动导入）'),
-                onTap: () => Get.to(() => const DeviceIdentityPage()),
+              SettingsItemLocator(
+                itemId: 'deviceIdentity',
+                child: ListTile(
+                  leading: const Icon(Icons.smartphone),
+                  title: const Text('设备标识'),
+                  subtitle: const Text('自动获取 · 减少重复人机验证（可手动导入）'),
+                  onTap: () => Get.to(() => const DeviceIdentityPage()),
+                ),
               ),
-              ListTile(
-                leading: const Icon(Icons.developer_mode),
-                title: const Text('协议参数'),
-                subtitle: const Text('配置客户端版本、设备与请求参数'),
-                onTap: () => Get.toNamed('/params'),
+              SettingsItemLocator(
+                itemId: 'params',
+                child: ListTile(
+                  leading: const Icon(Icons.developer_mode),
+                  title: const Text('协议参数'),
+                  subtitle: const Text('配置客户端版本、设备与请求参数'),
+                  onTap: () => Get.toNamed('/params'),
+                ),
               ),
             ]),
           ],
@@ -452,6 +582,7 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 760),
                 child: ListView(
+                    controller: _scrollController,
                     key: PageStorageKey(widget.section),
                     padding: const EdgeInsets.only(top: 12, bottom: 8),
                     children: [

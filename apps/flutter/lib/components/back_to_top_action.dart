@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../utils/extensions.dart';
+import '../utils/storage_util.dart';
 
 /// A floating back-to-top button, modelled on TiebaLite's
 /// `DefaultBackToTopFAB` (`ui/widgets/compose/Buttons.kt`).
@@ -117,6 +119,53 @@ class _BackToTopActionState extends State<BackToTopAction> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Shared back-to-top overlay for list pages other than the home feed
+/// (topic, product, search results, installed apps). It honours the same
+/// settings as the home feed button (the 回顶键 switch and the left/right
+/// position) and sits above the system bottom padding, so it never needs
+/// per-page offset bookkeeping like the home feed's publish-button
+/// stacking. Long-press refresh is per page: pass [onLongPress] when the
+/// page can reload its first page, omit it for tap-to-top-only lists.
+class BackToTopOverlay extends StatelessWidget {
+  const BackToTopOverlay({
+    super.key,
+    required this.controller,
+    this.onLongPress,
+  });
+
+  final ScrollController? controller;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: GStorage.settings.listenable(keys: [
+        SettingsBoxKey.backToTopEnabled,
+        SettingsBoxKey.backToTopSide,
+      ]),
+      builder: (context, _, __) {
+        if (!GStorage.backToTopEnabled) {
+          return const SizedBox.shrink();
+        }
+        final onLeft = GStorage.backToTopOnLeft;
+        return Positioned(
+          left: onLeft ? 16 : null,
+          right: onLeft ? null : 16,
+          bottom: MediaQuery.paddingOf(context).bottom + 96,
+          child: Tooltip(
+            message:
+                onLongPress == null ? '回到顶部' : '回到顶部，长按刷新',
+            child: BackToTopAction(
+              controller: controller,
+              onLongPress: onLongPress,
+            ),
+          ),
+        );
+      },
     );
   }
 }
