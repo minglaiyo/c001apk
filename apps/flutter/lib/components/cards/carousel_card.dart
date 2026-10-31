@@ -49,7 +49,14 @@ class _CarouselCardState extends State<CarouselCard> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
         builder: (context, constraints) => SizedBox(
-              height: (constraints.maxWidth / 3).clamp(0.0, 240.0),
+              // Server home banners are ~4.45:1 (measured on two live
+              // banners). width/3 made the box taller than the image, so
+              // BoxFit.contain left ~18 logical dark bands above and
+              // below it inside the card, which read as oversized gaps
+              // to the neighbouring components. Match the box to the
+              // banner aspect so the image fills it and the gaps fall
+              // back to the normal 10.
+              height: (constraints.maxWidth / 4.5).clamp(0.0, 240.0),
               child: ClipRRect(
                 borderRadius: const BorderRadius.all(Radius.circular(12)),
                 child: Stack(
