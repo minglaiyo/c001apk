@@ -182,17 +182,23 @@ class LiquidNavigationBar extends StatefulWidget {
       this.refract = true,
       this.level = LiquidGlassLevel.medium})
       : labels = const ['主页', '关注', '我的'],
+        selectedPosition = null,
         tabs = false;
   const LiquidNavigationBar.tabs(
       {super.key,
       required this.selectedIndex,
       required this.onDestinationSelected,
       required this.labels,
+      this.selectedPosition,
       this.program,
       this.refract = true,
       this.level = LiquidGlassLevel.medium})
       : tabs = true;
   final int selectedIndex;
+  // Fractional selected position (e.g. a TabController animation value).
+  // When set, the selected pill slides continuously instead of jumping
+  // between cells when selectedIndex flips at the end of a transition.
+  final double? selectedPosition;
   final ValueChanged<int> onDestinationSelected;
   final ui.FragmentProgram? program;
   final bool refract, tabs;
@@ -227,12 +233,28 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                 final height = widget.tabs
                     ? math.max(48.0, textHeight + 24)
                     : math.max(64.0, textHeight + 40);
-                final selected = (_dragIndex ?? widget.selectedIndex)
-                    .clamp(0, widget.labels.length - 1);
+                // With a fractional position the pill follows the
+                // transition; without one it stays on the selected cell,
+                // exactly as before.
+                final double effectivePosition =
+                    (_dragIndex?.toDouble() ??
+                            widget.selectedPosition ??
+                            widget.selectedIndex.toDouble())
+                        .clamp(0.0, (widget.labels.length - 1).toDouble());
+                final selected = widget.selectedPosition == null
+                    ? (_dragIndex ?? widget.selectedIndex)
+                        .clamp(0, widget.labels.length - 1)
+                    : effectivePosition.round()
+                        .clamp(0, widget.labels.length - 1);
                 void drag(Offset point) => setState(() => _dragIndex =
                     (point.dx / bounds.maxWidth * widget.labels.length)
                         .floor()
                         .clamp(0, widget.labels.length - 1));
+                // The Row below has 4dp horizontal padding and equal-width
+                // Expanded cells, so a cell is (maxWidth - 8) / count wide
+                // and the per-cell pill spans cell +/- 2dp horizontally.
+                final cellWidth =
+                    (bounds.maxWidth - 8) / widget.labels.length;
                 return _BasicRoundHitRegion(
                     child: ClipRRect(
                         borderRadius: BorderRadius.circular(height / 2),
@@ -267,6 +289,24 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                             theme: theme,
                                             level: widget.level,
                                             shadow: false))),
+                                // Sliding pill: same rect as the per-cell
+                                // pill at integer positions, but it moves
+                                // continuously with effectivePosition.
+                                if (widget.selectedPosition != null)
+                                  Positioned(
+                                      left: 4 +
+                                          effectivePosition * cellWidth +
+                                          2,
+                                      width: cellWidth - 4,
+                                      top: 4,
+                                      bottom: 4,
+                                      child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                              color: theme.colorScheme
+                                                  .primaryContainer,
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      height / 2)))),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 4),
                                   child: Row(
@@ -285,7 +325,9 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                               child: Stack(
                                                   alignment: Alignment.center,
                                                   children: [
-                                                    if (selected == i)
+                                                    if (widget.selectedPosition ==
+                                                            null &&
+                                                        selected == i)
                                                       Positioned.fill(
                                                           child: Padding(
                                                               padding: const EdgeInsets.symmetric(
