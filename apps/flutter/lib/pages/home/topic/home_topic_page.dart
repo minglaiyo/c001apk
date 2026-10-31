@@ -47,93 +47,36 @@ class _HomeTopicPageState extends State<HomeTopicPage>
     super.build(context);
     return _homeTopicController.obx(
       (data) {
-        return Row(
+        // A rail-coloured mask band behind the floating top bar: it
+        // spans the full width at the scaffold's top inset height, so
+        // it appears with the bar and collapses to the status strip
+        // when the bar hides (the inset itself is animated by the
+        // scaffold). It lives only in this page, so only the 话题 and
+        // 数码 tabs get it. The grid's and rail's own top padding no
+        // longer carry the inset – the mask does that job – which also
+        // removes the split-colour gap the inset used to leave.
+        return Column(
+          children: [
+            Container(
+              height: MediaQuery.paddingOf(context).top,
+              color: Theme.of(context).colorScheme.surface,
+            ),
+            Expanded(
+              child: Row(
           children: [
             Expanded(
               flex: 22,
               child: Padding(
                 // The rail is not a scroll view, so it never picks up
-                // the scaffold's top inset on its own: without this,
-                // the header and the first items start behind the
-                // floating top bar, and the last items end up behind
-                // the floating bottom pill (same 96 clearance the
-                // back-to-top button uses).
+                // the scaffold's top inset on its own; the mask band
+                // above already offsets the content, so the rail only
+                // needs the bottom clearance for the floating bottom
+                // pill (same 96 the back-to-top button uses).
                 padding: EdgeInsets.only(
-                  top: MediaQuery.paddingOf(context).top,
                   bottom: MediaQuery.paddingOf(context).bottom + 96,
                 ),
                 child: Column(
                 children: [
-                  // Current-page readout: the left list holds the current
-                  // top tab's sub-categories, not a second top-level
-                  // navigation. Without it, the top pill and the left
-                  // highlight read as two peer selections, and both
-                  // sections happen to default to a sub-category named
-                  // 热门, which makes it look like the same page.
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Theme.of(context).dividerColor,
-                        ),
-                      ),
-                    ),
-                    child: Obx(
-                      () {
-                        final count = widget.tabType == TabType.TOPIC
-                            ? data![0].entities!.length
-                            : data!.length;
-                        final section = widget.tabType == TabType.TOPIC
-                            ? '话题'
-                            : '数码';
-                        final currentTitle = count == 0
-                            ? null
-                            : (widget.tabType == TabType.TOPIC
-                                ? data![0]
-                                    .entities![_homeTopicController
-                                        .currentIndex.value
-                                        .clamp(0, count - 1)]
-                                    .title
-                                    .toString()
-                                : data![_homeTopicController
-                                        .currentIndex.value
-                                        .clamp(0, count - 1)]
-                                    .title
-                                    .toString());
-                        return Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text: section,
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              if (currentTitle != null)
-                                TextSpan(
-                                  text: ' · $currentTitle',
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .primary,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        );
-                      },
-                    ),
-                  ),
                   Expanded(
                     // Fixed rail: the left list never scrolls, only the
                     // right pane does. Two independently scrolling panes
@@ -277,6 +220,9 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                 ),
               ),
             )
+          ],
+              ),
+            ),
           ],
         );
       },

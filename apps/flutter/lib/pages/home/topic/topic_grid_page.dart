@@ -159,11 +159,22 @@ class _TopicCategoryGridState extends State<TopicCategoryGrid> {
           final visible = state.response as List<Datum>;
           final gridItems = topicGridItems(visible, widget.gridEntityType);
           if (gridItems.isEmpty && visible.isNotEmpty) {
-            return CarouselPage(
-              isInit: false,
-              url: widget.url,
-              title: widget.title,
-              isHomeCard: true,
+            // The page's mask band already carries the top inset, so
+            // the fallback list must not add it a second time: zero
+            // the top padding here (the bottom is untouched, and the
+            // refresh capsule then sits at the content top, below
+            // the mask, as on the grid path).
+            final media = MediaQuery.of(context);
+            return MediaQuery(
+              data: media.copyWith(
+                padding: media.padding.copyWith(top: 0),
+              ),
+              child: CarouselPage(
+                isInit: false,
+                url: widget.url,
+                title: widget.title,
+                isHomeCard: true,
+              ),
             );
           }
           // Same refresh indicator as every other list page
@@ -174,19 +185,15 @@ class _TopicCategoryGridState extends State<TopicCategoryGrid> {
             onRefresh: () => _reload(controller),
             child: GridView.builder(
               controller: _scrollController,
-              // Same convention as common_body.dart: the 12px grid gap
-              // plus the scaffold's top inset, so the first row starts
-              // below the floating top bar instead of sliding under
-              // it; the bottom adds the floating bottom pill's
-              // clearance (the 96 the back-to-top button uses), so the
-              // last row is not hidden behind the bottom bar either.
-              // An explicit padding used to ignore the MediaQuery
-              // inset entirely, which is what put content behind
-              // both floating bars.
+              // The 12px grid gap on the sides; the top inset now
+              // comes from the page's mask band above, so it is not
+              // repeated here. The bottom adds the floating bottom
+              // pill's clearance (the 96 the back-to-top button uses),
+              // so the last row is not hidden behind the bottom bar.
               padding: EdgeInsets.only(
                 left: 12,
                 right: 12,
-                top: 12 + MediaQuery.paddingOf(context).top,
+                top: 12,
                 bottom: 12 +
                     MediaQuery.paddingOf(context).bottom +
                     96,
