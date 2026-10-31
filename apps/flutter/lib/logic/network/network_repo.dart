@@ -9,6 +9,8 @@ import '../../logic/network/api.dart';
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/request.dart';
 import '../../logic/state/loading_state.dart';
+import '../../pages/feed/feed_change_history.dart';
+import '../../pages/product/product_detail.dart';
 import '../../pages/search/search_suggestion.dart';
 import '../../utils/extensions.dart';
 import '../../utils/storage_util.dart';
@@ -389,6 +391,60 @@ class NetworkRepo {
     } catch (_) {
       return [];
     }
+  }
+
+  /// Product detail for the product page, from
+  /// `GET /v6/product/detail?id=...`. Throws [ApiFailure] on a bad
+  /// response so the page can show its error state with a retry.
+  static Future<ProductDetail> getProductDetail(String id) async {
+    final response = await Request().get(Api.getProductDetail,
+        queryParameters: {'id': id});
+    final data = readApiObject(response)['data'];
+    if (data is! Map) {
+      throw const ApiFailure(
+          ApiFailureKind.invalidResponse, '产品详情格式异常，请稍后重试');
+    }
+    return parseProductDetail(id, data);
+  }
+
+  /// Product feed list for one product tab, from
+  /// `GET /v6/page/dataList?url=/page?url=/product/feedList` with the
+  /// product id and the tab's type (or `subTabFeed` + `subId` for a
+  /// server sub-tab), mirroring coolapk-desktop's query builders.
+  static Future<LoadingState> getProductFeeds({
+    required String productId,
+    required String feedType,
+    String? subId,
+    String? listType,
+    required int page,
+    String? firstItem,
+    String? lastItem,
+  }) async {
+    return getListData(
+      () => Request().get(Api.getDataList, queryParameters: {
+        'url': '/page?url=/product/feedList',
+        'id': productId,
+        'type': subId != null ? 'subTabFeed' : feedType,
+        if (subId != null) 'subId': subId,
+        if (subId != null) 'cacheExpires': '60',
+        if (subId != null) 'withSortCard': '1',
+        if (subId != null) 'withSubTabFeedCard': '1',
+        if (subId != null) 'ignoreEntityById': '1',
+        if (listType != null && listType.isNotEmpty) 'listType': listType,
+        if (!firstItem.isNullOrEmpty) 'firstItem': firstItem,
+        if (!lastItem.isNullOrEmpty) 'lastItem': lastItem,
+        'page': page,
+      }),
+    );
+  }
+
+  /// Edit history for one feed, from
+  /// `GET /v6/feed/changeHistoryList?id=...`, current version first.
+  static Future<List<FeedChangeHistoryItem>> getFeedChangeHistory(
+      String id) async {
+    final response = await Request().get(Api.getFeedChangeHistory,
+        queryParameters: {'id': id});
+    return parseFeedChangeHistory(readApiObject(response)['data']);
   }
 
   static Future<Response> getAppDownloadUrl({

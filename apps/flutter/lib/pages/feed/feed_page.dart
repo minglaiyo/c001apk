@@ -23,6 +23,7 @@ import '../../components/cards/feed_card.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/media/feed_media_context.dart';
 import '../../logic/state/loading_state.dart';
+import '../../pages/feed/feed_change_history_view.dart';
 import '../../pages/feed/feed_controller.dart';
 import '../../pages/feed/reply/reply_dialog.dart' show ReplyType;
 import '../../pages/feed/reply/reply_page.dart';
@@ -41,7 +42,8 @@ enum FeedMenuItem {
   Fav,
   Block,
   Source,
-  Report;
+  Report,
+  EditHistory;
 
   String get label => switch (this) {
         FeedMenuItem.Copy => '复制',
@@ -50,6 +52,7 @@ enum FeedMenuItem {
         FeedMenuItem.Block => '屏蔽',
         FeedMenuItem.Source => '查看原文',
         FeedMenuItem.Report => '举报',
+        FeedMenuItem.EditHistory => '编辑记录',
       };
 }
 
@@ -719,6 +722,9 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                             break;
                           case FeedMenuItem.Source:
                             setState(() => _showSource = !_showSource);
+                            break;
+                          case FeedMenuItem.EditHistory:
+                            showFeedChangeHistoryDialog(context, _id);
                             break;
                         }
                       },
