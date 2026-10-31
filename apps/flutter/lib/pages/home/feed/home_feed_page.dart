@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -235,36 +236,55 @@ class _HomeFeedPageState extends State<HomeFeedPage>
           // Floating "更新了 N 条动态" capsule, centred just below the
           // top tab bar, over the list like TiebaLite's TopCenter
           // RefreshTip. It only exists while the controller reports a
-          // new-feed count. The scaffold extends the body behind its
-          // glass AppBar, so a fixed top of 12 would land the capsule
-          // on the status bar and the tab bar itself; the scaffold
-          // instead reports the bar height through this MediaQuery
-          // padding (status bar + bar height in glass mode, 0 when the
-          // body is already padded below a plain AppBar).
-          Obx(() {
-            final count = _homeFeedController.newFeedCount.value;
-            if (count == null) return const SizedBox.shrink();
-            final scrollController = _homeFeedController.scrollController;
-            final offset = scrollController != null && scrollController.hasClients
-                ? scrollController.offset
-                : 0.0;
-            final opacity = (1 -
-                    (offset - _homeFeedController.newFeedTipShownOffset) /
-                        300)
-                .clamp(0.0, 1.0);
-            return Positioned(
-              top: MediaQuery.paddingOf(context).top + 12,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: NewFeedTip(
-                  count: count,
-                  opacity: opacity,
-                  onTap: _onNewFeedTipTap,
+          // new-feed count. Do NOT position it from MediaQuery padding:
+          // on-device the padding seen inside this page collapses to ~0
+          // (some ancestor strips it), which pinned the capsule to the
+          // status bar even after the padding-based fix. viewPadding
+          // survives every padding strip, so the capsule is placed below
+          // the status bar plus the tab bar height, using the same height
+          // formula as LiquidTopBarScaffold (glass: max(64, scaled 20 + 16),
+          // plain: kToolbarHeight). The fixed position is fine when the
+          // bar hides, because the capsule fades out on scroll-down anyway.
+          // The settings listener repositions it when the glass switches.
+          ValueListenableBuilder(
+            valueListenable: GStorage.settings.listenable(keys: [
+              SettingsBoxKey.floatingNavigation,
+              SettingsBoxKey.liquidGlass,
+            ]),
+            builder: (context, _, __) => Obx(() {
+              final count = _homeFeedController.newFeedCount.value;
+              if (count == null) return const SizedBox.shrink();
+              final scrollController = _homeFeedController.scrollController;
+              final offset = scrollController != null && scrollController.hasClients
+                  ? scrollController.offset
+                  : 0.0;
+              final opacity = (1 -
+                      (offset - _homeFeedController.newFeedTipShownOffset) /
+                          300)
+                  .clamp(0.0, 1.0);
+              // HomePage always provides a glass title and does not use
+              // floatWithoutGlass, so this matches the scaffold's glass
+              // condition for every page that uses this widget.
+              final glass =
+                  GStorage.floatingNavigation && GStorage.liquidGlass;
+              final barHeight = glass
+                  ? math.max(
+                      64.0, MediaQuery.textScalerOf(context).scale(20) + 16)
+                  : kToolbarHeight;
+              return Positioned(
+                top: MediaQuery.viewPaddingOf(context).top + barHeight + 12,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: NewFeedTip(
+                    count: count,
+                    opacity: opacity,
+                    onTap: _onNewFeedTipTap,
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
+          ),
         ],
       ),
     );
