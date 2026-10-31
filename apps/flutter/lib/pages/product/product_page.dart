@@ -24,7 +24,30 @@ class _ProductPageState extends State<ProductPage> {
   /// is expanded. Collapsed, only the logo + title row remains, so
   /// the header stops eating a quarter of the page and the feed list
   /// gets the space. The tab bar is always visible either way.
+  ///
+  /// The header is fully shown only when the page first opens: once
+  /// the feed list scrolls down past a threshold it collapses on its
+  /// own, and scrolling back to the top does not re-expand it. The
+  /// title-row button still expands it manually on demand.
   bool _headerExpanded = true;
+
+  /// Auto-collapses the header when the feed list scrolls down.
+  /// Scroll notifications bubble up from the inner tab lists, so this
+  /// works no matter which tab is visible, without tracking each
+  /// tab's scroll controller. Returns false so the notification keeps
+  /// bubbling to the refresh indicator and other listeners.
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (!_headerExpanded) return false;
+    if (notification is ScrollUpdateNotification &&
+        notification.metrics.axis == Axis.vertical &&
+        (notification.scrollDelta ?? 0) > 0 &&
+        notification.metrics.pixels > 120) {
+      setState(() {
+        _headerExpanded = false;
+      });
+    }
+    return false;
+  }
 
   @override
   void initState() {
@@ -205,9 +228,15 @@ class _ProductPageState extends State<ProductPage> {
           }
           return DefaultTabController(
             length: detail.tabs.length,
-            child: Column(
-              children: [
-                _buildHeader(detail),
+            child: NotificationListener<ScrollNotification>(
+              onNotification: _onScrollNotification,
+              child: Column(
+                children: [
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 250),
+                    alignment: Alignment.topCenter,
+                    child: _buildHeader(detail),
+                  ),
                 TabBar(
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
@@ -225,7 +254,8 @@ class _ProductPageState extends State<ProductPage> {
                         .toList(),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           );
         },
