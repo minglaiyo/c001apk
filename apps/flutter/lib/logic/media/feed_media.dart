@@ -25,7 +25,37 @@ class FeedMedia {
   }
 
   String get originalUrl => displayUrl;
-  String get thumbnailUrl => previewUrl ?? displayUrl;
+
+  /// List thumbnail URL. Follows coolapk-desktop's getHdImageUrl
+  /// (default hd quality): list rendering uses the CDN's server-side
+  /// .m.jpg variant instead of the original, so downloads and decodes
+  /// are far smaller and scrolling back rarely re-downloads. The
+  /// suffix is appended to the full original URL (photo.jpg becomes
+  /// photo.jpg.m.jpg); an existing quality suffix is replaced.
+  /// Server-provided previews win, GIFs, live photos, non-CDN hosts
+  /// and non-http(s) URLs are left untouched, and the full-screen
+  /// viewer keeps loading the original via originalUrl/sourceUrl.
+  String get thumbnailUrl {
+    final preview = previewUrl;
+    if (preview != null) return preview;
+    final url = displayUrl;
+    if (isLivePhoto) return url;
+    final path = url.split('?').first.split('#').first.toLowerCase();
+    if (path.endsWith('.gif') || path.endsWith('.gifv')) return url;
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        !(uri.scheme == 'http' || uri.scheme == 'https') ||
+        !(uri.host == 'coolapk.com' || uri.host.endsWith('.coolapk.com'))) {
+      return url;
+    }
+    final base = url
+        .split('?')
+        .first
+        .split('#')
+        .first
+        .replaceFirst(RegExp(r'\.(xs|s|m|b|t)\.jpg$', caseSensitive: false), '');
+    return '$base.m.jpg';
+  }
   String get galleryPreviewUrl => thumbnailUrl;
   List<String> get sdrHdUrls => const [];
 
