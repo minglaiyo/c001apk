@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../logic/network/network_repo.dart';
 import '../../pages/product/product_detail.dart';
 import '../../pages/product/product_feed_content.dart';
+import '../../pages/product/product_feed_controller.dart';
 import '../../utils/extensions.dart';
 
 /// The real product page. The route used to point at [TopicPage] as a
@@ -49,10 +50,21 @@ class _ProductPageState extends State<ProductPage> {
     return false;
   }
 
+  late final ProductFeedSortController _sortController;
+
   @override
   void initState() {
     super.initState();
+    _sortController = Get.isRegistered<ProductFeedSortController>(tag: _id)
+        ? Get.find<ProductFeedSortController>(tag: _id)
+        : Get.put(ProductFeedSortController(), tag: _id);
     _detailFuture = NetworkRepo.getProductDetail(_id);
+  }
+
+  @override
+  void dispose() {
+    Get.delete<ProductFeedSortController>(tag: _id);
+    super.dispose();
   }
 
   void _retry() {
@@ -200,18 +212,62 @@ class _ProductPageState extends State<ProductPage> {
     );
   }
 
+  /// The ⋮ sort menu in the AppBar, mirroring the topic discussion
+  /// sort menu (默认 / 最新发布 / 热门). Picking a sort reloads every
+  /// tab controller that already exists; tabs built afterwards read
+  /// the shared selection on their first load.
+  Widget _buildSortMenu(ProductDetail detail) {
+    return Obx(() {
+      final current = _sortController.sortType.value;
+      return PopupMenuButton<int>(
+        tooltip: '排序',
+        icon: const Icon(Icons.more_vert),
+        onSelected: (value) {
+          _sortController.sortType.value = value;
+          for (final tab in detail.tabs) {
+            final tag = '${detail.id}${tab.key}';
+            if (Get.isRegistered<ProductFeedController>(tag: tag)) {
+              final controller = Get.find<ProductFeedController>(tag: tag);
+              controller.onReset();
+              controller.onGetData();
+            }
+          }
+        },
+        itemBuilder: (context) => [
+          for (final entry in {
+            0: '默认',
+            1: '最新发布',
+            2: '热门',
+          }.entries)
+            PopupMenuItem<int>(
+              value: entry.key,
+              child: Row(
+                children: [
+                  Expanded(child: Text(entry.value)),
+                  if (entry.key == current) const Icon(Icons.check),
+                ],
+              ),
+            ),
+        ],
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('数码产品')),
-      body: FutureBuilder<ProductDetail>(
-        future: _detailFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError || !snapshot.hasData) {
-            return Center(
+    return FutureBuilder<ProductDetail>(
+      future: _detailFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('数码产品')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('数码产品')),
+            body: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -220,13 +276,22 @@ class _ProductPageState extends State<ProductPage> {
                   TextButton(onPressed: _retry, child: const Text('重试')),
                 ],
               ),
-            );
-          }
-          final detail = snapshot.data!;
-          if (detail.tabs.isEmpty) {
-            return SingleChildScrollView(child: _buildHeader(detail));
-          }
-          return DefaultTabController(
+            ),
+          );
+        }
+        final detail = snapshot.data!;
+        if (detail.tabs.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('数码产品')),
+            body: SingleChildScrollView(child: _buildHeader(detail)),
+          );
+        }
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('数码产品'),
+            actions: [_buildSortMenu(detail)],
+          ),
+          body: DefaultTabController(
             length: detail.tabs.length,
             child: NotificationListener<ScrollNotification>(
               onNotification: _onScrollNotification,
@@ -237,29 +302,29 @@ class _ProductPageState extends State<ProductPage> {
                     alignment: Alignment.topCenter,
                     child: _buildHeader(detail),
                   ),
-                TabBar(
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  tabs: detail.tabs
-                      .map((tab) => Tab(text: tab.label))
-                      .toList(),
-                ),
-                Expanded(
-                  child: TabBarView(
-                    children: detail.tabs
-                        .map((tab) => ProductFeedContent(
-                              productId: detail.id,
-                              tab: tab,
-                            ))
+                  TabBar(
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    tabs: detail.tabs
+                        .map((tab) => Tab(text: tab.label))
                         .toList(),
                   ),
-                ),
+                  Expanded(
+                    child: TabBarView(
+                      children: detail.tabs
+                          .map((tab) => ProductFeedContent(
+                                productId: detail.id,
+                                tab: tab,
+                              ))
+                          .toList(),
+                    ),
+                  ),
                 ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
