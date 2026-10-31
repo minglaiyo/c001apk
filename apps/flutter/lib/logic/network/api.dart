@@ -22,6 +22,12 @@ class Api {
   static String getSearchSuggest =
       '${Constants.URL_API_SERVICE}/v6/search/suggestSearchWordsNew';
 
+  static String getProductDetail =
+      '${Constants.URL_API_SERVICE}/v6/product/detail';
+
+  static String getFeedChangeHistory =
+      '${Constants.URL_API_SERVICE}/v6/feed/changeHistoryList';
+
   static String checkLoginInfo =
       '${Constants.URL_API_SERVICE}/v6/account/checkLoginInfo';
 
