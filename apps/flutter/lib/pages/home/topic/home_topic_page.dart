@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../pages/carousel/carousel_page.dart';
 import '../../../pages/home/topic/controller.dart';
 import '../../../pages/home/home_page.dart' show TabType;
+import 'topic_grid_page.dart';
 
 class HomeTopicPage extends StatefulWidget {
   const HomeTopicPage({super.key, required this.tabType});
@@ -124,71 +124,105 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                     ),
                   ),
                   Expanded(
-                    child: ListView.builder(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                itemCount: widget.tabType == TabType.TOPIC
-                    ? data![0].entities!.length
-                    : data!.length,
-                itemBuilder: (context, index) => IntrinsicHeight(
-                  child: Obx(
-                    () => InkWell(
-                      onTap: () {
-                        _homeTopicController.currentIndex.value = index;
-                        _controller.jumpToPage(index);
-                      },
-                      child: Ink(
-                        color: index == _homeTopicController.currentIndex.value
-                            ? Theme.of(context).colorScheme.onInverseSurface
-                            : Colors.transparent,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              height: double.infinity,
-                              width: 3,
-                              color: index ==
-                                      _homeTopicController.currentIndex.value
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.transparent,
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Container(
-                                alignment: Alignment.center,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                child: Text(
-                                  widget.tabType == TabType.TOPIC
-                                      ? data[0]
-                                          .entities![index]
-                                          .title
-                                          .toString()
-                                      : data[index].title.toString(),
-                                  style: TextStyle(
+                    // Fixed rail: the left list never scrolls, only the
+                    // right pane does. Two independently scrolling panes
+                    // felt fragmented; one fixed nav rail plus one
+                    // scrolling content pane reads as a single screen.
+                    // Rows keep their natural height when they fit; on a
+                    // short screen (or with large text) they share the
+                    // available height instead of overflowing.
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final count = widget.tabType == TabType.TOPIC
+                            ? data![0].entities!.length
+                            : data!.length;
+                        Widget railItem(int index) => IntrinsicHeight(
+                              child: Obx(
+                                () => InkWell(
+                                  onTap: () {
+                                    _homeTopicController.currentIndex.value =
+                                        index;
+                                    _controller.jumpToPage(index);
+                                  },
+                                  child: Ink(
                                     color: index ==
                                             _homeTopicController
                                                 .currentIndex.value
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
+                                        ? Theme.of(context)
                                             .colorScheme
-                                            .onSurface,
-                                    fontSize: 15,
+                                            .onInverseSurface
+                                        : Colors.transparent,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          height: double.infinity,
+                                          width: 3,
+                                          color: index ==
+                                                  _homeTopicController
+                                                      .currentIndex.value
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                              : Colors.transparent,
+                                        ),
+                                        Expanded(
+                                          flex: 1,
+                                          child: Container(
+                                            alignment: Alignment.center,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 10),
+                                            child: Text(
+                                              widget.tabType == TabType.TOPIC
+                                                  ? data[0]
+                                                      .entities![index]
+                                                      .title
+                                                      .toString()
+                                                  : data[index]
+                                                      .title
+                                                      .toString(),
+                                              style: TextStyle(
+                                                color: index ==
+                                                        _homeTopicController
+                                                            .currentIndex
+                                                            .value
+                                                    ? Theme.of(context)
+                                                        .colorScheme
+                                                        .primary
+                                                    : Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface,
+                                                fontSize: 15,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            ),
+                            );
+                        final items =
+                            List<Widget>.generate(count, railItem);
+                        if (items.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        const estimatedRowHeight = 44.0;
+                        if (count * estimatedRowHeight <=
+                            constraints.maxHeight) {
+                          return Column(children: items);
+                        }
+                        return Column(
+                          children: [
+                            for (final item in items) Expanded(child: item),
                           ],
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ),
-                    ),
-                  ),
-                ),
                 ],
               ),
             ),
@@ -203,15 +237,15 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                   itemCount: widget.tabType == TabType.TOPIC
                       ? data[0].entities!.length
                       : data.length,
-                  itemBuilder: (context, index) => CarouselPage(
-                    isInit: false,
+                  itemBuilder: (context, index) => TopicCategoryGrid(
                     url: widget.tabType == TabType.TOPIC
                         ? data[0].entities![index].url
                         : data[index].url,
                     title: widget.tabType == TabType.TOPIC
                         ? data[0].entities![index].title
                         : data[index].title,
-                    isHomeCard: true,
+                    gridEntityType:
+                        widget.tabType == TabType.TOPIC ? 'topic' : 'product',
                   ),
                 ),
               ),
