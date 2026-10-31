@@ -20,6 +20,12 @@ class _ProductPageState extends State<ProductPage> {
   late final String _id = Get.parameters['id'].orEmpty;
   Future<ProductDetail>? _detailFuture;
 
+  /// Whether the product header (stats, score, rating bars, specs)
+  /// is expanded. Collapsed, only the logo + title row remains, so
+  /// the header stops eating a quarter of the page and the feed list
+  /// gets the space. The tab bar is always visible either way.
+  bool _headerExpanded = true;
+
   @override
   void initState() {
     super.initState();
@@ -68,7 +74,8 @@ class _ProductPageState extends State<ProductPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (detail.description.isNotEmpty) ...[
+                    if (_headerExpanded &&
+                        detail.description.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
                         detail.description,
@@ -84,26 +91,39 @@ class _ProductPageState extends State<ProductPage> {
                   ],
                 ),
               ),
+              IconButton(
+                tooltip: _headerExpanded ? '收起' : '展开',
+                icon: Icon(_headerExpanded
+                    ? Icons.keyboard_arrow_up
+                    : Icons.keyboard_arrow_down),
+                onPressed: () {
+                  setState(() {
+                    _headerExpanded = !_headerExpanded;
+                  });
+                },
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              if (detail.hotNumText != null)
-                Text('${detail.hotNumText} 热度'),
-              if (detail.hotNumText != null &&
-                  detail.commentNumText != null)
-                const Text(' · '),
-              if (detail.commentNumText != null)
-                Text('${detail.commentNumText} 讨论'),
-              if (detail.commentNumText != null &&
-                  detail.followNumText != null)
-                const Text(' · '),
-              if (detail.followNumText != null)
-                Text('${detail.followNumText} 关注'),
-            ],
-          ),
-          if (detail.score > 0) ...[
+          if (_headerExpanded) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (detail.hotNumText != null)
+                  Text('${detail.hotNumText} 热度'),
+                if (detail.hotNumText != null &&
+                    detail.commentNumText != null)
+                  const Text(' · '),
+                if (detail.commentNumText != null)
+                  Text('${detail.commentNumText} 讨论'),
+                if (detail.commentNumText != null &&
+                    detail.followNumText != null)
+                  const Text(' · '),
+                if (detail.followNumText != null)
+                  Text('${detail.followNumText} 关注'),
+              ],
+            ),
+          ],
+          if (_headerExpanded && detail.score > 0) ...[
             const SizedBox(height: 12),
             Row(
               children: [
@@ -142,7 +162,7 @@ class _ProductPageState extends State<ProductPage> {
                 ),
             ],
           ],
-          if (detail.specs.isNotEmpty) ...[
+          if (_headerExpanded && detail.specs.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
