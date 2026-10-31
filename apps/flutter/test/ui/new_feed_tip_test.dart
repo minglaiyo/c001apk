@@ -22,8 +22,14 @@ void main() {
     expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
 
     // The capsule follows the theme (dynamic colour), not a fixed colour.
-    final material =
-        tester.widget<Material>(find.byType(Material).first);
+    // find.byType(Material).first would return the Scaffold's own
+    // Material (scaffoldBackgroundColor, #FEF7FF), not the capsule's,
+    // which is what made this test fail in Build #18. Scope the
+    // finder to the capsule itself.
+    final material = tester.widget<Material>(find.descendant(
+      of: find.byType(NewFeedTip),
+      matching: find.byType(Material),
+    ));
     expect(material.color,
         Theme.of(tester.element(find.text('更新了 11 条动态')))
             .colorScheme
