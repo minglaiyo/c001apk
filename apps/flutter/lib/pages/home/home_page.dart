@@ -148,12 +148,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             onPressed: _editTabs,
             child: const Icon(Icons.tune)),
       ],
+      // Listen to the controller animation, not the controller itself:
+      // TabController.index only flips when a transition finishes, while
+      // animation.value moves continuously, so the pill must follow the
+      // latter to slide along with the page instead of jumping at the end.
       glassTitle: (context) => AnimatedBuilder(
-        animation: _tabController,
-        builder: (context, _) => LiquidNavigationBar.tabs(
-          key: ValueKey(_tabTypes.map((tab) => tab.storageId).join(',')),
-          selectedIndex: _tabController.index,
-          labels: _tabTypes.map((type) => type.label).toList(),
+        animation: _tabController.animation,
+        builder: (context, _) {
+          final position = _tabController.animation.value
+              .clamp(0.0, (_tabTypes.length - 1).toDouble());
+          return LiquidNavigationBar.tabs(
+            key: ValueKey(_tabTypes.map((tab) => tab.storageId).join(',')),
+            selectedIndex: position.round(),
+            selectedPosition: position,
+            labels: _tabTypes.map((type) => type.label).toList(),
           level: GStorage.liquidGlassLevel,
           onDestinationSelected: (index) {
             if (_tabController.index == index) {
@@ -162,7 +170,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               _tabController.animateTo(index);
             }
           },
-        ),
+          );
+        },
       ),
       title: MouseDragScroll(
         child: TabBar(
