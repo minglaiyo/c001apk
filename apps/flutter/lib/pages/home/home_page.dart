@@ -152,27 +152,33 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       // TabController.index only flips when a transition finishes, while
       // animation.value moves continuously, so the pill must follow the
       // latter to slide along with the page instead of jumping at the end.
-      glassTitle: (context) => AnimatedBuilder(
-        animation: _tabController.animation,
-        builder: (context, _) {
-          final position = _tabController.animation.value
-              .clamp(0.0, (_tabTypes.length - 1).toDouble());
-          return LiquidNavigationBar.tabs(
-            key: ValueKey(_tabTypes.map((tab) => tab.storageId).join(',')),
-            selectedIndex: position.round(),
-            selectedPosition: position,
-            labels: _tabTypes.map((type) => type.label).toList(),
-          level: GStorage.liquidGlassLevel,
-          onDestinationSelected: (index) {
-            if (_tabController.index == index) {
-              scrollToTop(index);
-            } else {
-              _tabController.animateTo(index);
-            }
-          },
-          );
-        },
-      ),
+      glassTitle: (context) {
+        Widget tabs(double? position) => LiquidNavigationBar.tabs(
+              key: ValueKey(_tabTypes.map((tab) => tab.storageId).join(',')),
+              selectedIndex: position?.round() ?? _tabController.index,
+              selectedPosition: position,
+              labels: _tabTypes.map((type) => type.label).toList(),
+              level: GStorage.liquidGlassLevel,
+              onDestinationSelected: (index) {
+                if (_tabController.index == index) {
+                  scrollToTop(index);
+                } else {
+                  _tabController.animateTo(index);
+                }
+              },
+            );
+        // TabController.animation is nullable: it is null before the
+        // controller is attached. Fall back to the static pill at the
+        // current tab instead of passing null to AnimatedBuilder.
+        final animation = _tabController.animation;
+        if (animation == null) return tabs(null);
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (context, _) => tabs(
+            animation.value.clamp(0.0, (_tabTypes.length - 1).toDouble()),
+          ),
+        );
+      },
       title: MouseDragScroll(
         child: TabBar(
           controller: _tabController,
