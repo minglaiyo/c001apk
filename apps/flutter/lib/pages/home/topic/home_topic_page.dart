@@ -91,14 +91,16 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                             ? data![0].entities!.length
                             : data!.length;
                         // When the list is longer than the rail, rows
-                        // share the height via Expanded. A fixed 15px
-                        // text in a squeezed row used to paint outside
-                        // its row (a Column does not clip), so
-                        // adjacent rows' texts overlapped. FittedBox
-                        // scaleDown shrinks the text to its row
-                        // instead, and the compact path also cuts the
-                        // vertical padding, so the text stays legible
-                        // rather than being scaled to a sliver.
+                        // share the height via Expanded. The text size
+                        // stays fixed at 15px on every tab: an earlier
+                        // version wrapped the text in FittedBox
+                        // scaleDown, which shrank the 话题 rail text
+                        // below the 数码 rail text whenever the row
+                        // height got squeezed (24 categories share the
+                        // rail, so 话题 squeezed first). The compact
+                        // path now only drops the vertical padding to
+                        // zero, so the fixed 15px text still fits the
+                        // squeezed row, centred, instead of shrinking.
                         Widget railItem(int index, {bool compact = false}) =>
                             IntrinsicHeight(
                               child: Obx(
@@ -136,10 +138,8 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                                             alignment: Alignment.center,
                                             padding: EdgeInsets.symmetric(
                                                 vertical:
-                                                    compact ? 4 : 10),
-                                            child: FittedBox(
-                                              fit: BoxFit.scaleDown,
-                                              child: Text(
+                                                    compact ? 0 : 10),
+                                            child: Text(
                                                 widget.tabType == TabType.TOPIC
                                                     ? data[0]
                                                         .entities![index]
@@ -163,8 +163,7 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
+                                            ),
                                           ),
                                         ),
                                       ],
