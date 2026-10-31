@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('new feed tip shows count, dropdown icon and dynamic colour',
+  testWidgets('new feed tip shows count and dynamic colour, no dropdown icon',
       (tester) async {
     var tapped = false;
     await tester.pumpWidget(MaterialApp(
@@ -19,7 +19,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('更新了 11 条动态'), findsOneWidget);
-    expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
+    // The dropdown chevron was removed: it misled users into thinking
+    // the capsule expands something.
+    expect(find.byIcon(Icons.keyboard_arrow_down), findsNothing);
 
     // The capsule follows the theme (dynamic colour), not a fixed colour.
     // find.byType(Material).first would return the Scaffold's own

@@ -17,8 +17,9 @@ import 'package:flutter/material.dart';
 ///   configured seed colour). That is also why the capsule reads light
 ///   with dark text, matching the screenshot, rather than a saturated
 ///   primary background with white text.
-/// * A dropdown chevron sits on the right of the text, as in the
-///   screenshot; the whole capsule is tappable.
+/// * No trailing icon: an earlier version had a dropdown chevron
+///   on the right of the text, but it misled users into thinking the
+///   capsule expands something. The whole capsule is still tappable.
 /// * The caller owns visibility and fading: [opacity] is driven by the
 ///   caller (it fades as the user scrolls down), and [onTap] refreshes
 ///   the feed and hides the tip. The tip itself only renders.
@@ -63,12 +64,6 @@ class NewFeedTip extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onPrimaryContainer,
                       ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 18,
-                  color: colorScheme.onPrimaryContainer,
                 ),
               ],
             ),
