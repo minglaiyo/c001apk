@@ -123,7 +123,7 @@ class _MessagePageState extends State<MessagePage>
         title: const Text('我的'),
         compactTitle: true,
         floatWithoutGlass: true,
-        glassTitle: (_) =>
+        glassTitle: (_, _) =>
             const Align(alignment: Alignment.centerLeft, child: Text('我的')),
         glassActions: (context) => [
           for (final action in [

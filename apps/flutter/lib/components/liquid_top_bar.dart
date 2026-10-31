@@ -9,6 +9,10 @@ import '../utils/extensions.dart';
 import 'basic_glass.dart';
 export 'basic_glass.dart' show LiquidGlassButton;
 
+/// Glass title builder: context plus the bar's show progress.
+typedef GlassTitleBuilder = Widget Function(
+    BuildContext context, double visibility);
+
 /// Root toolbar surfaces share the navigation glass preference and optics.
 /// Keep the body in the same element slot when preferences change.
 ///
@@ -39,7 +43,10 @@ class LiquidTopBarScaffold extends StatefulWidget {
   final Widget title, body;
 
   /// Root pages opt in without changing the body element's position.
-  final WidgetBuilder? glassTitle;
+  /// The second argument is the bar's show progress (1 = fully shown),
+  /// so glass titles can dim their rim/sheen slightly as the bar hides
+  /// with scrolling.
+  final GlassTitleBuilder? glassTitle;
   final List<Widget> Function(BuildContext context)? glassActions;
   final bool compactTitle, floatWithoutGlass;
   final VoidCallback? onSearch;
@@ -145,7 +152,7 @@ class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
                               child: SizedBox(
                                 key: const ValueKey('glass-top-title'),
                                 height: height - 16,
-                                child: widget.glassTitle!(context),
+                                child: widget.glassTitle!(context, value),
                               )),
                         ),
                         if (widget.onSearch != null) ...[

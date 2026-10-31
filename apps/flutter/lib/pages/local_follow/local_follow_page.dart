@@ -110,7 +110,7 @@ class _FollowFeedPageState extends State<FollowFeedPage>
       builder: (context, _, __) => LiquidTopBarScaffold(
         compactTitle: true,
         floatWithoutGlass: true,
-        glassTitle: (context) => GlobalData().isLogin
+        glassTitle: (context, _) => GlobalData().isLogin
             ? LiquidPopupMenuButton<FollowFeedSelection>(
                 height:
                     math.max(48, MediaQuery.textScalerOf(context).scale(20)),

@@ -152,13 +152,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       // TabController.index only flips when a transition finishes, while
       // animation.value moves continuously, so the pill must follow the
       // latter to slide along with the page instead of jumping at the end.
-      glassTitle: (context) {
+      glassTitle: (context, visibility) {
         Widget tabs(double? position) => LiquidNavigationBar.tabs(
               key: ValueKey(_tabTypes.map((tab) => tab.storageId).join(',')),
               selectedIndex: position?.round() ?? _tabController.index,
               selectedPosition: position,
               labels: _tabTypes.map((type) => type.label).toList(),
               level: GStorage.liquidGlassLevel,
+              glow: visibility,
               onDestinationSelected: (index) {
                 if (_tabController.index == index) {
                   scrollToTop(index);
