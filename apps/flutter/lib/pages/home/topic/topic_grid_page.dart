@@ -170,7 +170,7 @@ class _TopicCategoryGridState extends State<TopicCategoryGrid> {
             child: GridView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(12),
-              gridDelegate: const SliverGridWithFixedCrossAxisCount(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 12,
