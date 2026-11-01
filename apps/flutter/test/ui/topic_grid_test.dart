@@ -44,7 +44,10 @@ void main() {
                 'entityType': 'topic',
                 'title': '酷安夜话',
                 'logo': '',
-                'hotNumTxt': '149.2万',
+                // Datum maps this field from the JSON key 'hot_num_txt'
+                // (@JsonKey), not 'hotNumTxt': using the wrong key made
+                // the count row vanish and the test fail with 0 matches.
+                'hot_num_txt': '149.2万',
               }),
               onTap: () => tapped = true,
             ),
