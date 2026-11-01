@@ -55,6 +55,88 @@ class _HomeTopicPageState extends State<HomeTopicPage>
         // 数码 tabs get it. The grid's and rail's own top padding no
         // longer carry the inset – the mask does that job – which also
         // removes the split-colour gap the inset used to leave.
+        // Scrollable rail, one roomy row per category on both tabs
+        // (15px text, vertical padding 10, the same row height on
+        // 话题 and 数码). The rail was fixed for a while, but with 24
+        // 话题 categories against 14 数码 ones the fixed rail squeezed
+        // 话题 rows far below 数码's roomy rows, so the user chose
+        // scrolling back. Only the rail scrolls; the right grid keeps
+        // its own scroll, and the mask band above still carries the
+        // top inset, so the list itself needs no top padding.
+        Widget railItem(int index) =>
+            IntrinsicHeight(
+              child: Obx(
+                () => InkWell(
+                  onTap: () {
+                    _homeTopicController.currentIndex.value =
+                        index;
+                    _controller.jumpToPage(index);
+                  },
+                  child: Ink(
+                    color: index ==
+                            _homeTopicController
+                                .currentIndex.value
+                        ? Theme.of(context)
+                            .colorScheme
+                            .onInverseSurface
+                        : Colors.transparent,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          height: double.infinity,
+                          width: 3,
+                          color: index ==
+                                  _homeTopicController
+                                      .currentIndex.value
+                              ? Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                              : Colors.transparent,
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: EdgeInsets.symmetric(
+                                vertical:
+                                    10),
+                            child: Text(
+                                widget.tabType == TabType.TOPIC
+                                    ? data[0]
+                                        .entities![index]
+                                        .title
+                                        .toString()
+                                    : data[index]
+                                        .title
+                                        .toString(),
+                              style: TextStyle(
+                                color: index ==
+                                        _homeTopicController
+                                            .currentIndex
+                                            .value
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface,
+                                fontSize: 15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+        final count = widget.tabType == TabType.TOPIC
+            ? data![0].entities!.length
+            : data!.length;
         return Column(
           children: [
             Container(
@@ -67,132 +149,21 @@ class _HomeTopicPageState extends State<HomeTopicPage>
             Expanded(
               flex: 22,
               child: Padding(
-                // The rail is not a scroll view, so it never picks up
-                // the scaffold's top inset on its own; the mask band
+                // The rail scrolls, so it never picks up the
+                // scaffold's top inset on its own; the mask band
                 // above already offsets the content, so the rail only
                 // needs the bottom clearance for the floating bottom
                 // pill (same 96 the back-to-top button uses).
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.paddingOf(context).bottom + 96,
                 ),
-                child: Column(
-                children: [
-                  Expanded(
-                    // Fixed rail: the left list never scrolls, only the
-                    // right pane does. Two independently scrolling panes
-                    // felt fragmented; one fixed nav rail plus one
-                    // scrolling content pane reads as a single screen.
-                    // Rows keep their natural height when they fit; on a
-                    // short screen (or with large text) they share the
-                    // available height instead of overflowing.
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final count = widget.tabType == TabType.TOPIC
-                            ? data![0].entities!.length
-                            : data!.length;
-                        // When the list is longer than the rail, rows
-                        // share the height via Expanded. The text size
-                        // stays fixed at 15px on every tab: an earlier
-                        // version wrapped the text in FittedBox
-                        // scaleDown, which shrank the 话题 rail text
-                        // below the 数码 rail text whenever the row
-                        // height got squeezed (24 categories share the
-                        // rail, so 话题 squeezed first). The compact
-                        // path now only drops the vertical padding to
-                        // zero, so the fixed 15px text still fits the
-                        // squeezed row, centred, instead of shrinking.
-                        Widget railItem(int index, {bool compact = false}) =>
-                            IntrinsicHeight(
-                              child: Obx(
-                                () => InkWell(
-                                  onTap: () {
-                                    _homeTopicController.currentIndex.value =
-                                        index;
-                                    _controller.jumpToPage(index);
-                                  },
-                                  child: Ink(
-                                    color: index ==
-                                            _homeTopicController
-                                                .currentIndex.value
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .onInverseSurface
-                                        : Colors.transparent,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          height: double.infinity,
-                                          width: 3,
-                                          color: index ==
-                                                  _homeTopicController
-                                                      .currentIndex.value
-                                              ? Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                              : Colors.transparent,
-                                        ),
-                                        Expanded(
-                                          flex: 1,
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            padding: EdgeInsets.symmetric(
-                                                vertical:
-                                                    compact ? 0 : 10),
-                                            child: Text(
-                                                widget.tabType == TabType.TOPIC
-                                                    ? data[0]
-                                                        .entities![index]
-                                                        .title
-                                                        .toString()
-                                                    : data[index]
-                                                        .title
-                                                        .toString(),
-                                              style: TextStyle(
-                                                color: index ==
-                                                        _homeTopicController
-                                                            .currentIndex
-                                                            .value
-                                                    ? Theme.of(context)
-                                                        .colorScheme
-                                                        .primary
-                                                    : Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurface,
-                                                fontSize: 15,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                        if (count == 0) {
-                          return const SizedBox.shrink();
-                        }
-                        const estimatedRowHeight = 44.0;
-                        if (count * estimatedRowHeight <=
-                            constraints.maxHeight) {
-                          return Column(children: [
-                            for (var i = 0; i < count; i++) railItem(i),
-                          ]);
-                        }
-                        return Column(
-                          children: [
-                            for (var i = 0; i < count; i++)
-                              Expanded(child: railItem(i, compact: true)),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                ],
-                ),
+                child: count == 0
+                    ? const SizedBox.shrink()
+                    : ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: count,
+                        itemBuilder: (context, index) => railItem(index),
+                      ),
               ),
             ),
             Expanded(
