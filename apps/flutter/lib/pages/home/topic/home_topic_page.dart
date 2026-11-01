@@ -169,7 +169,13 @@ class _HomeTopicPageState extends State<HomeTopicPage>
             Expanded(
               flex: 78,
               child: Container(
-                color: Theme.of(context).colorScheme.onInverseSurface,
+                // Same surface as the rail and the mask band: the right
+                // pane used to paint onInverseSurface here, which left a
+                // hard vertical seam against the white rail and made the
+                // selected rail row (also onInverseSurface) look like it
+                // bled into the grid. With one shared background the seam
+                // is gone and the selected row reads as a highlight.
+                color: Theme.of(context).colorScheme.surface,
                 child: PageView.builder(
                   controller: _controller,
                   scrollDirection: Axis.vertical,

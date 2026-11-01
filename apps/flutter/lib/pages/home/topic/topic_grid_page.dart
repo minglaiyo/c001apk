@@ -41,7 +41,7 @@ class TopicGridCell extends StatelessWidget {
         onTap: onTap,
         borderRadius: const BorderRadius.all(Radius.circular(12)),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             clipNetworkImage(
               data.logo.orEmpty,
@@ -59,6 +59,11 @@ class TopicGridCell extends StatelessWidget {
               style: const TextStyle(fontSize: 14),
             ),
             if (hotNum != null && hotNum.isNotEmpty) ...[
+              // Pin the count to the cell bottom: names run 1-2 lines,
+              // so without this the count sat at a different height in
+              // every cell and the rows looked ragged. The tile height
+              // is fixed (140), so the Spacer always has room.
+              const Spacer(),
               const SizedBox(height: 4),
               Row(
                 mainAxisSize: MainAxisSize.min,
