@@ -22,9 +22,11 @@ class _ProductPageState extends State<ProductPage> {
   Future<ProductDetail>? _detailFuture;
 
   /// Whether the product header (stats, score, rating bars, specs)
-  /// is expanded. Collapsed, only the logo + title row remains, so
-  /// the header stops eating a quarter of the page and the feed list
-  /// gets the space. The tab bar is always visible either way.
+  /// is expanded. Collapsed, the title row keeps a compact score
+  /// line (total score + 酷安评分) while stats, rating bars, specs
+  /// and description hide, mirroring the official product header,
+  /// so the header stops eating a quarter of the page and the feed
+  /// list gets the space. The tab bar is always visible either way.
   ///
   /// The header is fully shown only when the page first opens: once
   /// the feed list scrolls down past a threshold it collapses on its
@@ -116,6 +118,17 @@ class _ProductPageState extends State<ProductPage> {
                         detail.description,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    if (!_headerExpanded && detail.score > 0) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '${detail.score.toStringAsFixed(1)} 酷安评分',
                         style: TextStyle(
                           color: Theme.of(context)
                               .colorScheme
@@ -289,7 +302,18 @@ class _ProductPageState extends State<ProductPage> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('数码产品'),
-            actions: [_buildSortMenu(detail)],
+            actions: [
+              IconButton(
+                onPressed: () => Get.toNamed('/search', parameters: {
+                  'title': detail.title,
+                  'pageType': 'product_phone',
+                  'pageParam': detail.id,
+                }),
+                icon: const Icon(Icons.search),
+                tooltip: '搜索',
+              ),
+              _buildSortMenu(detail),
+            ],
           ),
           body: DefaultTabController(
             length: detail.tabs.length,
