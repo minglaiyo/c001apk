@@ -23,10 +23,11 @@ class _ProductPageState extends State<ProductPage> {
 
   /// Whether the product header (stats, score, rating bars, specs)
   /// is expanded. Collapsed, the title row keeps a compact score
-  /// line (total score + 酷安评分) while stats, rating bars, specs
-  /// and description hide, mirroring the official product header,
-  /// so the header stops eating a quarter of the page and the feed
-  /// list gets the space. The tab bar is always visible either way.
+  /// line (total score + 酷安评分) while the logo, stats, rating
+  /// bars, specs and description hide, mirroring the official
+  /// product header, so the header stops eating a quarter of the
+  /// page and the feed list gets the space. The tab bar is always
+  /// visible either way.
   ///
   /// The header is fully shown only when the page first opens: once
   /// the feed list scrolls down past a threshold it collapses on its
@@ -84,7 +85,7 @@ class _ProductPageState extends State<ProductPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (detail.logo.isNotEmpty)
+              if (_headerExpanded && detail.logo.isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.network(
@@ -99,7 +100,8 @@ class _ProductPageState extends State<ProductPage> {
                     ),
                   ),
                 ),
-              if (detail.logo.isNotEmpty) const SizedBox(width: 12),
+              if (_headerExpanded && detail.logo.isNotEmpty)
+                const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
