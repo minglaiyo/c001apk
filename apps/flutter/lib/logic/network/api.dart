@@ -73,9 +73,6 @@ class Api {
   static String getProductMediaList =
       '${Constants.URL_API_SERVICE}/v6/product/mediaList';
 
-  static String getProductRatingChart =
-      '${Constants.URL_API_SERVICE}/v6/product/ratingChart';
-
   static String postCollectionCreate =
       '${Constants.URL_API_SERVICE}/v6/collection/create';
   static String postCollectionUpdate =

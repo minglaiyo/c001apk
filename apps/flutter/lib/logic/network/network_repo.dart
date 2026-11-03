@@ -475,32 +475,6 @@ class NetworkRepo {
     }
   }
 
-  /// Product rating distribution, from
-  /// `GET /v6/product/ratingChart?id=...` (reference only, untested).
-  /// 原始结构原样返回，由 rating_chart.dart 宽容解析总体分布。
-  /// 注意：分布直接以 List 形式返回时也不能丢成 Empty，否则明细页
-  /// 永远只显示“暂未返回”——List 同样原样交给解析器。
-  static Future<LoadingState<dynamic>> getProductRatingChart(
-      String id) async {
-    try {
-      final response = await Request().get(Api.getProductRatingChart,
-          queryParameters: {'id': id});
-      final raw = readApiObject(response)['data'];
-      if (raw is Map<String, dynamic>) {
-        return LoadingState.success(raw);
-      }
-      if (raw is Map) {
-        return LoadingState.success(Map<String, dynamic>.from(raw));
-      }
-      if (raw is List) {
-        return LoadingState.success(raw);
-      }
-      return LoadingState.empty();
-    } catch (error) {
-      return LoadingState.error(ApiFailure.fromError(error).message);
-    }
-  }
-
   /// Dynamic vote submit, from POST /v6/vote/createUserVote
   /// (reference only, untested; NOT /v6/goodsList/vote, which is a
   /// goods-list vote). Form: id + select_option[0..n] + anonymous_status.
@@ -677,26 +651,81 @@ class NetworkRepo {
     }
   }
 
-  /// 云端历史单行宽容解析：行本身、或嵌套的 feed/target/data 对象。
-  /// 只接受带 id 或标题/正文的行，避免把用户/话题类裸行解析成空白卡片。
+  /// itemCard 能渲染的 entityType（见 components/item_card.dart）；
+  /// 不在此表里的类型会落到默认分支显示“暂不支持此内容”。
+  static const _renderableHistoryTypes = {
+    'card',
+    'feed',
+    'feed_reply',
+    'apk',
+    'product',
+    'user',
+    'topic',
+    'contacts',
+    'recentHistory',
+    'notification',
+    'message',
+    'collection',
+  };
+
+  /// 云端历史单行宽容解析。
+  ///
+  /// BUGFIX（#54 真机复验：整页“暂不支持此内容”）：旧实现先试行本身，
+  /// 行本身带 id 且 entityType='history' 时直接被接受，而 itemCard
+  /// 没有 'history' 分支，于是每行都落到默认“暂不支持”。行真正的目标
+  /// 往往嵌在 feed/target/data/targetRow 等子对象里。改：先试嵌套目标
+  /// （且 entityType 必须是 itemCard 能渲染的），再回落行本身；嵌套
+  /// 目标的 entityType 为空但 targetType 可渲染时，用服务端自己的
+  /// targetType 补 entityType（不编造新类型）；嵌套目标缺 dateline /
+  /// url 时用行本身的补齐。回落的行本身若仍是 'history'，页面会用
+  /// 历史记录卡片显示它自带的标题/时间，不再走 itemCard 的默认分支。
   static Datum? _datumFromHistoryRow(dynamic row) {
     if (row is! Map) return null;
     Map<String, dynamic> asMap(Map value) => Map<String, dynamic>.fromEntries(
         value.entries.map((e) => MapEntry(e.key.toString(), e.value)));
-    for (final candidate in [row, row['feed'], row['target'], row['data']]) {
-      if (candidate is Map) {
-        try {
-          final datum = Datum.fromJson(asMap(candidate));
-          final hasTitle = (datum.title ?? '').trim().isNotEmpty ||
-              (datum.messageTitle ?? '').trim().isNotEmpty ||
-              (datum.message ?? '').trim().isNotEmpty;
-          if (datum.id != null || hasTitle) return datum;
-        } catch (_) {
-          continue;
-        }
+    Datum? tryParse(Map candidate) {
+      try {
+        final datum = Datum.fromJson(asMap(candidate));
+        final hasTitle = (datum.title ?? '').trim().isNotEmpty ||
+            (datum.messageTitle ?? '').trim().isNotEmpty ||
+            (datum.message ?? '').trim().isNotEmpty;
+        if (datum.id == null && !hasTitle) return null;
+        return datum;
+      } catch (_) {
+        return null;
       }
     }
-    return null;
+
+    bool renderable(Datum datum) =>
+        _renderableHistoryTypes.contains((datum.entityType ?? '').trim());
+    // 1. 嵌套目标优先，且必须是可渲染类型。
+    for (final key in [
+      'feed',
+      'target',
+      'data',
+      'targetRow',
+      'entity',
+      'item'
+    ]) {
+      final candidate = row[key];
+      if (candidate is! Map) continue;
+      final datum = tryParse(candidate);
+      if (datum == null) continue;
+      if ((datum.entityType ?? '').trim().isEmpty) {
+        final targetType = (datum.targetType ?? '').trim();
+        if (_renderableHistoryTypes.contains(targetType)) {
+          datum.entityType = targetType;
+        }
+      }
+      if (!renderable(datum)) continue;
+      datum.dateline ??= row['dateline'];
+      if ((datum.url ?? '').isEmpty && row['url'] is String) {
+        datum.url = row['url'] as String;
+      }
+      return datum;
+    }
+    // 2. 回落行本身（可能是纯 history 记录，页面用记录卡片渲染）。
+    return tryParse(row);
   }
 
   /// Product detail for the product page, from

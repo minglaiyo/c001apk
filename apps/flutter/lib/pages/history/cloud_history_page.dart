@@ -4,8 +4,10 @@ import '../../components/item_card.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/network/network_repo.dart';
 import '../../logic/state/loading_state.dart';
+import '../../utils/date_util.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
+import '../../utils/utils.dart';
 
 /// 云端浏览历史页，B 层参考级。
 ///
@@ -41,10 +43,114 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
 
   String _typeOf(Datum item) {
     final type = item.entityType.orEmpty;
+    if (type == 'history') {
+      // 纯 history 记录：服务端自己的 targetType 更能说明它指向什么，
+      // 都没有时就叫“浏览记录”，不要把原始英文 entityType 当筛选名。
+      final targetType = item.targetType.orEmpty;
+      return targetType.isNotEmpty ? targetType : '浏览记录';
+    }
     if (type.isNotEmpty) return type;
     final feedType = item.feedType.orEmpty;
     if (feedType.isNotEmpty) return feedType;
     return '未知';
+  }
+
+  /// itemCard 能渲染的类型（与 components/item_card.dart 的分支一致；
+  /// 'card' 只有模板在已知列表里时才算能渲染，其余一律走记录卡片）。
+  bool _isRenderable(Datum item) {
+    final type = item.entityType.orEmpty;
+    if (type == 'card') {
+      return {
+        'imageCarouselCard_1',
+        'iconLinkGridCard',
+        'iconMiniScrollCard',
+        'iconMiniGridCard',
+        'imageSquareScrollCard',
+        'titleCard',
+        'iconScrollCard',
+        'imageTextScrollCard',
+        'noMoreDataCard',
+        'messageCard',
+        'refreshCard',
+      }.contains(item.entityTemplate.orEmpty);
+    }
+    return {
+      'feed',
+      'feed_reply',
+      'apk',
+      'product',
+      'user',
+      'topic',
+      'contacts',
+      'recentHistory',
+      'notification',
+      'message',
+      'collection',
+    }.contains(type);
+  }
+
+  /// 目标还原不了的历史记录本身：显示记录自带的标题/类型/时间，
+  /// 有 url 时点按走通用链接打开；没有 url 时就是一张静态信息卡，
+  /// 绝不再显示“暂不支持此内容”。
+  Widget _historyRecordCard(Datum item) {
+    String? firstNonEmpty(List<String?> values) {
+      for (final value in values) {
+        if (value != null && value.trim().isNotEmpty) return value.trim();
+      }
+      return null;
+    }
+
+    final title = firstNonEmpty([
+          item.title,
+          item.messageTitle,
+          item.message,
+          item.description,
+        ]) ??
+        '浏览记录';
+    String timeText = '';
+    try {
+      if (item.dateline != null) timeText = DateUtil.fromToday(item.dateline);
+    } catch (_) {
+      timeText = '';
+    }
+    final meta = firstNonEmpty([
+      [
+        item.targetTypeTitle,
+        item.targetType,
+        item.username,
+        timeText,
+      ].where((part) => part != null && part!.trim().isNotEmpty).join(' · '),
+    ]);
+    final url = item.url.orEmpty;
+    final body = Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+          if (meta != null) ...[
+            const SizedBox(height: 4),
+            Text(meta,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.outline)),
+          ],
+        ],
+      ),
+    );
+    return Material(
+      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      color: Theme.of(context).colorScheme.onInverseSurface,
+      child: url.isEmpty
+          ? body
+          : InkWell(
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+              onTap: () => Utils.onOpenLink(url, title, true, context),
+              child: body,
+            ),
+    );
   }
 
   Future<void> _load({bool reset = false}) async {
@@ -193,11 +299,16 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
                                   ),
                                 );
                               }
+                              final item = filtered[index];
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
                                 // 混合类型（动态/话题/用户等）用通用卡片，
-                                // 而不是只按动态卡片渲染。
-                                child: itemCard(filtered[index]),
+                                // 而不是只按动态卡片渲染；目标还原不了的
+                                // history 记录用记录卡片，绝不走 itemCard
+                                // 的默认“暂不支持此内容”分支。
+                                child: _isRenderable(item)
+                                    ? itemCard(item)
+                                    : _historyRecordCard(item),
                               );
                             },
                           ),
