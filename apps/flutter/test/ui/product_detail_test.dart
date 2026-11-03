@@ -58,7 +58,24 @@ void main() {
   });
 
   group('parseProductTabs', () {
-    test('feed and sub-tab tabs are kept, others are dropped', () {
+    test('follow state is read from userAction', () {
+      final followed = parseProductDetail('123', {
+        'userAction': {'follow': 1},
+        'tabList': [],
+      });
+      expect(followed.followed, isTrue);
+      final unfollowed = parseProductDetail('123', {
+        'userAction': {'follow': 0},
+        'tabList': [],
+      });
+      expect(unfollowed.followed, isFalse);
+      final anonymous = parseProductDetail('123', {
+        'tabList': [],
+      });
+      expect(anonymous.followed, isNull);
+    });
+
+    test('feed, sub-tab and main tabs are kept, rating and others are dropped', () {
       final tabs = parseProductTabs('123', [
         {
           'title': '讨论',
@@ -102,11 +119,13 @@ void main() {
           'is_open': '1',
         },
       ]);
-      expect(tabs.length, 2);
+      expect(tabs.length, 3);
       expect(tabs[0].label, '讨论');
       expect(tabs[0].feedType, 'feed');
       expect(tabs[1].label, '样张');
       expect(tabs[1].subId, '5');
+      expect(tabs[2].label, '参数');
+      expect(tabs[2].feedType, 'main');
     });
 
     test('URL-encoded inner URLs parse the same way', () {
