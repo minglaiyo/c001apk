@@ -716,8 +716,28 @@ class NetworkRepo {
             (datum.picArr ?? []).isNotEmpty);
     bool productLike(Datum datum) =>
         (datum.title ?? '').trim().isNotEmpty &&
-        (datum.logo ?? '').trim().isNotEmpty &&
+        ((datum.logo ?? '').trim().isNotEmpty ||
+            (datum.pic ?? '').trim().isNotEmpty ||
+            (datum.cover ?? '').trim().isNotEmpty ||
+            (datum.coverPic ?? '').trim().isNotEmpty ||
+            (datum.picArr ?? []).isNotEmpty) &&
         (datum.message ?? '').trim().isEmpty;
+    // Effective product image: the server sometimes puts it in pic /
+    // cover / picArr instead of logo. Only fields the row actually
+    // carries are used here, nothing is invented.
+    String effectiveProductLogo(Datum datum) {
+      for (final value in [
+        datum.logo,
+        datum.pic,
+        datum.cover,
+        datum.coverPic,
+      ]) {
+        if ((value ?? '').trim().isNotEmpty) return value!.trim();
+      }
+      final pics = datum.picArr ?? [];
+      if (pics.isNotEmpty) return pics.first;
+      return '';
+    }
 
     Datum? rowDatum;
     try {
@@ -796,6 +816,9 @@ class NetworkRepo {
           datum.entityType = 'feed';
         } else if (productLike(datum)) {
           datum.entityType = 'product';
+          if ((datum.logo ?? '').trim().isEmpty) {
+            datum.logo = effectiveProductLogo(datum);
+          }
         }
       }
       if (!renderable(datum)) continue;
@@ -809,6 +832,13 @@ class NetworkRepo {
     if (renderable(own)) return own;
     if (feedLike(own)) {
       own.entityType = 'feed';
+      return own;
+    }
+    if (productLike(own)) {
+      own.entityType = 'product';
+      if ((own.logo ?? '').trim().isEmpty) {
+        own.logo = effectiveProductLogo(own);
+      }
       return own;
     }
     // 3. Pure history record (title + time only, no body/user data):
