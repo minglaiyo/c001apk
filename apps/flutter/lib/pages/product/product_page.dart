@@ -294,7 +294,7 @@ class _ProductPageState extends State<ProductPage> {
                               Text(
                                 detail.score.toStringAsFixed(1),
                                 style: const TextStyle(
-                                  fontSize: 28,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -303,25 +303,31 @@ class _ProductPageState extends State<ProductPage> {
                                 detail.scoreCount > 0
                                     ? '酷安评分 · ${detail.scoreCount} 人'
                                     : '酷安评分',
+                                style: const TextStyle(fontSize: 12),
                               ),
                             ],
                           ),
                         ),
                         if (detail.ratingItems.isNotEmpty) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
                           for (final item in detail.ratingItems)
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
+                              padding: const EdgeInsets.only(bottom: 2),
                               child: Row(
                                 children: [
-                                  SizedBox(width: 72, child: Text(item.name)),
+                                  SizedBox(
+                                      width: 64,
+                                      child: Text(item.name,
+                                          style: const TextStyle(fontSize: 12))),
                                   Expanded(
                                     child: LinearProgressIndicator(
                                       value: (item.score / 10).clamp(0.0, 1.0),
+                                      minHeight: 3,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Text(item.score.toStringAsFixed(1)),
+                                  Text(item.score.toStringAsFixed(1),
+                                      style: const TextStyle(fontSize: 12)),
                                 ],
                               ),
                             ),
