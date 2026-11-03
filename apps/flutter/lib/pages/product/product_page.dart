@@ -4,6 +4,7 @@ import 'package:get/get.dart' hide Response, FormData;
 
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
+import '../../logic/state/loading_state.dart';
 import '../../pages/product/product_detail.dart';
 import '../../pages/product/product_feed_content.dart';
 import '../../pages/product/product_feed_controller.dart';
