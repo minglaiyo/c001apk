@@ -242,21 +242,33 @@ class _ProductPageState extends State<ProductPage> {
           // scroll and restores via the AppBar title tap, so picture
           // and rating collapse/restore together.
           if (hasLogo || detail.score > 0)
+            // Row height follows the tallest child (the rating block,
+            // total + per-aspect bars, which is taller than 96px), and
+            // stretch makes the image container fill that full height,
+            // so no blank block is left under the image. The image
+            // itself has no fixed height: under the tight height the
+            // stretch constraint gives it, BoxFit.cover crops it to
+            // fill the container without distortion. Width 120 keeps
+            // it proportionate without squeezing the rating bars.
+            // No IntrinsicHeight is needed here: this Row is a child
+            // of a Column with loose height, so its height is already
+            // set by its tallest child.
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (hasLogo)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
                       detail.logo,
-                      width: 96,
-                      height: 96,
+                      width: 120,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
-                          const SizedBox(
-                        width: 96,
-                        height: 96,
+                          Container(
+                        width: 120,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                       ),
                     ),
                   ),

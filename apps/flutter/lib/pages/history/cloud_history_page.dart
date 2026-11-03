@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../components/item_card.dart';
+import '../../components/network_image.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/network/network_repo.dart';
 import '../../logic/state/loading_state.dart';
+import '../product/product_detail.dart';
 import '../../utils/date_util.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
@@ -16,6 +18,15 @@ import '../../utils/utils.dart';
 /// recentHistoryList，那是“我的常去”。type 取值未实测，先传空，
 /// 客户端按 entityType / feedType 兜底筛；与本地 historyFeed
 /// 不合并、不去重，页面文案写明是云端线。未登录时只提示登录。
+/// Target identified from a history row's own fields, for detail
+/// enrichment. The id here is always a target id (from targetRow.id or
+/// from a /feed/<id> / /product/<id> url), never a history record id.
+class _HistoryTarget {
+  const _HistoryTarget(this.kind, this.id);
+  final String kind;
+  final String id;
+}
+
 class CloudHistoryPage extends StatefulWidget {
   const CloudHistoryPage({super.key});
 
@@ -34,6 +45,16 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
   bool _isEnd = false;
   bool _serverEmpty = false;
   String? _error;
+  // Detail enrichment: full feed/product data fetched by target id,
+  // keyed by the original history row. The list itself (_all) is never
+  // replaced, so order and the '浏览记录' filter stay stable while
+  // cards swap from info cards to full cards as details arrive.
+  final _feedDetails = <String, Datum>{};
+  final _productDetails = <String, ProductDetail>{};
+  final _enrichAttempted = <String>{};
+  int _enrichGeneration = 0;
+  bool _enriching = false;
+  bool _enrichPending = false;
 
   @override
   void initState() {
@@ -135,8 +156,12 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
       item.message,
       item.messageTitle,
     ]);
-    final showBody =
-        bodyText != null && bodyText != title;
+    // Directly null-checked local: the #57 analyzer flagged bodyText!
+    // at 149 as unnecessary_non_null_assertion, and a bare ! here is
+    // exactly the class of warning that fails the build under
+    // --fatal-warnings. This form needs no assertion at all.
+    final displayBody =
+        bodyText != null && bodyText != title ? bodyText : null;
     final url = item.url.orEmpty;
     final body = Padding(
       padding: const EdgeInsets.all(12),
@@ -144,9 +169,9 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
-          if (showBody) ...[
+          if (displayBody != null) ...[
             const SizedBox(height: 4),
-            Text(bodyText!,
+            Text(displayBody,
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 14)),
@@ -193,6 +218,10 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
         _firstItem = null;
         _lastItem = null;
         _isEnd = false;
+        _feedDetails.clear();
+        _productDetails.clear();
+        _enrichAttempted.clear();
+        _enrichGeneration++;
       });
     } else {
       setState(() => _loadingMore = true);
@@ -227,6 +256,193 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
         _isEnd = true;
       }
     });
+    if (result is Success) {
+      // Fire-and-forget: info cards show immediately, full cards swap
+      // in as their target details arrive.
+      _enrichItems();
+    }
+  }
+
+  String _rowKey(Datum item) =>
+      '${item.id}|${item.url.orEmpty}|${item.dateline}';
+
+  _HistoryTarget? _targetFromUrl(String url) {
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null) return null;
+    final segments = uri.pathSegments;
+    for (var i = 0; i + 1 < segments.length; i++) {
+      if ((segments[i] == 'feed' || segments[i] == 'product') &&
+          RegExp(r'^[0-9]+$').hasMatch(segments[i + 1])) {
+        return _HistoryTarget(segments[i], segments[i + 1]);
+      }
+    }
+    return null;
+  }
+
+  _HistoryTarget? _targetOf(Datum item) {
+    // 1. The server's own target object, when present.
+    final targetRow = item.targetRow;
+    if (targetRow != null) {
+      final rowId = targetRow.id?.toString().trim() ?? '';
+      final rowKind =
+          (targetRow.entityType ?? targetRow.targetType ?? '').trim();
+      if (rowId.isNotEmpty && (rowKind == 'feed' || rowKind == 'product')) {
+        return _HistoryTarget(rowKind, rowId);
+      }
+      final fromUrl = _targetFromUrl(targetRow.url ?? '');
+      if (fromUrl != null) return fromUrl;
+    }
+    // 2. The row's own url, e.g. /feed/<id> or /product/<id>.
+    final fromUrl = _targetFromUrl(item.url.orEmpty);
+    if (fromUrl != null) return fromUrl;
+    // 3. Only for rows the parser already accepted as a feed/product
+    // target (not for 'history' rows): there item.id IS the target id,
+    // because it came from a nested target object. A 'history' row's
+    // id is the history record id and is never used here.
+    final entityKind = item.entityType;
+    if ((entityKind == 'feed' || entityKind == 'product') &&
+        item.id != null &&
+        item.id.toString().trim().isNotEmpty) {
+      final bodyEmpty = (item.message ?? '').trim().isEmpty &&
+          (item.messageTitle ?? '').trim().isEmpty &&
+          (item.picArr ?? []).isEmpty;
+      if (entityKind == 'product' || bodyEmpty) {
+        return _HistoryTarget(entityKind, item.id.toString());
+      }
+    }
+    return null;
+  }
+
+  Future<void> _enrichItems() async {
+    if (_enriching) {
+      _enrichPending = true;
+      return;
+    }
+    _enriching = true;
+    final generation = _enrichGeneration;
+    try {
+      for (var i = 0; i < _all.length; i++) {
+        if (!mounted || generation != _enrichGeneration) return;
+        final item = _all[i];
+        final key = _rowKey(item);
+        if (_feedDetails.containsKey(key) ||
+            _productDetails.containsKey(key) ||
+            _enrichAttempted.contains(key)) {
+          continue;
+        }
+        // Rows already fully rendered need no fetch, except product
+        // rows (AppCard shows no rating) and blank feed rows (no body).
+        final needsFetch = item.entityType == 'history' ||
+            item.entityType == 'product' ||
+            (item.entityType == 'feed' &&
+                (item.message ?? '').trim().isEmpty &&
+                (item.messageTitle ?? '').trim().isEmpty &&
+                (item.picArr ?? []).isEmpty);
+        if (!needsFetch) continue;
+        final target = _targetOf(item);
+        if (target == null) continue;
+        _enrichAttempted.add(key);
+        if (target.kind == 'feed') {
+          final result = await NetworkRepo.getFeedDetail(id: target.id);
+          if (!mounted || generation != _enrichGeneration) return;
+          if (result is Success) {
+            final detail = result.response;
+            if (detail is Datum) {
+              setState(() => _feedDetails[key] = detail);
+            }
+          }
+          // On failure the info card stays; the attempted set stops
+          // retry loops. Nothing is invented on failure.
+        } else if (target.kind == 'product') {
+          try {
+            final detail = await NetworkRepo.getProductDetail(target.id);
+            if (!mounted || generation != _enrichGeneration) return;
+            setState(() => _productDetails[key] = detail);
+          } catch (_) {
+            // Keep the info card on failure.
+          }
+        }
+      }
+    } finally {
+      _enriching = false;
+      if (_enrichPending) {
+        _enrichPending = false;
+        _enrichItems();
+      }
+    }
+  }
+
+  Widget _productHistoryCard(ProductDetail detail, Datum row) {
+    String timeText = '';
+    try {
+      if (row.dateline != null) timeText = DateUtil.fromToday(row.dateline);
+    } catch (_) {
+      timeText = '';
+    }
+    // Locals, not field assertions: final-field promotion through &&
+    // is analyzer-version dependent, and a stray ! fails the build
+    // under --fatal-warnings. Local null checks promote reliably.
+    final hot = detail.hotNumText;
+    final comments = detail.commentNumText;
+    final follows = detail.followNumText;
+    final stats = [
+      if (hot != null && hot.isNotEmpty) '$hot 热度',
+      if (comments != null && comments.isNotEmpty) '$comments 讨论',
+      if (follows != null && follows.isNotEmpty) '$follows 关注',
+      if (timeText.isNotEmpty) timeText,
+    ].join(' · ');
+    final url =
+        row.url.orEmpty.isNotEmpty ? row.url.orEmpty : '/product/${detail.id}';
+    return Material(
+      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      color: Theme.of(context).colorScheme.onInverseSurface,
+      child: InkWell(
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        onTap: () => Utils.onOpenLink(url, detail.title, true, context),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              clipNetworkImage(detail.logo,
+                  width: 56, height: 56, radius: 8),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(detail.title,
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    if (detail.score > 0) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                          detail.scoreCount > 0
+                              ? '${detail.score.toStringAsFixed(1)} 酷安评分 · ${detail.scoreCount} 人'
+                              : '${detail.score.toStringAsFixed(1)} 酷安评分',
+                          style: const TextStyle(fontSize: 14)),
+                    ],
+                    if (detail.description.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(detail.description,
+                          maxLines: 2, overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14)),
+                    ],
+                    if (stats.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(stats,
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.outline)),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -323,15 +539,27 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
                                 );
                               }
                               final item = filtered[index];
+                              final rowKey = _rowKey(item);
+                              final enrichedFeed = _feedDetails[rowKey];
+                              final enrichedProduct = _productDetails[rowKey];
+                              // Enriched full cards first; otherwise the
+                              // generic card for renderable rows, and the
+                              // record card for history rows whose target
+                              // could not be identified or fetched.
+                              final Widget card;
+                              if (enrichedFeed != null) {
+                                card = itemCard(enrichedFeed);
+                              } else if (enrichedProduct != null) {
+                                card = _productHistoryCard(
+                                    enrichedProduct, item);
+                              } else if (_isRenderable(item)) {
+                                card = itemCard(item);
+                              } else {
+                                card = _historyRecordCard(item);
+                              }
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
-                                // 混合类型（动态/话题/用户等）用通用卡片，
-                                // 而不是只按动态卡片渲染；目标还原不了的
-                                // history 记录用记录卡片，绝不走 itemCard
-                                // 的默认“暂不支持此内容”分支。
-                                child: _isRenderable(item)
-                                    ? itemCard(item)
-                                    : _historyRecordCard(item),
+                                child: card,
                               );
                             },
                           ),
