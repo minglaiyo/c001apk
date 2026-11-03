@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide Response, FormData;
 
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
