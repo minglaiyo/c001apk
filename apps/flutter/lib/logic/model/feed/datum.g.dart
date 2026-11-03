@@ -131,6 +131,12 @@ Datum _$DatumFromJson(Map<String, dynamic> json) => Datum(
       isOpenTitle: json['is_open_title'] as String?,
       itemNum: (json['item_num'] as num?)?.toInt(),
       isFollow: json['isFollow'],
+      // 手工同步：本地无 build_runner，vote 只保留原始 Map，内层不假设。
+      vote: json['vote'] is Map<String, dynamic>
+          ? json['vote'] as Map<String, dynamic>
+          : json['vote'] is Map
+              ? Map<String, dynamic>.from(json['vote'] as Map)
+              : null,
     );
 
 Map<String, dynamic> _$DatumToJson(Datum instance) => <String, dynamic>{
@@ -232,4 +238,5 @@ Map<String, dynamic> _$DatumToJson(Datum instance) => <String, dynamic>{
       'is_open_title': instance.isOpenTitle,
       'item_num': instance.itemNum,
       'isFollow': instance.isFollow,
+      'vote': instance.vote,
     };

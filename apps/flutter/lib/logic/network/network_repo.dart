@@ -13,6 +13,7 @@ import '../../pages/feed/feed_change_history.dart';
 import '../../pages/product/product_detail.dart';
 import '../../pages/search/search_suggestion.dart';
 import '../../utils/extensions.dart';
+import '../../utils/global_data.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/token_util.dart';
 
@@ -391,6 +392,213 @@ class NetworkRepo {
     } catch (_) {
       return [];
     }
+  }
+
+  // ---- B 层参考接口（未实测参考，来自 daimiaopeng/coolapk-desktop 公开代码）----
+  // 所有方法只做宽容解析：形状不对时返回空/错误态，绝不抛到 UI 崩溃。
+  // 投票提交、收藏写操作的首个真机使用即当探针。
+
+  static String _picFromItem(dynamic item) {
+    if (item is String) return item.trim();
+    if (item is! Map) return '';
+    final arr = item['picArr'] ?? item['imageUriList'];
+    if (arr is List && arr.isNotEmpty) {
+      final first = arr.first;
+      if (first is String && first.trim().isNotEmpty) return first.trim();
+      if (first is Map) {
+        final url = (first['pic'] ?? first['url'] ?? '').toString().trim();
+        if (url.isNotEmpty) return url;
+      }
+    }
+    for (final key in ['pic', 'image', 'url', 'logo', 'cover_pic']) {
+      final value = item[key];
+      if (value is String && value.trim().isNotEmpty) return value.trim();
+    }
+    return '';
+  }
+
+  /// Product media gallery, from
+  /// `GET /v6/product/mediaList?id=...&type=image&is_recommend=...&page=...`
+  /// (reference only, untested). Returns picture URLs, picArr /
+  /// imageUriList / pic兜底；失败或为空时调用方回落到单图 logo。
+  static Future<LoadingState<List<String>>> getProductMediaList({
+    required String id,
+    int page = 1,
+    int isRecommend = 0,
+  }) async {
+    try {
+      final response = await Request().get(Api.getProductMediaList,
+          queryParameters: {
+            'id': id,
+            'type': 'image',
+            'is_recommend': isRecommend,
+            'page': page,
+          });
+      final raw = readApiObject(response)['data'];
+      final items = raw is List
+          ? raw
+          : raw is Map
+              ? (raw['data'] as List? ?? raw['list'] as List? ?? const [])
+              : const [];
+      final urls = <String>[];
+      for (final item in items) {
+        final url = _picFromItem(item);
+        if (url.isNotEmpty && !urls.contains(url)) urls.add(url);
+      }
+      return urls.isEmpty
+          ? LoadingState.empty()
+          : LoadingState.success(urls);
+    } catch (error) {
+      return LoadingState.error(ApiFailure.fromError(error).message);
+    }
+  }
+
+  /// Product rating distribution, from
+  /// `GET /v6/product/ratingChart?id=...` (reference only, untested).
+  /// 原始 Map 原样返回，由 rating_chart.dart 宽容解析总体分布。
+  static Future<LoadingState<Map<String, dynamic>>> getProductRatingChart(
+      String id) async {
+    try {
+      final response = await Request().get(Api.getProductRatingChart,
+          queryParameters: {'id': id});
+      final raw = readApiObject(response)['data'];
+      if (raw is Map<String, dynamic>) {
+        return LoadingState.success(raw);
+      }
+      if (raw is Map) {
+        return LoadingState.success(Map<String, dynamic>.from(raw));
+      }
+      return LoadingState.empty();
+    } catch (error) {
+      return LoadingState.error(ApiFailure.fromError(error).message);
+    }
+  }
+
+  /// Dynamic vote submit, from POST /v6/vote/createUserVote
+  /// (reference only, untested; NOT /v6/goodsList/vote, which is a
+  /// goods-list vote). Form: id + select_option[0..n] + anonymous_status.
+  /// 成功回包可能 message-only，调用方须 allowSuccessWithoutData。
+  static Future<Response> postVote({
+    required dynamic feedId,
+    required List<String> optionIds,
+    bool anonymous = false,
+  }) async {
+    final fields = <String, dynamic>{
+      'id': feedId.toString(),
+      'anonymous_status': anonymous ? 1 : 0,
+    };
+    for (var i = 0; i < optionIds.length; i++) {
+      fields['select_option[$i]'] = optionIds[i];
+    }
+    return postLikeDeleteFollow(
+      '/v6/vote/createUserVote',
+      data: FormData.fromMap(fields),
+    );
+  }
+
+  static Future<Response> _postCollection(
+    String url,
+    Map<String, dynamic> fields,
+  ) {
+    return postLikeDeleteFollow(url, data: FormData.fromMap(fields));
+  }
+
+  /// Collection writes (reference only, untested). update 的 id 必须
+  /// 放表单字段；removeItem 的 itemId 是收藏单条目 id，不是动态 id。
+  static Future<Response> createCollection({
+    required String title,
+    String description = '',
+    int isOpen = 0,
+    String pic = '',
+    String sourceId = '',
+  }) =>
+      _postCollection(Api.postCollectionCreate, {
+        'title': title,
+        'description': description,
+        'isOpen': isOpen,
+        'pic': pic,
+        'sourceId': sourceId,
+      });
+
+  static Future<Response> updateCollection({
+    required dynamic id,
+    required String title,
+    String description = '',
+    int isOpen = 0,
+    String pic = '',
+  }) =>
+      _postCollection(Api.postCollectionUpdate, {
+        'id': id.toString(),
+        'title': title,
+        'description': description,
+        'isOpen': isOpen,
+        'pic': pic,
+      });
+
+  static Future<Response> deleteCollection(dynamic id) =>
+      _postCollection(Api.postCollectionDelete, {'id': id.toString()});
+
+  /// id = 收藏单 id（可多个时逗号分隔传参由服务端定，单选先行）；
+  /// cancelId = 移出的单 id；targetId = 内容 id；type 如 'feed'。
+  static Future<Response> addCollectionItem({
+    required dynamic id,
+    dynamic cancelId,
+    required dynamic targetId,
+    String type = 'feed',
+  }) =>
+      _postCollection(Api.postCollectionAddItem, {
+        'id': id.toString(),
+        if (cancelId != null) 'cancelId': cancelId.toString(),
+        'targetId': targetId.toString(),
+        'type': type,
+        'trace': '',
+      });
+
+  static Future<Response> removeCollectionItem(dynamic itemId) =>
+      _postCollection(Api.postCollectionRemoveItem, {
+        'itemId': itemId.toString(),
+      });
+
+  static Future<Response> removeUnUseCollectionItem(dynamic colId) =>
+      _postCollection(Api.postCollectionRemoveUnUseItem, {
+        'colId': colId.toString(),
+      });
+
+  /// Which collections already contain a feed, from
+  /// `GET /v6/collection/list?uid=&id={feedId}&type=feed&showDefault=1`
+  /// (reference only, untested). Returns collection Datum rows.
+  static Future<LoadingState> getCollectionStateForFeed(dynamic feedId) {
+    return getDataListFromUrl(
+      url: '/v6/collection/list',
+      data: {
+        'uid': GlobalData().uid,
+        'id': feedId.toString(),
+        'type': 'feed',
+        'showDefault': 1,
+        'page': 1,
+      },
+    );
+  }
+
+  /// Cloud browsing history, from
+  /// `GET /v6/user/hitHistoryList?type=...&page=...&firstItem=...&lastItem=...`
+  /// (reference only, untested). NOTE: this is NOT recentHistoryList,
+  /// which is “我的常去”. type 取值未实测，先传空，客户端再兜底筛。
+  static Future<LoadingState> getHitHistoryList({
+    String type = '',
+    int page = 1,
+    String? firstItem,
+    String? lastItem,
+  }) {
+    return getDataListFromUrl(
+      url: '/v6/user/hitHistoryList',
+      data: {
+        if (type.isNotEmpty) 'type': type,
+        'page': page,
+        if (firstItem != null) 'firstItem': firstItem,
+        if (lastItem != null) 'lastItem': lastItem,
+      },
+    );
   }
 
   /// Product detail for the product page, from

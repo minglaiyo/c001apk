@@ -405,7 +405,7 @@ class _ReplyPageState extends State<ReplyPage>
                 ),
                 const SizedBox(width: 10),
                 Tooltip(
-                  message: '发文章（占位）',
+                  message: '发文章',
                   child: ToolbarIconButton(
                     selected: false,
                     icon: const Icon(Icons.article, size: 22),

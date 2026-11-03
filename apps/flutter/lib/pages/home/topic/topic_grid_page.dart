@@ -9,6 +9,7 @@ import '../../../logic/model/feed/datum.dart';
 import '../../../logic/state/loading_state.dart';
 import '../../../utils/extensions.dart';
 import '../../../utils/utils.dart';
+import '../../product/rating_chart.dart' show parseHotCount;
 import '../../carousel/carousel_page.dart';
 import 'topic_grid_controller.dart';
 
@@ -116,6 +117,10 @@ class TopicCategoryGrid extends StatefulWidget {
 class _TopicCategoryGridState extends State<TopicCategoryGrid> {
   late final ScrollController _scrollController;
 
+  /// 客户端热度排序开关。B 层参考级：不发明服务端排序参数；
+  /// 热度取 Datum.hotNumTxt 文本解析（万/亿兜底），都没有时置灰。
+  bool _hotSort = false;
+
   String get _tag => (widget.url ?? '') + (widget.title ?? '');
 
   @override
@@ -186,9 +191,54 @@ class _TopicCategoryGridState extends State<TopicCategoryGrid> {
           // (common_body.dart): the bare Material RefreshIndicator
           // showed the default circular arrow, unlike the app's
           // expressive capsule spinner.
+          final hasHot = gridItems.any((item) =>
+              parseHotCount(item.hotNumTxt) != null ||
+              parseHotCount(item.commentNum) != null);
+          final displayItems = _hotSort && hasHot
+              ? (List<Datum>.from(gridItems)
+                ..sort((a, b) => (parseHotCount(b.hotNumTxt) ??
+                        parseHotCount(b.commentNum) ??
+                        0)
+                    .compareTo(parseHotCount(a.hotNumTxt) ??
+                        parseHotCount(a.commentNum) ??
+                        0)))
+              : gridItems;
           return ExpressiveRefreshIndicator(
             onRefresh: () => _reload(controller),
-            child: GridView.builder(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: Row(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('默认'),
+                        selected: !_hotSort,
+                        onSelected: (_) =>
+                            setState(() => _hotSort = false),
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('热度'),
+                        selected: _hotSort,
+                        onSelected: hasHot
+                            ? (_) => setState(() => _hotSort = true)
+                            : null,
+                      ),
+                      if (!hasHot) ...[
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            '服务端未返回热度，热度排序不可用',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: GridView.builder(
               controller: _scrollController,
               // The 12px grid gap on the sides; the top inset now
               // comes from the page's mask band above, so it is not
@@ -209,9 +259,9 @@ class _TopicCategoryGridState extends State<TopicCategoryGrid> {
                 crossAxisSpacing: 12,
                 mainAxisExtent: 140,
               ),
-              itemCount: gridItems.length,
+              itemCount: displayItems.length,
               itemBuilder: (context, index) {
-                final item = gridItems[index];
+                final item = displayItems[index];
                 return TopicGridCell(
                   data: item,
                   onTap: () => Utils.onOpenLink(
@@ -222,6 +272,9 @@ class _TopicCategoryGridState extends State<TopicCategoryGrid> {
                   ),
                 );
               },
+                ),
+                ),
+              ],
             ),
           );
         }

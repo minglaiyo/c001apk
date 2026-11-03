@@ -64,6 +64,12 @@ class GStorage {
   static late final Box<dynamic> blackList;
   static late final Box<dynamic> settings;
 
+  /// Offline snapshot box (B 层，详情-only)：键 = 动态 id，
+  /// 值 = {'json': Datum JSON, 'savedAt': 毫秒时间戳}。
+  /// 只存已成功加载过的详情，图片只存 URL，复用磁盘图片缓存。
+  /// 与历史/收藏的清除分开，见 clearFeedSnapshots。
+  static late final Box<dynamic> feedSnapshot;
+
   static ThemeMode getThemeMode() {
     switch (settings.get(SettingsBoxKey.selectedTheme, defaultValue: 0)) {
       case 0:
@@ -115,6 +121,54 @@ class GStorage {
 
   static bool checkHistory(String id) {
     return historyFeed.get(id) != null;
+  }
+
+  /// Save a successfully loaded feed detail as an offline snapshot.
+  /// 上限 200 条，超限按 savedAt 淘汰最旧的；写入失败静默忽略，
+  /// 绝不影响正常详情加载。
+  static Future<void> saveFeedSnapshot(dynamic id, dynamic json) async {
+    if (id == null || json == null) return;
+    try {
+      final key = id.toString();
+      await feedSnapshot.put(key, {
+        'json': json,
+        'savedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      if (feedSnapshot.length > 200) {
+        final entries = feedSnapshot.toMap().entries.toList()
+          ..sort((a, b) {
+            final aTime = (a.value is Map ? a.value['savedAt'] : null);
+            final bTime = (b.value is Map ? b.value['savedAt'] : null);
+            final ai = aTime is num ? aTime.toInt() : 0;
+            final bi = bTime is num ? bTime.toInt() : 0;
+            return ai.compareTo(bi);
+          });
+        for (final entry in entries.take(feedSnapshot.length - 200)) {
+          await feedSnapshot.delete(entry.key);
+        }
+      }
+    } catch (_) {
+      // 快照写入失败不影响主流程。
+    }
+  }
+
+  static Map<String, dynamic>? getFeedSnapshot(dynamic id) {
+    if (id == null) return null;
+    try {
+      final value = feedSnapshot.get(id.toString());
+      if (value is Map) return Map<String, dynamic>.from(value);
+    } catch (_) {
+      // 读失败视为无快照。
+    }
+    return null;
+  }
+
+  static Future<void> clearFeedSnapshots() async {
+    try {
+      await feedSnapshot.clear();
+    } catch (_) {
+      // 清理失败静默忽略。
+    }
   }
 
   static bool checkUser(String uid) {
@@ -172,6 +226,7 @@ class GStorage {
     favFeed = await Hive.openBox('favFeed');
     blackList = await Hive.openBox('blackList');
     settings = await Hive.openBox('settings');
+    feedSnapshot = await Hive.openBox('feedSnapshot');
 
     if (installTime.isEmpty) {
       setInstallTime(DateTime.now().millisecondsSinceEpoch.toString());
@@ -217,6 +272,10 @@ class GStorage {
     blackList.close();
     settings.compact();
     settings.close();
+    if (Hive.isBoxOpen('feedSnapshot')) {
+      feedSnapshot.compact();
+      feedSnapshot.close();
+    }
     if (Hive.isBoxOpen('announcements')) {
       await Hive.box('announcements').close();
     }

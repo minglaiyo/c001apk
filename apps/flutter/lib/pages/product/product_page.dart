@@ -4,7 +4,9 @@ import 'package:get/get.dart' hide Response, FormData;
 
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
+import '../../logic/state/loading_state.dart';
 import '../../pages/product/product_detail.dart';
+import '../../pages/product/rating_chart.dart';
 import '../../pages/product/product_feed_content.dart';
 import '../../pages/product/product_feed_controller.dart';
 import '../../utils/extensions.dart';
@@ -154,13 +156,23 @@ class _ProductPageState extends State<ProductPage> {
     }
   }
 
-  /// Opens the product logo in the existing image viewer. Single-image
-  /// only: ProductDetail carries just `logo`, no multi-image field
-  /// (a multi-image gallery waits on a probe of /v6/product/detail).
-  void _openProductGallery(ProductDetail detail) {
+  /// Opens the product gallery in the existing image viewer.
+  /// B 层参考级：先试 GET /v6/product/mediaList（未实测参考，来自
+  /// daimiaopeng/coolapk-desktop 公开代码），拿到多图就进多图图集；
+  /// 失败或为空时回落到单图 logo 图集。详情解析本身不改。
+  Future<void> _openProductGallery(ProductDetail detail) async {
     if (detail.logo.isEmpty) return;
-    Get.toNamed('/imageview',
-        arguments: mediaGalleryArguments([detail.logo]));
+    var urls = <String>[detail.logo];
+    try {
+      final result = await NetworkRepo.getProductMediaList(id: detail.id);
+      if (result is Success<List<String>> && result.response.isNotEmpty) {
+        urls = result.response;
+      }
+    } catch (_) {
+      // 回落到单图，不提示、不崩。
+    }
+    if (!mounted) return;
+    Get.toNamed('/imageview', arguments: mediaGalleryArguments(urls));
   }
 
   /// Shows the already-parsed rating detail: total score, rater count,
@@ -224,8 +236,52 @@ class _ProductPageState extends State<ProductPage> {
                 const Text('暂无分项评分'),
               ],
               const SizedBox(height: 12),
+              const Text('总体星级分布（参考接口，未实测）'),
+              const SizedBox(height: 8),
+              FutureBuilder<LoadingState<Map<String, dynamic>>>(
+                future: NetworkRepo.getProductRatingChart(detail.id),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const LinearProgressIndicator();
+                  }
+                  final state = snapshot.data!;
+                  if (state is! Success<Map<String, dynamic>>) {
+                    return const Text(
+                        '总体分布暂未返回（参考未实测，待真机样本）。');
+                  }
+                  final chart = parseRatingChart(state.response);
+                  if (!chart.recognized) {
+                    return const Text(
+                        '总体分布暂未返回（参考未实测，待真机样本）。');
+                  }
+                  final total = chart.total ?? 1;
+                  return Column(
+                    children: [
+                      for (var star = 5; star >= 1; star--)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              SizedBox(width: 32, child: Text('$star 星')),
+                              Expanded(
+                                child: LinearProgressIndicator(
+                                  value: ((chart.starCounts[star] ?? 0) /
+                                          total)
+                                      .clamp(0.0, 1.0),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text('${chart.starCounts[star] ?? 0} 人'),
+                            ],
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
               Text(
-                '分项数值均为平均分，不含人数分布。',
+                '分项数值均为平均分；上方的星级分布为总体分布，分项人数服务端可能根本没有，不硬编。',
                 style: TextStyle(
                   color:
                       Theme.of(context).colorScheme.onSurfaceVariant,

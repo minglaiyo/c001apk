@@ -64,4 +64,35 @@ class Api {
 
   static String postRequestValidate =
       '${Constants.URL_API_SERVICE}/v6/account/requestValidate';
+
+  // ---- B 层参考接口（未实测参考，来自 daimiaopeng/coolapk-desktop 公开代码）----
+  // 投票、产品图集、评分分布、收藏单写操作、云端浏览历史的端点均属参考级：
+  // 解析全部空安全，首次真机使用即当探针，失败时显示提示而非崩溃。
+  static String postVote = '${Constants.URL_API_SERVICE}/v6/vote/createUserVote';
+
+  static String getProductMediaList =
+      '${Constants.URL_API_SERVICE}/v6/product/mediaList';
+
+  static String getProductRatingChart =
+      '${Constants.URL_API_SERVICE}/v6/product/ratingChart';
+
+  static String postCollectionCreate =
+      '${Constants.URL_API_SERVICE}/v6/collection/create';
+  static String postCollectionUpdate =
+      '${Constants.URL_API_SERVICE}/v6/collection/update';
+  static String postCollectionDelete =
+      '${Constants.URL_API_SERVICE}/v6/collection/delete';
+  static String postCollectionAddItem =
+      '${Constants.URL_API_SERVICE}/v6/collection/addItem';
+  static String postCollectionRemoveItem =
+      '${Constants.URL_API_SERVICE}/v6/collection/removeItem';
+  static String postCollectionRemoveUnUseItem =
+      '${Constants.URL_API_SERVICE}/v6/collection/removeUnUseItem';
+  static String getCollectionList =
+      '${Constants.URL_API_SERVICE}/v6/collection/list';
+  static String getCollectionItemList =
+      '${Constants.URL_API_SERVICE}/v6/collection/itemList';
+
+  static String getHitHistoryList =
+      '${Constants.URL_API_SERVICE}/v6/user/hitHistoryList';
 }
