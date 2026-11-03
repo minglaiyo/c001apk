@@ -4,10 +4,12 @@
 /// endpoint coolapk-desktop uses. Tabs come from the detail's own
 /// `tabList`, parsed the same way the desktop client's `productTabs`
 /// does: only `/product/feedList` tabs for this product, with
-/// `is_open` honoured and duplicates dropped. The `main` (config) and
-/// `rating` tabs are not expanded into list tabs because their content
-/// is already shown in the header (spec chips and the score card);
-/// external tabs are skipped. Feed tabs are driven by
+/// `is_open` honoured and duplicates dropped. The `main` tab is kept
+/// as the 参数 tab: its URL is a feedList with type=main, i.e. the
+/// server's full parameter list, rendered through the normal feed
+/// tab machinery. The `rating` tab is not expanded because its
+/// content is already shown in the header score card; external tabs
+/// are skipped. Feed tabs are driven by
 /// `NetworkRepo.getProductFeeds`, not guessed.
 class ProductRatingItem {
   const ProductRatingItem({required this.name, required this.score});
@@ -48,6 +50,7 @@ class ProductDetail {
     required this.specs,
     required this.ratingItems,
     required this.tabs,
+    this.followed,
   });
 
   final String id;
@@ -64,6 +67,10 @@ class ProductDetail {
   final List<String> specs;
   final List<ProductRatingItem> ratingItems;
   final List<ProductTab> tabs;
+
+  /// Follow state from the detail's userAction (follow == 1);
+  /// null when the server did not report it (e.g. anonymous).
+  final bool? followed;
 }
 
 String _text(dynamic value) {
@@ -141,7 +148,7 @@ List<ProductTab> parseProductTabs(String productId, dynamic tabList) {
     if (inner.path != '/product/feedList') continue;
     if ((query['id'] ?? '') != productId) continue;
     final feedType = query['type'] ?? '';
-    if (feedType == 'main' || feedType == 'rating') continue;
+    if (feedType == 'rating') continue;
     String? subId;
     String key;
     if (feedType == 'subTabFeed') {
@@ -204,6 +211,18 @@ ProductDetail parseProductDetail(String productId, dynamic data) {
       data['rating_total_num'] ??
       data['owner_star_total_count'] ??
       data['star_total_count']);
+  bool? followed;
+  final userAction = data['userAction'];
+  if (userAction is Map) {
+    final follow = userAction['follow'];
+    if (follow is bool) {
+      followed = follow;
+    } else if (follow is num) {
+      followed = follow == 1;
+    } else if (follow is String) {
+      followed = int.tryParse(follow) == 1;
+    }
+  }
   return ProductDetail(
     id: productId,
     title: _firstText(
@@ -231,5 +250,6 @@ ProductDetail parseProductDetail(String productId, dynamic data) {
     specs: specs,
     ratingItems: ratingItems,
     tabs: parseProductTabs(productId, data['tabList']),
+    followed: followed,
   );
 }
