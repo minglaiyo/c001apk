@@ -21,18 +21,17 @@ class _ProductPageState extends State<ProductPage> {
   late final String _id = Get.parameters['id'].orEmpty;
   Future<ProductDetail>? _detailFuture;
 
-  /// Whether the product header (stats, score, rating bars, specs)
-  /// is expanded. Collapsed, the title row keeps a compact score
-  /// line (total score + 酷安评分) while the logo, stats, rating
-  /// bars, specs and description hide, mirroring the official
-  /// product header, so the header stops eating a quarter of the
-  /// page and the feed list gets the space. The tab bar is always
-  /// visible either way.
+  /// Whether the product header (logo, description, stats, score,
+  /// rating bars, specs) is expanded. The product name lives in the
+  /// AppBar title, and there is no expand icon: tapping the AppBar
+  /// title toggles this flag.
   ///
   /// The header is fully shown only when the page first opens: once
   /// the feed list scrolls down past a threshold it collapses on its
-  /// own, and scrolling back to the top does not re-expand it. The
-  /// title-row button still expands it manually on demand.
+  /// own, hiding the whole header including the score, and scrolling
+  /// back to the top does not re-expand it. Tapping the AppBar title
+  /// expands it manually on demand. The tab bar is always visible
+  /// either way.
   bool _headerExpanded = true;
 
   /// Auto-collapses the header when the feed list scrolls down.
@@ -51,6 +50,13 @@ class _ProductPageState extends State<ProductPage> {
       });
     }
     return false;
+  }
+
+  /// Tapping the AppBar product name expands or collapses the header.
+  void _toggleHeader() {
+    setState(() {
+      _headerExpanded = !_headerExpanded;
+    });
   }
 
   late final ProductFeedSortController _sortController;
@@ -77,103 +83,71 @@ class _ProductPageState extends State<ProductPage> {
   }
 
   Widget _buildHeader(ProductDetail detail) {
+    // Collapsed, the whole header hides, score included, so scrolling
+    // down leaves only the AppBar (with the product name) and the tab
+    // bar. The caller wraps this in an AnimatedSize, so collapsing
+    // and re-expanding animate instead of jumping.
+    if (!_headerExpanded) return const SizedBox.shrink();
+    final hasLogo = detail.logo.isNotEmpty;
+    final hasDescription = detail.description.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_headerExpanded && detail.logo.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    detail.logo,
-                    width: 64,
-                    height: 64,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const SizedBox(
+          if (hasLogo || hasDescription)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasLogo)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      detail.logo,
                       width: 64,
                       height: 64,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox(
+                        width: 64,
+                        height: 64,
+                      ),
                     ),
                   ),
-                ),
-              if (_headerExpanded && detail.logo.isNotEmpty)
-                const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      detail.title.isNotEmpty ? detail.title : '数码产品',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                if (hasLogo && hasDescription) const SizedBox(width: 12),
+                if (hasDescription)
+                  Expanded(
+                    child: Text(
+                      detail.description,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurfaceVariant,
                       ),
                     ),
-                    if (_headerExpanded &&
-                        detail.description.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        detail.description,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                    if (!_headerExpanded && detail.score > 0) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        '${detail.score.toStringAsFixed(1)} 酷安评分',
-                        style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: _headerExpanded ? '收起' : '展开',
-                icon: Icon(_headerExpanded
-                    ? Icons.keyboard_arrow_up
-                    : Icons.keyboard_arrow_down),
-                onPressed: () {
-                  setState(() {
-                    _headerExpanded = !_headerExpanded;
-                  });
-                },
-              ),
-            ],
-          ),
-          if (_headerExpanded) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                if (detail.hotNumText != null)
-                  Text('${detail.hotNumText} 热度'),
-                if (detail.hotNumText != null &&
-                    detail.commentNumText != null)
-                  const Text(' · '),
-                if (detail.commentNumText != null)
-                  Text('${detail.commentNumText} 讨论'),
-                if (detail.commentNumText != null &&
-                    detail.followNumText != null)
-                  const Text(' · '),
-                if (detail.followNumText != null)
-                  Text('${detail.followNumText} 关注'),
+                  ),
               ],
             ),
-          ],
-          if (_headerExpanded && detail.score > 0) ...[
+          if (hasLogo || hasDescription) const SizedBox(height: 12),
+          Row(
+            children: [
+              if (detail.hotNumText != null)
+                Text('${detail.hotNumText} 热度'),
+              if (detail.hotNumText != null &&
+                  detail.commentNumText != null)
+                const Text(' · '),
+              if (detail.commentNumText != null)
+                Text('${detail.commentNumText} 讨论'),
+              if (detail.commentNumText != null &&
+                  detail.followNumText != null)
+                const Text(' · '),
+              if (detail.followNumText != null)
+                Text('${detail.followNumText} 关注'),
+            ],
+          ),
+          if (detail.score > 0) ...[
             const SizedBox(height: 12),
             Row(
               children: [
@@ -212,7 +186,7 @@ class _ProductPageState extends State<ProductPage> {
                 ),
             ],
           ],
-          if (_headerExpanded && detail.specs.isNotEmpty) ...[
+          if (detail.specs.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -226,6 +200,20 @@ class _ProductPageState extends State<ProductPage> {
       ),
     );
   }
+
+  /// The AppBar title: the product name itself, tappable to expand
+  /// or collapse the header. Falls back to 数码产品 when the product
+  /// has no title.
+  Widget _buildTitle(ProductDetail detail) {
+    return Tooltip(
+      message: _headerExpanded ? '收起' : '展开',
+      child: GestureDetector(
+        onTap: _toggleHeader,
+        child: Text(detail.title.isNotEmpty ? detail.title : '数码产品'),
+      ),
+    );
+  }
+
 
   /// The ⋮ sort menu in the AppBar, mirroring the topic discussion
   /// sort menu (默认 / 最新发布 / 热门). Picking a sort reloads every
@@ -297,13 +285,13 @@ class _ProductPageState extends State<ProductPage> {
         final detail = snapshot.data!;
         if (detail.tabs.isEmpty) {
           return Scaffold(
-            appBar: AppBar(title: const Text('数码产品')),
+            appBar: AppBar(title: _buildTitle(detail)),
             body: SingleChildScrollView(child: _buildHeader(detail)),
           );
         }
         return Scaffold(
           appBar: AppBar(
-            title: const Text('数码产品'),
+            title: _buildTitle(detail),
             actions: [
               IconButton(
                 onPressed: () => Get.toNamed('/search', parameters: {
