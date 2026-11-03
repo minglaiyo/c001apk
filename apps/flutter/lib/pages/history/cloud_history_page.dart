@@ -30,6 +30,7 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
   bool _loading = true;
   bool _loadingMore = false;
   bool _isEnd = false;
+  bool _serverEmpty = false;
   String? _error;
 
   @override
@@ -58,6 +59,7 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
       setState(() {
         _loading = true;
         _error = null;
+        _serverEmpty = false;
         _page = 1;
         _firstItem = null;
         _lastItem = null;
@@ -76,6 +78,7 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
       _loading = false;
       _loadingMore = false;
       if (result is Success) {
+        _serverEmpty = false;
         final items = result.response as List<Datum>;
         if (reset) {
           _all.clear();
@@ -88,7 +91,10 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
       } else if (result is Error) {
         _error = result.errMsg;
       } else {
+        // Empty：服务端确实返回了空（不再是旧实现里“被白名单过滤丢光”
+        // 也显示的同一个“暂无内容”），页面要把这点写清楚。
         if (reset) _all.clear();
+        _serverEmpty = true;
         _isEnd = true;
       }
     });
@@ -153,7 +159,10 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
                         ),
                       )
                     : filtered.isEmpty
-                        ? const Center(child: Text('暂无内容'))
+                        ? Center(
+                            child: Text(_serverEmpty
+                                ? '服务端返回为空：云端暂无浏览记录，或接口未返回条目'
+                                : '暂无内容'))
                         : ListView.builder(
                             padding: EdgeInsets.only(
                               left: 10,
