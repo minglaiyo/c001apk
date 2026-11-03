@@ -464,13 +464,6 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
       appBar: AppBar(title: const Text('云端历史')),
       body: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text(
-              '云端线（hitHistoryList），与本地浏览历史不合并、不去重；接口为未实测参考，首次打开即当探针。',
-              style: TextStyle(fontSize: 12),
-            ),
-          ),
           if (_all.isNotEmpty)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
