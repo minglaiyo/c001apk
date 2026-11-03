@@ -398,23 +398,42 @@ class NetworkRepo {
   // 所有方法只做宽容解析：形状不对时返回空/错误态，绝不抛到 UI 崩溃。
   // 投票提交、收藏写操作的首个真机使用即当探针。
 
-  static String _picFromItem(dynamic item) {
-    if (item is String) return item.trim();
-    if (item is! Map) return '';
-    final arr = item['picArr'] ?? item['imageUriList'];
-    if (arr is List && arr.isNotEmpty) {
-      final first = arr.first;
-      if (first is String && first.trim().isNotEmpty) return first.trim();
-      if (first is Map) {
-        final url = (first['pic'] ?? first['url'] ?? '').toString().trim();
-        if (url.isNotEmpty) return url;
+  static String _picFromItem(dynamic item) => _picsFromItem(item).firstOrNull ?? '';
+
+  /// All picture URLs carried by one mediaList item. The previous
+  /// version returned only the first image of picArr/imageUriList, so
+  /// a gallery that arrives as a single album object showed as one
+  /// picture even though the server returned many.
+  static List<String> _picsFromItem(dynamic item) {
+    final urls = <String>[];
+    void add(String? value) {
+      final url = (value ?? '').trim();
+      if (url.isNotEmpty && !urls.contains(url)) urls.add(url);
+    }
+
+    if (item is String) {
+      add(item);
+      return urls;
+    }
+    if (item is! Map) return urls;
+    for (final key in ['picArr', 'imageUriList']) {
+      final arr = item[key];
+      if (arr is List) {
+        for (final entry in arr) {
+          if (entry is String) {
+            add(entry);
+          } else if (entry is Map) {
+            add((entry['pic'] ?? entry['url'] ?? entry['image'] ?? '')
+                .toString());
+          }
+        }
       }
     }
     for (final key in ['pic', 'image', 'url', 'logo', 'cover_pic']) {
       final value = item[key];
-      if (value is String && value.trim().isNotEmpty) return value.trim();
+      if (value is String) add(value);
     }
-    return '';
+    return urls;
   }
 
   /// Product media gallery, from
@@ -438,12 +457,17 @@ class NetworkRepo {
       final items = raw is List
           ? raw
           : raw is Map
-              ? (raw['data'] as List? ?? raw['list'] as List? ?? const [])
+              ? (raw['data'] as List? ??
+                  raw['list'] as List? ??
+                  raw['mediaList'] as List? ??
+                  raw['items'] as List? ??
+                  const [])
               : const [];
       final urls = <String>[];
       for (final item in items) {
-        final url = _picFromItem(item);
-        if (url.isNotEmpty && !urls.contains(url)) urls.add(url);
+        for (final url in _picsFromItem(item)) {
+          if (!urls.contains(url)) urls.add(url);
+        }
       }
       return urls.isEmpty
           ? LoadingState.empty()
@@ -500,7 +524,10 @@ class NetworkRepo {
     String url,
     Map<String, dynamic> fields,
   ) {
-    return postLikeDeleteFollow(url, data: FormData.fromMap(fields));
+    final stringFields = <String, dynamic>{
+      for (final e in fields.entries) e.key: e.value.toString(),
+    };
+    return postLikeDeleteFollow(url, data: FormData.fromMap(stringFields));
   }
 
   /// Collection writes (reference only, untested). update 的 id 必须
@@ -514,10 +541,10 @@ class NetworkRepo {
   }) =>
       _postCollection(Api.postCollectionCreate, {
         'title': title,
-        'description': description,
+        if (description.isNotEmpty) 'description': description,
         'isOpen': isOpen,
-        'pic': pic,
-        'sourceId': sourceId,
+        if (pic.isNotEmpty) 'pic': pic,
+        if (sourceId.isNotEmpty) 'sourceId': sourceId,
       });
 
   static Future<Response> updateCollection({
@@ -530,9 +557,9 @@ class NetworkRepo {
       _postCollection(Api.postCollectionUpdate, {
         'id': id.toString(),
         'title': title,
-        'description': description,
+        if (description.isNotEmpty) 'description': description,
         'isOpen': isOpen,
-        'pic': pic,
+        if (pic.isNotEmpty) 'pic': pic,
       });
 
   static Future<Response> deleteCollection(dynamic id) =>

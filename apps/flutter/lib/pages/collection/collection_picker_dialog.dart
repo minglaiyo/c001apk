@@ -71,7 +71,7 @@ class _CollectionPickerDialogState extends State<_CollectionPickerDialog> {
       if (mine is Success) {
         _collections = (mine.response as List<Datum>);
       } else if (mine is Error) {
-        _error = (mine as Error).errMsg;
+        _error = mine.errMsg;
       }
       if (state is Success) {
         _contained = {

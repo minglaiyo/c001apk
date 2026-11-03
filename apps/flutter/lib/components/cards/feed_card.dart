@@ -136,6 +136,7 @@ class FeedCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w600)),
+        if (hasVoteData(data)) VoteCard(data: data),
         ContentFilterText(
             key: ValueKey('feed-summary:${data.id}'),
             source: data.message ?? '',
