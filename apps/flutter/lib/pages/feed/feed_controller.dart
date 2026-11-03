@@ -184,6 +184,7 @@ class FeedController extends CommonController {
       device: data.deviceTitle,
       dateline: data.dateline.toString(),
       time: DateTime.now().microsecondsSinceEpoch,
+      feedTypeName: data.feedTypeName ?? data.feedType,
     );
   }
 

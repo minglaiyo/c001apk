@@ -29,6 +29,7 @@ import '../../pages/feed/feed_controller.dart';
 import '../../pages/feed/reply/reply_dialog.dart' show ReplyType;
 import '../../pages/feed/reply/reply_page.dart';
 import '../settings/device_identity_page.dart';
+import '../history/history_page.dart';
 import '../../utils/device_util.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
@@ -173,6 +174,26 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
           padding: const EdgeInsets.all(16),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Text(feedState.errMsg, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            const Text('加载失败时，本地收藏与浏览历史仍可离线查看',
+                textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.toNamed('/history',
+                        arguments: {'type': HistoryType.Favorite}),
+                    child: const Text('本地收藏'),
+                  ),
+                  TextButton(
+                    onPressed: () => Get.toNamed('/history',
+                        arguments: {'type': HistoryType.History}),
+                    child: const Text('浏览历史'),
+                  ),
+                ]),
             const SizedBox(height: 12),
             Wrap(
                 alignment: WrapAlignment.center,
