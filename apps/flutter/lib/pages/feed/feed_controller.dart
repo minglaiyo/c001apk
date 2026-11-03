@@ -163,6 +163,13 @@ class FeedController extends CommonController {
       if (recordHistory && !GStorage.checkHistory(id)) {
         GStorage.historyFeed.put(id, getFeed(data));
       }
+      // B 层离线快照（详情-only）：只存已成功加载过的详情，
+      // 写入失败由 saveFeedSnapshot 内部静默忽略。
+      try {
+        GStorage.saveFeedSnapshot(id, data.toJson());
+      } catch (_) {
+        // 快照不影响主流程。
+      }
     }
     feedState.value = response;
   }

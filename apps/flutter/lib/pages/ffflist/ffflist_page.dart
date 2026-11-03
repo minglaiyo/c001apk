@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../pages/carousel/carousel_page.dart';
+import '../../pages/collection/collection_dialogs.dart';
 import '../../pages/ffflist/ffflist_content.dart';
+import '../../pages/ffflist/ffflist_controller.dart';
 import '../../utils/global_data.dart';
 
 enum FFFListType {
@@ -76,6 +78,26 @@ class _FFFListPageState extends State<FFFListPage>
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        actions: _type == FFFListType.COLLECTION
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: '新建收藏单（建议先用测试单）',
+                  onPressed: () async {
+                    final created =
+                        await showCreateCollectionDialog(context);
+                    if (!created || !mounted) return;
+                    final tag = '${_type.name}$_id$_uid';
+                    if (Get.isRegistered<FFFListController>(tag: tag)) {
+                      final controller =
+                          Get.find<FFFListController>(tag: tag);
+                      controller.onReset();
+                      controller.onGetData();
+                    }
+                  },
+                ),
+              ]
+            : null,
         bottom: _tabList != null
             ? TabBar(
                 controller: _tabController,

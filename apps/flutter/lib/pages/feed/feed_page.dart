@@ -155,6 +155,52 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
     (ReplySortType.author, '楼主'),
   ];
 
+  /// B 层离线快照（详情-only）：断网时若有本动态的快照，
+  /// 在错误页上方展示并明确标注保存时间，绝不冒充新鲜内容。
+  Widget _buildErrorWithSnapshot(LoadingState feedState, Widget errorBody) {
+    Datum? snapshotDatum;
+    String? savedText;
+    try {
+      final snapshot = GStorage.getFeedSnapshot(_id);
+      final json = snapshot?['json'];
+      final savedAt = snapshot?['savedAt'];
+      if (json is Map) {
+        snapshotDatum = Datum.fromJson(Map<String, dynamic>.from(json));
+      }
+      if (savedAt is num) {
+        final date =
+            DateTime.fromMillisecondsSinceEpoch(savedAt.toInt());
+        savedText =
+            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
+            '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      }
+    } catch (_) {
+      snapshotDatum = null;
+    }
+    if (snapshotDatum == null) return errorBody;
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Text(
+              '离线内容 · 保存于 ${savedText ?? '未知时间'}，可能不是最新内容',
+              textAlign: TextAlign.center,
+            ),
+          ),
+          FeedCard(
+            data: snapshotDatum,
+            isFeedContent: true,
+            forcePlain: _showSource,
+          ),
+          errorBody,
+        ],
+      ),
+    );
+  }
+
   Widget _buildFeedContent(LoadingState feedState) {
     switch (feedState) {
       case Empty():
@@ -170,7 +216,9 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
           ),
         );
       case Error():
-        return Padding(
+        return _buildErrorWithSnapshot(
+            feedState,
+            Padding(
           padding: const EdgeInsets.all(16),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Text(feedState.errMsg, textAlign: TextAlign.center),
@@ -222,7 +270,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                     ),
                 ]),
           ]),
-        );
+            ));
       case Success():
         return _feedController.articleList.isNullOrEmpty
             ? FeedCard(

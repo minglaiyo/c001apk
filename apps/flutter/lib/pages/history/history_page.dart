@@ -50,8 +50,14 @@ class _HistoryPageState extends State<HistoryPage> {
       () => Scaffold(
         appBar: AppBar(
           title: Text(_type.label),
-          actions: _controller.dataList.isNotEmpty
-              ? [
+          actions: [
+                  // 云端历史入口（B 层参考级，与本地线分开，不合并）。
+                  IconButton(
+                    onPressed: () => Get.toNamed('/cloud_history'),
+                    icon: const Icon(Icons.cloud_outlined),
+                    tooltip: '云端历史',
+                  ),
+                  if (_controller.dataList.isNotEmpty)
                   IconButton(
                     onPressed: () => showDialog(
                       context: context,
@@ -75,9 +81,8 @@ class _HistoryPageState extends State<HistoryPage> {
                     ),
                     icon: const Icon(Icons.clear_all),
                     tooltip: '清除全部',
-                  )
-                ]
-              : null,
+                  ),
+                ],
           bottom: const PreferredSize(
               preferredSize: Size.zero, child: Divider(height: 1)),
         ),

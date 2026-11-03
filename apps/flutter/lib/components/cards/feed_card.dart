@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../components/cards/icon_mini_scroll_card.dart' show miniCardItem;
+import '../../components/cards/vote_card.dart';
+import '../../pages/collection/collection_picker_dialog.dart';
 import '../../components/html_text.dart';
 import '../../components/markdown_body.dart';
 import '../../components/icon_text.dart';
@@ -98,6 +100,7 @@ class FeedCard extends StatelessWidget {
                 _summary(context)
               else ...[
                 ..._message(),
+                if (hasVoteData(data)) VoteCard(data: data),
                 if (!data.picArr.isNullOrEmpty) _image(),
                 if (!data.forwardSourceType.isNullOrEmpty)
                   _forwardSourceFeed(context),
@@ -755,6 +758,21 @@ class _MorePanel extends StatelessWidget {
             leading: const Icon(Icons.block, size: 19),
             title: Text('屏蔽', style: Theme.of(context).textTheme.titleSmall),
           ),
+          if (!isHistory)
+            ListTile(
+              onTap: () {
+                Get.back();
+                final ctx = Get.context;
+                if (ctx != null) {
+                  Future.microtask(
+                      () => showCollectionPickerDialog(ctx, id));
+                }
+              },
+              minLeadingWidth: 0,
+              leading: const Icon(Icons.star_border, size: 19),
+              title: Text('收藏到收藏单…',
+                  style: Theme.of(context).textTheme.titleSmall),
+            ),
           if (Utils.isSupportWebview())
             ListTile(
               onTap: () async => await menuActionHandler(PanelAction.report),
