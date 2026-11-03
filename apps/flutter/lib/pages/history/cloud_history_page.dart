@@ -307,7 +307,12 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
           (item.messageTitle ?? '').trim().isEmpty &&
           (item.picArr ?? []).isEmpty;
       if (entityKind == 'product' || bodyEmpty) {
-        return _HistoryTarget(entityKind, item.id.toString());
+        // The 'feed'/'product' check above does not promote entityKind:
+        // Dart does not promote a nullable value through an ||
+        // equality check, so narrow it explicitly here. This line is
+        // only reached when entityKind is 'feed' or 'product', so the
+        // ?? '' fallback is unreachable and changes no semantics.
+        return _HistoryTarget(entityKind ?? '', item.id.toString());
       }
     }
     return null;
