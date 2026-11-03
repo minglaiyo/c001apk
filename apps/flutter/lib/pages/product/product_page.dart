@@ -9,6 +9,7 @@ import '../../pages/product/product_feed_content.dart';
 import '../../pages/product/product_feed_controller.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
+import '../../components/imageview.dart';
 
 /// The real product page. The route used to point at [TopicPage] as a
 /// placeholder, so opening a product from search results showed a topic
@@ -153,6 +154,90 @@ class _ProductPageState extends State<ProductPage> {
     }
   }
 
+  /// Opens the product logo in the existing image viewer. Single-image
+  /// only: ProductDetail carries just `logo`, no multi-image field
+  /// (a multi-image gallery waits on a probe of /v6/product/detail).
+  void _openProductGallery(ProductDetail detail) {
+    if (detail.logo.isEmpty) return;
+    Get.toNamed('/imageview',
+        arguments: mediaGalleryArguments([detail.logo]));
+  }
+
+  /// Shows the already-parsed rating detail: total score, rater count,
+  /// and per-aspect average scores. Averages only: no headcount
+  /// distribution is parsed or shown here.
+  void _showRatingDetail(ProductDetail detail) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                detail.title.isNotEmpty ? detail.title : '数码产品',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text(
+                    detail.score.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    detail.scoreCount > 0
+                        ? '酷安评分 · ${detail.scoreCount} 人'
+                        : '酷安评分',
+                  ),
+                ],
+              ),
+              if (detail.ratingItems.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Text('分项平均分'),
+                const SizedBox(height: 8),
+                for (final item in detail.ratingItems)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        SizedBox(width: 72, child: Text(item.name)),
+                        Expanded(
+                          child: LinearProgressIndicator(
+                            value: (item.score / 10).clamp(0.0, 1.0),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(item.score.toStringAsFixed(1)),
+                      ],
+                    ),
+                  ),
+              ] else ...[
+                const SizedBox(height: 12),
+                const Text('暂无分项评分'),
+              ],
+              const SizedBox(height: 12),
+              Text(
+                '分项数值均为平均分，不含人数分布。',
+                style: TextStyle(
+                  color:
+                      Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader(ProductDetail detail) {
     // Collapsed, the whole header hides, score included, so scrolling
     // down leaves only the AppBar (with the product name) and the tab
@@ -171,9 +256,11 @@ class _ProductPageState extends State<ProductPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (hasLogo)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
+                  GestureDetector(
+                    onTap: () => _openProductGallery(detail),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
                       detail.logo,
                       width: 64,
                       height: 64,
@@ -182,6 +269,7 @@ class _ProductPageState extends State<ProductPage> {
                           const SizedBox(
                         width: 64,
                         height: 64,
+                      ),
                       ),
                     ),
                   ),
@@ -235,11 +323,14 @@ class _ProductPageState extends State<ProductPage> {
           ),
           if (detail.score > 0) ...[
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Text(
-                  detail.score.toStringAsFixed(1),
-                  style: const TextStyle(
+            InkWell(
+              onTap: () => _showRatingDetail(detail),
+              borderRadius: BorderRadius.circular(8),
+              child: Row(
+                children: [
+                  Text(
+                    detail.score.toStringAsFixed(1),
+                    style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
@@ -249,8 +340,9 @@ class _ProductPageState extends State<ProductPage> {
                   detail.scoreCount > 0
                       ? '酷安评分 · ${detail.scoreCount} 人'
                       : '酷安评分',
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
             if (detail.ratingItems.isNotEmpty) ...[
               const SizedBox(height: 8),
