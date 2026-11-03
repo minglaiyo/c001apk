@@ -1,11 +1,14 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
 import '../../pages/product/product_detail.dart';
 import '../../pages/product/product_feed_content.dart';
 import '../../pages/product/product_feed_controller.dart';
 import '../../utils/extensions.dart';
+import '../../utils/global_data.dart';
 
 /// The real product page. The route used to point at [TopicPage] as a
 /// placeholder, so opening a product from search results showed a topic
@@ -20,6 +23,15 @@ class ProductPage extends StatefulWidget {
 class _ProductPageState extends State<ProductPage> {
   late final String _id = Get.parameters['id'].orEmpty;
   Future<ProductDetail>? _detailFuture;
+
+  /// Local follow override: the detail's `followed` is the server
+  /// state at load; tapping the button flips this optimistically and
+  /// reverts it if the toggle call fails.
+  bool? _followedOverride;
+
+  /// Guards the follow toggle against double taps while a call is
+  /// in flight.
+  bool _followBusy = false;
 
   /// Whether the product header (logo, description, stats, score,
   /// rating bars, specs) is expanded. The product name lives in the
@@ -79,7 +91,63 @@ class _ProductPageState extends State<ProductPage> {
   void _retry() {
     setState(() {
       _detailFuture = NetworkRepo.getProductDetail(_id);
+      _followedOverride = null;
     });
+  }
+
+  /// Toggles following this product. Mirrors the topic follow flow
+  /// and the Compose product follow: the server call is
+  /// POST /v6/product/changeFollowStatus with inverted status
+  /// (currently followed -> 0 cancels, otherwise 1). The button flips
+  /// optimistically and reverts on failure; when not logged in it
+  /// prompts a login instead of firing the call.
+  Future<void> _toggleFollow(ProductDetail detail) async {
+    if (_followBusy) return;
+    if (!GlobalData().isLogin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('请先登录'),
+          action: SnackBarAction(
+            label: '登录',
+            onPressed: () => Get.toNamed('/login'),
+          ),
+        ),
+      );
+      return;
+    }
+    final was = _followedOverride ?? detail.followed ?? false;
+    setState(() {
+      _followedOverride = !was;
+      _followBusy = true;
+    });
+    try {
+      final response = await NetworkRepo.postLikeDeleteFollow(
+        '/v6/product/changeFollowStatus',
+        data: FormData.fromMap({'id': detail.id, 'status': was ? 0 : 1}),
+      );
+      readApiObject(response);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _followedOverride = was;
+        });
+      } else {
+        _followedOverride = was;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ApiFailure.fromError(e).message)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _followBusy = false;
+        });
+      } else {
+        _followBusy = false;
+      }
+    }
   }
 
   Widget _buildHeader(ProductDetail detail) {
@@ -145,6 +213,21 @@ class _ProductPageState extends State<ProductPage> {
                 const Text(' · '),
               if (detail.followNumText != null)
                 Text('${detail.followNumText} 关注'),
+              const Spacer(),
+              OutlinedButton(
+                onPressed:
+                    _followBusy ? null : () => _toggleFollow(detail),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                child: Text(
+                  (_followedOverride ?? detail.followed ?? false)
+                      ? '已关注'
+                      : '关注',
+                ),
+              ),
             ],
           ),
           if (detail.score > 0) ...[
