@@ -4,12 +4,10 @@
 /// endpoint coolapk-desktop uses. Tabs come from the detail's own
 /// `tabList`, parsed the same way the desktop client's `productTabs`
 /// does: only `/product/feedList` tabs for this product, with
-/// `is_open` honoured and duplicates dropped. The `main` tab is kept
-/// as the 参数 tab: its URL is a feedList with type=main, i.e. the
-/// server's full parameter list, rendered through the normal feed
-/// tab machinery. The `rating` tab is not expanded because its
-/// content is already shown in the header score card; external tabs
-/// are skipped. Feed tabs are driven by
+/// `is_open` honoured and duplicates dropped. The `main` (config) and
+/// `rating` tabs are not expanded into list tabs because their content
+/// is already shown in the header (spec chips and the score card);
+/// external tabs are skipped. Feed tabs are driven by
 /// `NetworkRepo.getProductFeeds`, not guessed.
 class ProductRatingItem {
   const ProductRatingItem({required this.name, required this.score});
@@ -148,7 +146,7 @@ List<ProductTab> parseProductTabs(String productId, dynamic tabList) {
     if (inner.path != '/product/feedList') continue;
     if ((query['id'] ?? '') != productId) continue;
     final feedType = query['type'] ?? '';
-    if (feedType == 'rating') continue;
+    if (feedType == 'main' || feedType == 'rating') continue;
     String? subId;
     String key;
     if (feedType == 'subTabFeed') {
