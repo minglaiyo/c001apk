@@ -100,7 +100,10 @@ class _ProductPageState extends State<ProductPage> {
   /// POST /v6/product/changeFollowStatus with inverted status
   /// (currently followed -> 0 cancels, otherwise 1). The button flips
   /// optimistically and reverts on failure; when not logged in it
-  /// prompts a login instead of firing the call.
+  /// prompts a login instead of firing the call. The follow ack is
+  /// message-only (status + message, no data key), so the envelope
+  /// check must allow success without data: otherwise every
+  /// successful tap reverts with a missing-data error.
   Future<void> _toggleFollow(ProductDetail detail) async {
     if (_followBusy) return;
     if (!GlobalData().isLogin) {
@@ -125,7 +128,7 @@ class _ProductPageState extends State<ProductPage> {
         '/v6/product/changeFollowStatus',
         data: FormData.fromMap({'id': detail.id, 'status': was ? 0 : 1}),
       );
-      readApiObject(response);
+      readApiObject(response, allowSuccessWithoutData: true);
     } catch (e) {
       if (mounted) {
         setState(() {
