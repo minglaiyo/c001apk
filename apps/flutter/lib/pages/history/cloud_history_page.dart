@@ -113,14 +113,30 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
     } catch (_) {
       timeText = '';
     }
-    final meta = firstNonEmpty([
-      [
-        item.targetTypeTitle,
-        item.targetType,
-        item.username,
-        timeText,
-      ].where((part) => part != null && part!.trim().isNotEmpty).join(' · '),
+    // Show every field the row actually carries (username, device,
+    // target type, time), deduplicated; nothing is invented here.
+    final metaParts = <String>[];
+    for (final part in [
+      item.username,
+      item.deviceTitle,
+      item.targetTypeTitle,
+      item.targetType,
+      timeText,
+    ]) {
+      final trimmed = part?.trim() ?? '';
+      if (trimmed.isNotEmpty && !metaParts.contains(trimmed)) {
+        metaParts.add(trimmed);
+      }
+    }
+    final meta = metaParts.isEmpty ? null : metaParts.join(' · ');
+    // Body text when the row carries one distinct from the title
+    // (title is often just "<user>的动态" or a product name).
+    final bodyText = firstNonEmpty([
+      item.message,
+      item.messageTitle,
     ]);
+    final showBody =
+        bodyText != null && bodyText != title;
     final url = item.url.orEmpty;
     final body = Padding(
       padding: const EdgeInsets.all(12),
@@ -128,6 +144,13 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+          if (showBody) ...[
+            const SizedBox(height: 4),
+            Text(bodyText!,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 14)),
+          ],
           if (meta != null) ...[
             const SizedBox(height: 4),
             Text(meta,
