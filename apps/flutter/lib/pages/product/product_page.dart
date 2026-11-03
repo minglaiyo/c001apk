@@ -4,13 +4,11 @@ import 'package:get/get.dart' hide Response, FormData;
 
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
-import '../../logic/state/loading_state.dart';
 import '../../pages/product/product_detail.dart';
 import '../../pages/product/product_feed_content.dart';
 import '../../pages/product/product_feed_controller.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
-import '../../components/imageview.dart';
 
 /// The real product page. The route used to point at [TopicPage] as a
 /// placeholder, so opening a product from search results showed a topic
@@ -155,45 +153,6 @@ class _ProductPageState extends State<ProductPage> {
     }
   }
 
-  /// Opens the product gallery in the existing image viewer.
-  /// B 层参考级：先试 GET /v6/product/mediaList（未实测参考，来自
-  /// daimiaopeng/coolapk-desktop 公开代码），拿到多图就进多图图集；
-  /// 失败或为空时回落到单图 logo 图集。详情解析本身不改。
-  Future<void> _openProductGallery(ProductDetail detail) async {
-    if (detail.logo.isEmpty) return;
-    var urls = <String>[detail.logo];
-    var hint = '';
-    try {
-      var result = await NetworkRepo.getProductMediaList(id: detail.id);
-      if (result is Success<List<String>> && result.response.isNotEmpty) {
-        urls = result.response;
-      } else {
-        // Some products only return a gallery under is_recommend=1;
-        // retry once before falling back to the single logo image.
-        final retry =
-            await NetworkRepo.getProductMediaList(id: detail.id, isRecommend: 1);
-        if (retry is Success<List<String>> && retry.response.isNotEmpty) {
-          urls = retry.response;
-        } else if (retry is Error) {
-          hint = retry.errMsg;
-        } else if (result is Error) {
-          hint = result.errMsg;
-        } else {
-          hint = '该产品暂无多图图集，仅显示单图';
-        }
-      }
-    } catch (_) {
-      hint = '产品图集加载失败，仅显示单图';
-    }
-    if (!mounted) return;
-    if (hint.isNotEmpty && urls.length == 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(hint)),
-      );
-    }
-    Get.toNamed('/imageview', arguments: mediaGalleryArguments(urls));
-  }
-
   /// Shows the already-parsed rating detail: total score, rater count,
   /// and per-aspect average scores. Averages only: no headcount
   /// distribution is parsed or shown here.
@@ -274,45 +233,107 @@ class _ProductPageState extends State<ProductPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (hasLogo || hasDescription)
+          // Image + rating side by side: the product picture on the
+          // left, the rating block (total + per-aspect averages) in
+          // the remaining width on the right. The picture is static:
+          // the gallery is closed by user decision, so tapping it
+          // does nothing and fires no request. This whole row lives
+          // inside _buildHeader, which the caller hides entirely on
+          // scroll and restores via the AppBar title tap, so picture
+          // and rating collapse/restore together.
+          if (hasLogo || detail.score > 0)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (hasLogo)
-                  GestureDetector(
-                    onTap: () => _openProductGallery(detail),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
                       detail.logo,
-                      width: 64,
-                      height: 64,
+                      width: 96,
+                      height: 96,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
                           const SizedBox(
-                        width: 64,
-                        height: 64,
-                      ),
-                      ),
-                    ),
-                  ),
-                if (hasLogo && hasDescription) const SizedBox(width: 12),
-                if (hasDescription)
-                  Expanded(
-                    child: Text(
-                      detail.description,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant,
+                        width: 96,
+                        height: 96,
                       ),
                     ),
                   ),
+                if (hasLogo) const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (detail.score > 0) ...[
+                        InkWell(
+                          onTap: () => _showRatingDetail(detail),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Row(
+                            children: [
+                              Text(
+                                detail.score.toStringAsFixed(1),
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                detail.scoreCount > 0
+                                    ? '酷安评分 · ${detail.scoreCount} 人'
+                                    : '酷安评分',
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (detail.ratingItems.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          for (final item in detail.ratingItems)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                children: [
+                                  SizedBox(width: 72, child: Text(item.name)),
+                                  Expanded(
+                                    child: LinearProgressIndicator(
+                                      value: (item.score / 10).clamp(0.0, 1.0),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(item.score.toStringAsFixed(1)),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ] else if (hasDescription)
+                        Text(
+                          detail.description,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
-          if (hasLogo || hasDescription) const SizedBox(height: 12),
+          if (hasLogo || hasDescription || detail.score > 0)
+            const SizedBox(height: 12),
+          if (hasDescription && detail.score > 0)
+            Text(
+              detail.description,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          if (hasDescription && detail.score > 0) const SizedBox(height: 12),
           Row(
             children: [
               if (detail.hotNumText != null)
@@ -344,49 +365,6 @@ class _ProductPageState extends State<ProductPage> {
               ),
             ],
           ),
-          if (detail.score > 0) ...[
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: () => _showRatingDetail(detail),
-              borderRadius: BorderRadius.circular(8),
-              child: Row(
-                children: [
-                  Text(
-                    detail.score.toStringAsFixed(1),
-                    style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  detail.scoreCount > 0
-                      ? '酷安评分 · ${detail.scoreCount} 人'
-                      : '酷安评分',
-                  ),
-                ],
-              ),
-            ),
-            if (detail.ratingItems.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              for (final item in detail.ratingItems)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      SizedBox(width: 72, child: Text(item.name)),
-                      Expanded(
-                        child: LinearProgressIndicator(
-                          value: (item.score / 10).clamp(0.0, 1.0),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(item.score.toStringAsFixed(1)),
-                    ],
-                  ),
-                ),
-            ],
-          ],
           if (detail.specs.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(

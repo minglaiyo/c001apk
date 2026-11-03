@@ -5,6 +5,7 @@ import '../../constants/constants.dart';
 import '../../logic/model/feed/data_list_model.dart';
 import '../../logic/model/feed/data_model.dart';
 import '../../logic/model/feed/datum.dart';
+import '../../logic/model/feed/user_info.dart';
 import '../../logic/network/api.dart';
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/request.dart';
@@ -698,14 +699,88 @@ class NetworkRepo {
 
     bool renderable(Datum datum) =>
         _renderableHistoryTypes.contains((datum.entityType ?? '').trim());
-    // 1. 嵌套目标优先，且必须是可渲染类型。
+    // A nested raw feed object usually carries NO envelope fields:
+    // list rows get entityType='feed' from the list envelope, but a
+    // feed object nested inside a history row is just id/username/
+    // message/deviceTitle/dateline. The old code only accepted a
+    // nested candidate whose entityType was already renderable, so
+    // such a full feed was skipped and the row fell back to the
+    // title+time info card. Accept shape-based feed/product targets.
+    bool feedLike(Datum datum) =>
+        datum.id != null &&
+        ((datum.message ?? '').trim().isNotEmpty ||
+            (datum.messageTitle ?? '').trim().isNotEmpty ||
+            datum.userInfo != null ||
+            (datum.username ?? '').trim().isNotEmpty ||
+            (datum.userAvatar ?? '').trim().isNotEmpty ||
+            (datum.picArr ?? []).isNotEmpty);
+    bool productLike(Datum datum) =>
+        (datum.title ?? '').trim().isNotEmpty &&
+        (datum.logo ?? '').trim().isNotEmpty &&
+        (datum.message ?? '').trim().isEmpty;
+
+    Datum? rowDatum;
+    try {
+      rowDatum = Datum.fromJson(asMap(row));
+    } catch (_) {
+      rowDatum = null;
+    }
+
+    Datum fillFromRow(Datum datum) {
+      if (rowDatum == null) return datum;
+      datum.dateline ??= rowDatum.dateline;
+      if ((datum.url ?? '').isEmpty && (rowDatum.url ?? '').isNotEmpty) {
+        datum.url = rowDatum.url;
+      }
+      if ((datum.username ?? '').isEmpty &&
+          (rowDatum.username ?? '').isNotEmpty) {
+        datum.username = rowDatum.username;
+      }
+      if ((datum.userAvatar ?? '').isEmpty &&
+          (rowDatum.userAvatar ?? '').isNotEmpty) {
+        datum.userAvatar = rowDatum.userAvatar;
+      }
+      if ((datum.deviceTitle ?? '').isEmpty &&
+          (rowDatum.deviceTitle ?? '').isNotEmpty) {
+        datum.deviceTitle = rowDatum.deviceTitle;
+      }
+      if (datum.userInfo == null) datum.userInfo = rowDatum.userInfo;
+      // FeedCard's header reads the name from userInfo, not from the
+      // flat username field: a row that carries username/avatar but
+      // no userInfo object would otherwise render a blank name line.
+      // Synthesize it from fields the row actually carries.
+      if (datum.userInfo == null) {
+        final name = (datum.username ?? rowDatum.username ?? '').trim();
+        final avatar =
+            (datum.userAvatar ?? rowDatum.userAvatar ?? '').trim();
+        if (name.isNotEmpty || avatar.isNotEmpty) {
+          final rawUid = datum.uid ?? rowDatum.uid;
+          datum.userInfo = UserInfo(
+            uid: rawUid is int ? rawUid : null,
+            username: name.isEmpty ? null : name,
+            userAvatar: avatar.isEmpty ? null : avatar,
+          );
+        }
+      }
+      return datum;
+    }
+
+    // 1. Nested target first. The row's own top-level fields (time,
+    // username, device) are used only to fill gaps in the target,
+    // never to invent target content.
     for (final key in [
       'feed',
       'target',
       'data',
       'targetRow',
+      'target_row',
       'entity',
-      'item'
+      'item',
+      'feed_info',
+      'target_info',
+      'detail',
+      'content',
+      'object',
     ]) {
       final candidate = row[key];
       if (candidate is! Map) continue;
@@ -715,17 +790,31 @@ class NetworkRepo {
         final targetType = (datum.targetType ?? '').trim();
         if (_renderableHistoryTypes.contains(targetType)) {
           datum.entityType = targetType;
+        } else if (feedLike(datum)) {
+          // Envelope type for a feed card; the content itself comes
+          // from the nested object, nothing is invented here.
+          datum.entityType = 'feed';
+        } else if (productLike(datum)) {
+          datum.entityType = 'product';
         }
       }
       if (!renderable(datum)) continue;
-      datum.dateline ??= row['dateline'];
-      if ((datum.url ?? '').isEmpty && row['url'] is String) {
-        datum.url = row['url'] as String;
-      }
-      return datum;
+      return fillFromRow(datum);
     }
-    // 2. 回落行本身（可能是纯 history 记录，页面用记录卡片渲染）。
-    return tryParse(row);
+    // 2. Row itself, flattened: a row that already carries full feed
+    // fields (message/username/avatar) renders as the same feed card
+    // the local history page uses, instead of an info card.
+    final own = tryParse(row);
+    if (own == null) return null;
+    if (renderable(own)) return own;
+    if (feedLike(own)) {
+      own.entityType = 'feed';
+      return own;
+    }
+    // 3. Pure history record (title + time only, no body/user data):
+    // the page renders it as an info card with every field the row
+    // actually carries. Nothing is invented here.
+    return own;
   }
 
   /// Product detail for the product page, from
