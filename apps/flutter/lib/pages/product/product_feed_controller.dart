@@ -37,9 +37,6 @@ class ProductFeedController extends CommonController {
   /// `rank_score`). Tabs that have not been built yet pick the
   /// selection up on their first load.
   String? get _effectiveListType {
-    // The 参数 tab (feedType main) is the server's parameter list,
-    // not a sortable feed: never apply the discussion sort to it.
-    if (tab.feedType == 'main') return tab.listType;
     if (!Get.isRegistered<ProductFeedSortController>(tag: productId)) {
       return tab.listType;
     }
