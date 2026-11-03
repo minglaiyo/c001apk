@@ -163,15 +163,35 @@ class _ProductPageState extends State<ProductPage> {
   Future<void> _openProductGallery(ProductDetail detail) async {
     if (detail.logo.isEmpty) return;
     var urls = <String>[detail.logo];
+    var hint = '';
     try {
-      final result = await NetworkRepo.getProductMediaList(id: detail.id);
+      var result = await NetworkRepo.getProductMediaList(id: detail.id);
       if (result is Success<List<String>> && result.response.isNotEmpty) {
         urls = result.response;
+      } else {
+        // Some products only return a gallery under is_recommend=1;
+        // retry once before falling back to the single logo image.
+        final retry =
+            await NetworkRepo.getProductMediaList(id: detail.id, isRecommend: 1);
+        if (retry is Success<List<String>> && retry.response.isNotEmpty) {
+          urls = retry.response;
+        } else if (retry is Error) {
+          hint = retry.errMsg;
+        } else if (result is Error) {
+          hint = result.errMsg;
+        } else {
+          hint = '该产品暂无多图图集，仅显示单图';
+        }
       }
     } catch (_) {
-      // 回落到单图，不提示、不崩。
+      hint = '产品图集加载失败，仅显示单图';
     }
     if (!mounted) return;
+    if (hint.isNotEmpty && urls.length == 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(hint)),
+      );
+    }
     Get.toNamed('/imageview', arguments: mediaGalleryArguments(urls));
   }
 

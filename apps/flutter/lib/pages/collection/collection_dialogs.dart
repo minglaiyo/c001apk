@@ -76,8 +76,12 @@ Future<bool> showCreateCollectionDialog(BuildContext context) async {
                 if (context.mounted) Navigator.of(context).pop(true);
               } catch (e) {
                 if (context.mounted) {
+                  final failure = ApiFailure.fromError(e);
+                  final message = failure.kind == ApiFailureKind.transport
+                      ? '创建请求未到达服务端（${failure.message}），请检查网络后重试；若网络正常仍失败，请把这条提示原文发回，可能是写接口未被服务端接受。'
+                      : failure.message;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(ApiFailure.fromError(e).message)),
+                    SnackBar(content: Text(message)),
                   );
                 }
               }
@@ -128,8 +132,12 @@ Future<bool> showRenameCollectionDialog(
               if (context.mounted) Navigator.of(context).pop(true);
             } catch (e) {
               if (context.mounted) {
+                final failure = ApiFailure.fromError(e);
+                final message = failure.kind == ApiFailureKind.transport
+                    ? '请求未到达服务端（${failure.message}），请检查网络后重试；若网络正常仍失败，请把这条提示原文发回。'
+                    : failure.message;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(ApiFailure.fromError(e).message)),
+                  SnackBar(content: Text(message)),
                 );
               }
             }

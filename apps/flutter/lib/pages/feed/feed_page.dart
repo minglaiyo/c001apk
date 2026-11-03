@@ -160,13 +160,17 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
   Widget _buildErrorWithSnapshot(LoadingState feedState, Widget errorBody) {
     Datum? snapshotDatum;
     String? savedText;
+    var hasSnapshot = false;
+    var snapshotBroken = false;
     try {
       final snapshot = GStorage.getFeedSnapshot(_id);
+      hasSnapshot = snapshot != null;
       final json = snapshot?['json'];
       final savedAt = snapshot?['savedAt'];
       if (json is Map) {
         snapshotDatum = Datum.fromJson(Map<String, dynamic>.from(json));
       }
+      if (hasSnapshot && snapshotDatum == null) snapshotBroken = true;
       if (savedAt is num) {
         final date =
             DateTime.fromMillisecondsSinceEpoch(savedAt.toInt());
@@ -177,7 +181,28 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
     } catch (_) {
       snapshotDatum = null;
     }
-    if (snapshotDatum == null) return errorBody;
+    if (snapshotDatum == null) {
+      // Never silently show only the guidance buttons: tell the user
+      // whether a snapshot exists at all. Previously a parse failure
+      // here was swallowed and the page looked blank of content.
+      return SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            errorBody,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              child: Text(
+                snapshotBroken
+                    ? '离线快照已保存但无法读取，请联网重试。'
+                    : '无离线快照：该条详情此前未成功加载过，联网后打开一次即可离线查看。',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

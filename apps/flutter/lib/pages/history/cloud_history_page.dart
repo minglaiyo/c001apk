@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 import '../../components/item_card.dart';
 import '../../logic/model/feed/datum.dart';
@@ -87,7 +86,7 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
         _page++;
         if (items.isEmpty) _isEnd = true;
       } else if (result is Error) {
-        _error = (result as Error).errMsg;
+        _error = result.errMsg;
       } else {
         if (reset) _all.clear();
         _isEnd = true;

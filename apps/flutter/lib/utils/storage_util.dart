@@ -65,7 +65,7 @@ class GStorage {
   static late final Box<dynamic> settings;
 
   /// Offline snapshot box (B 层，详情-only)：键 = 动态 id，
-  /// 值 = {'json': Datum JSON, 'savedAt': 毫秒时间戳}。
+  /// 值 = {'json': Datum JSON 编码后的 String（防 Hive 类型丢失）, 'savedAt': 毫秒时间戳}。
   /// 只存已成功加载过的详情，图片只存 URL，复用磁盘图片缓存。
   /// 与历史/收藏的清除分开，见 clearFeedSnapshots。
   static late final Box<dynamic> feedSnapshot;
@@ -130,8 +130,14 @@ class GStorage {
     if (id == null || json == null) return;
     try {
       final key = id.toString();
+      // Store as an encoded String: Hive round-trips untyped Maps as
+      // Map<dynamic, dynamic>, which makes Datum.fromJson's
+      // `as Map<String, dynamic>` casts throw on read (the B-layer
+      // snapshot therefore never displayed). A JSON string survives
+      // the round-trip unchanged.
+      final encoded = json is String ? json : jsonEncode(json);
       await feedSnapshot.put(key, {
-        'json': json,
+        'json': encoded,
         'savedAt': DateTime.now().millisecondsSinceEpoch,
       });
       if (feedSnapshot.length > 200) {
@@ -152,11 +158,36 @@ class GStorage {
     }
   }
 
+  static dynamic _deepConvert(dynamic value) {
+    if (value is Map) {
+      return <String, dynamic>{
+        for (final e in value.entries) e.key.toString(): _deepConvert(e.value),
+      };
+    }
+    if (value is List) return value.map(_deepConvert).toList();
+    return value;
+  }
+
   static Map<String, dynamic>? getFeedSnapshot(dynamic id) {
     if (id == null) return null;
     try {
       final value = feedSnapshot.get(id.toString());
-      if (value is Map) return Map<String, dynamic>.from(value);
+      if (value is! Map) return null;
+      final snapshot = Map<String, dynamic>.from(value);
+      final rawJson = snapshot['json'];
+      if (rawJson is String) {
+        final decoded = jsonDecode(rawJson);
+        if (decoded is Map) {
+          snapshot['json'] = _deepConvert(decoded);
+          return snapshot;
+        }
+        return null;
+      }
+      if (rawJson is Map) {
+        // Legacy snapshots stored as a raw Map before the JSON-string fix.
+        snapshot['json'] = _deepConvert(rawJson);
+        return snapshot;
+      }
     } catch (_) {
       // 读失败视为无快照。
     }
