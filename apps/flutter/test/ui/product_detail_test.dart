@@ -75,7 +75,7 @@ void main() {
       expect(anonymous.followed, isNull);
     });
 
-    test('feed, sub-tab and main tabs are kept, rating and others are dropped', () {
+    test('feed and sub-tab tabs are kept, others are dropped', () {
       final tabs = parseProductTabs('123', [
         {
           'title': '讨论',
@@ -119,13 +119,11 @@ void main() {
           'is_open': '1',
         },
       ]);
-      expect(tabs.length, 3);
+      expect(tabs.length, 2);
       expect(tabs[0].label, '讨论');
       expect(tabs[0].feedType, 'feed');
       expect(tabs[1].label, '样张');
       expect(tabs[1].subId, '5');
-      expect(tabs[2].label, '参数');
-      expect(tabs[2].feedType, 'main');
     });
 
     test('URL-encoded inner URLs parse the same way', () {
