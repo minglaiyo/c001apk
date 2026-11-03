@@ -398,8 +398,6 @@ class NetworkRepo {
   // 所有方法只做宽容解析：形状不对时返回空/错误态，绝不抛到 UI 崩溃。
   // 投票提交、收藏写操作的首个真机使用即当探针。
 
-  static String _picFromItem(dynamic item) => _picsFromItem(item).firstOrNull ?? '';
-
   /// All picture URLs carried by one mediaList item. The previous
   /// version returned only the first image of picArr/imageUriList, so
   /// a gallery that arrives as a single album object showed as one
@@ -479,8 +477,10 @@ class NetworkRepo {
 
   /// Product rating distribution, from
   /// `GET /v6/product/ratingChart?id=...` (reference only, untested).
-  /// 原始 Map 原样返回，由 rating_chart.dart 宽容解析总体分布。
-  static Future<LoadingState<Map<String, dynamic>>> getProductRatingChart(
+  /// 原始结构原样返回，由 rating_chart.dart 宽容解析总体分布。
+  /// 注意：分布直接以 List 形式返回时也不能丢成 Empty，否则明细页
+  /// 永远只显示“暂未返回”——List 同样原样交给解析器。
+  static Future<LoadingState<dynamic>> getProductRatingChart(
       String id) async {
     try {
       final response = await Request().get(Api.getProductRatingChart,
@@ -491,6 +491,9 @@ class NetworkRepo {
       }
       if (raw is Map) {
         return LoadingState.success(Map<String, dynamic>.from(raw));
+      }
+      if (raw is List) {
+        return LoadingState.success(raw);
       }
       return LoadingState.empty();
     } catch (error) {
@@ -524,10 +527,19 @@ class NetworkRepo {
     String url,
     Map<String, dynamic> fields,
   ) {
+    // BUGFIX (#53 真机复验): Api.postCollection* 已是完整 URL，而
+    // postLikeDeleteFollow 还会经 getDataFromUrl 再拼一次域名，拼出
+    // 'https://api.coolapk.comhttps://...' 这种非法 URL，Dio 在连接层
+    // 就失败（connectionError），于是新建收藏单永远报“未到达服务端”，
+    // 而走相对路径的产品关注却正常。其余写操作（改名/删除/加项/移项）
+    // 同走 _postCollection，同样被这个拼写错误连累。改：先把完整 URL
+    // 还原成相对路径，再走与关注相同的相对路径传输。端点本身不变。
+    final base = Constants.URL_API_SERVICE;
+    final path = url.startsWith(base) ? url.substring(base.length) : url;
     final stringFields = <String, dynamic>{
       for (final e in fields.entries) e.key: e.value.toString(),
     };
-    return postLikeDeleteFollow(url, data: FormData.fromMap(stringFields));
+    return postLikeDeleteFollow(path, data: FormData.fromMap(stringFields));
   }
 
   /// Collection writes (reference only, untested). update 的 id 必须
@@ -616,16 +628,75 @@ class NetworkRepo {
     int page = 1,
     String? firstItem,
     String? lastItem,
-  }) {
-    return getDataListFromUrl(
-      url: '/v6/user/hitHistoryList',
-      data: {
-        if (type.isNotEmpty) 'type': type,
-        'page': page,
-        if (firstItem != null) 'firstItem': firstItem,
-        if (lastItem != null) 'lastItem': lastItem,
-      },
-    );
+  }) async {
+    // BUGFIX (#53 真机复验：云端历史恒为“暂无内容”): 旧实现走
+    // getDataListFromUrl -> handleListResponse，那里按 entityTypeList /
+    // entityTemplateList 白名单过滤；hitHistoryList 返回的条目类型若不在
+    // 白名单里，会被整批丢掉，页面拿到 Success([]) 就静默显示“暂无内容”，
+    // 请求明明成功却看起来像空。改：云端历史页单独走原始解析，不经
+    // 白名单过滤，只按 Datum 宽容解析，逐条跳过解析失败的行；服务端
+    // 确实返回空时返回 Empty，让页面明确写“服务端返回为空”，不再
+    // 与“被过滤丢光”混成同一个“暂无内容”。
+    try {
+      final response = await Request().get(
+        Api.getDataFromUrl('/v6/user/hitHistoryList'),
+        queryParameters: {
+          if (type.isNotEmpty) 'type': type,
+          'page': page,
+          if (firstItem != null) 'firstItem': firstItem,
+          if (lastItem != null) 'lastItem': lastItem,
+        },
+      );
+      final raw = readApiObject(response)['data'];
+      final rows = raw is List
+          ? raw
+          : raw is Map
+              ? (raw['data'] as List? ??
+                  raw['list'] as List? ??
+                  raw['items'] as List? ??
+                  raw['historyList'] as List? ??
+                  raw['records'] as List? ??
+                  const [])
+              : const [];
+      final items = <Datum>[];
+      for (final row in rows) {
+        final datum = _datumFromHistoryRow(row);
+        if (datum != null) items.add(datum);
+      }
+      if (items.isEmpty) return LoadingState.empty();
+      final cursorRows = items.where((item) => item.id != null).toList();
+      return Success(items,
+          firstItem: cursorRows.isNotEmpty
+              ? cursorRows.first.id.toString()
+              : null,
+          lastItem: cursorRows.isNotEmpty
+              ? cursorRows.last.id.toString()
+              : null);
+    } catch (error) {
+      return LoadingState.error(ApiFailure.fromError(error).message);
+    }
+  }
+
+  /// 云端历史单行宽容解析：行本身、或嵌套的 feed/target/data 对象。
+  /// 只接受带 id 或标题/正文的行，避免把用户/话题类裸行解析成空白卡片。
+  static Datum? _datumFromHistoryRow(dynamic row) {
+    if (row is! Map) return null;
+    Map<String, dynamic> asMap(Map value) => Map<String, dynamic>.fromEntries(
+        value.entries.map((e) => MapEntry(e.key.toString(), e.value)));
+    for (final candidate in [row, row['feed'], row['target'], row['data']]) {
+      if (candidate is Map) {
+        try {
+          final datum = Datum.fromJson(asMap(candidate));
+          final hasTitle = (datum.title ?? '').trim().isNotEmpty ||
+              (datum.messageTitle ?? '').trim().isNotEmpty ||
+              (datum.message ?? '').trim().isNotEmpty;
+          if (datum.id != null || hasTitle) return datum;
+        } catch (_) {
+          continue;
+        }
+      }
+    }
+    return null;
   }
 
   /// Product detail for the product page, from

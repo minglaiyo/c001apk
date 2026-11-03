@@ -21,46 +21,67 @@ class RatingChartData {
 
 int? _toInt(dynamic value) {
   if (value is num) return value.toInt();
-  if (value is String) return int.tryParse(value.trim());
+  if (value is String) {
+    // 人数可能是 "1,234"、"45%"、"45.6" 这类文本，直接 int.tryParse 会失败。
+    final cleaned = value.trim().replaceAll(',', '').replaceAll('%', '');
+    final parsed = int.tryParse(cleaned) ?? double.tryParse(cleaned)?.toInt();
+    return parsed;
+  }
   return null;
 }
 
 String _text(dynamic value) => value == null ? '' : value.toString().trim();
 
+/// 总体分布容器的键名：只沿着这些键往下找，不把任意嵌套结构
+/// （例如各分项自己的分布）误当成总体分布。
+const _distributionKeys = [
+  'rating_chart',
+  'chart',
+  'distribution',
+  'star_distribution',
+  'score_distribution',
+  'ratingDistribution',
+  'starCounts',
+  'stars',
+  'ratings',
+  'total_distribution',
+  'chart_data',
+  'data',
+];
+
 RatingChartData parseRatingChart(dynamic raw) {
-  Map? map;
-  if (raw is Map) {
-    map = raw;
-  } else if (raw is List) {
-    // 极少数情况下分布直接就是列表。
+  if (raw is List) {
+    // 分布直接就是列表。
     return _fromList(raw);
-  } else {
+  }
+  if (raw is! Map) {
     return const RatingChartData(recognized: false);
   }
-  // 先找内层分布容器。
-  dynamic candidate;
-  for (final key in const [
-    'rating_chart',
-    'chart',
-    'distribution',
-    'star_distribution',
-    'ratings',
-    'data',
-  ]) {
-    final value = map[key];
+  // 本层直接就是星级键到人数的映射时先认。
+  final direct = _fromMap(raw);
+  if (direct.recognized) return direct;
+  // 再沿分布键名往下找，最多 3 层（例如 data -> chart -> [...]）。
+  final found = _findDistribution(raw, 0);
+  if (found != null) return found;
+  return const RatingChartData(recognized: false);
+}
+
+RatingChartData? _findDistribution(dynamic node, int depth) {
+  if (depth > 3 || node is! Map) return null;
+  for (final key in _distributionKeys) {
+    final value = node[key];
     if (value is List && value.isNotEmpty) {
-      candidate = value;
-      break;
+      final parsed = _fromList(value);
+      if (parsed.recognized) return parsed;
     }
     if (value is Map && value.isNotEmpty) {
-      candidate = value;
-      break;
+      final parsed = _fromMap(value);
+      if (parsed.recognized) return parsed;
+      final deeper = _findDistribution(value, depth + 1);
+      if (deeper != null) return deeper;
     }
   }
-  candidate ??= map;
-  if (candidate is List) return _fromList(candidate);
-  if (candidate is Map) return _fromMap(candidate);
-  return const RatingChartData(recognized: false);
+  return null;
 }
 
 RatingChartData _fromList(List list) {
@@ -85,7 +106,8 @@ RatingChartData _fromMap(Map map) {
     if (star == null || star < 1 || star > 5) continue;
     final count = entry.value is Map
         ? _toInt((entry.value as Map)['count'] ??
-            (entry.value as Map)['num'])
+            (entry.value as Map)['num'] ??
+            (entry.value as Map)['percent'])
         : _toInt(entry.value);
     if (count != null) counts[star] = count;
   }

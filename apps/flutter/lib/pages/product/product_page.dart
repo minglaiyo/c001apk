@@ -258,14 +258,14 @@ class _ProductPageState extends State<ProductPage> {
               const SizedBox(height: 12),
               const Text('总体星级分布（参考接口，未实测）'),
               const SizedBox(height: 8),
-              FutureBuilder<LoadingState<Map<String, dynamic>>>(
+              FutureBuilder<LoadingState<dynamic>>(
                 future: NetworkRepo.getProductRatingChart(detail.id),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const LinearProgressIndicator();
                   }
                   final state = snapshot.data!;
-                  if (state is! Success<Map<String, dynamic>>) {
+                  if (state is! Success) {
                     return const Text(
                         '总体分布暂未返回（参考未实测，待真机样本）。');
                   }
