@@ -35,6 +35,7 @@ class HistoryController extends GetxController {
                   message: item.message,
                   deviceTitle: item.device,
                   dateline: item.dateline,
+                  feedTypeName: item.feedTypeName,
                 ))
             .toList()
         : <Datum>[];

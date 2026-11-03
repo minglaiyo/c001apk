@@ -13,6 +13,7 @@ class FavHistoryItem {
     this.device,
     this.dateline,
     this.time,
+    this.feedTypeName,
   });
 
   @HiveField(0)
@@ -31,6 +32,8 @@ class FavHistoryItem {
   String? dateline;
   @HiveField(7)
   int? time;
+  @HiveField(8)
+  String? feedTypeName;
 
   FavHistoryItem.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -41,5 +44,6 @@ class FavHistoryItem {
     device = json['device'];
     dateline = json['dateline'];
     time = json['time'];
+    feedTypeName = json['feedTypeName'];
   }
 }

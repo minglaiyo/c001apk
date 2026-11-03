@@ -1,4 +1,7 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// NOTE: hand-updated for HiveField(8) (feedTypeName) because build_runner
+// is unavailable in this environment. Field layout matches fav_history.dart;
+// records written before this change have 8 fields, so fields[8] reads null.
 
 part of 'fav_history.dart';
 
@@ -25,13 +28,14 @@ class FavHistoryItemAdapter extends TypeAdapter<FavHistoryItem> {
       device: fields[5] as String?,
       dateline: fields[6] as String?,
       time: (fields[7] as num?)?.toInt(),
+      feedTypeName: fields[8] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, FavHistoryItem obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,7 +51,9 @@ class FavHistoryItemAdapter extends TypeAdapter<FavHistoryItem> {
       ..writeByte(6)
       ..write(obj.dateline)
       ..writeByte(7)
-      ..write(obj.time);
+      ..write(obj.time)
+      ..writeByte(8)
+      ..write(obj.feedTypeName);
   }
 
   @override

@@ -20,6 +20,7 @@ import '../pages/event/event_page.dart';
 import '../pages/feed/feed_page.dart';
 import '../pages/ffflist/ffflist_page.dart';
 import '../pages/history/history_page.dart';
+import '../pages/feed/article_editor_page.dart';
 import '../pages/home/app/update/app_update_page.dart';
 import '../pages/login/login_page.dart';
 import '../pages/main/main_page.dart';
@@ -178,6 +179,10 @@ class AppPages {
     _getPage(
       name: '/history',
       page: () => const HistoryPage(),
+    ),
+    _getPage(
+      name: '/article_editor',
+      page: () => const ArticleEditorPage(),
     ),
     _getPage(
       name: '/blacklist',
