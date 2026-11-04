@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -14,6 +17,13 @@ import '../../utils/global_data.dart';
 /// anonymous_status。vote 对象内层键名未经实测，由 vote_model.dart
 /// 宽容解析；读不到选项时只显示“投票数据未识别”而不崩溃。
 /// 投票后本地只标记已选选项（票数以服务端为准，未实测前不编造）。
+///
+/// TODO: vote debug probe —— 投票失败时额外弹出“投票失败详情”对话框，
+/// 原样展示服务端 message / status / code 与本次提交参数，用于区分
+/// “选项 id 语义错”与“账号/状态类限制”。根因确认后移除本探针，或
+/// 改为只显示服务端 message 的正式行为。探针只在失败时出现，成功
+/// 路径不动；全局 api_failure.dart 的“只进安全本地文案”规则不动，
+/// 本探针只在投票链路内读取 postVote 已返回的原始响应体。
 class VoteCard extends StatefulWidget {
   const VoteCard({super.key, required this.data});
 
@@ -56,12 +66,18 @@ class _VoteCardState extends State<VoteCard> {
       return;
     }
     setState(() => _busy = true);
+    // TODO: vote debug probe —— 失败时对话框要展示本次提交参数，
+    // 所以提交前先把实际发出的参数快照下来。
+    final submittedOptionIds = _selected.toList();
+    final submittedAnonymous = _anonymous;
+    Response<dynamic>? submittedResponse;
     try {
       final response = await NetworkRepo.postVote(
         feedId: widget.data.id,
-        optionIds: _selected.toList(),
-        anonymous: _anonymous,
+        optionIds: submittedOptionIds,
+        anonymous: submittedAnonymous,
       );
+      submittedResponse = response;
       // 成功回包可能 message-only（产品关注先例），勿用默认 data 校验。
       readApiObject(response, allowSuccessWithoutData: true);
       if (mounted) {
@@ -81,13 +97,136 @@ class _VoteCardState extends State<VoteCard> {
       }
     } catch (e) {
       if (mounted) {
+        // Dio 在非 2xx 时可能直接抛错而不返回 Response，此时若
+        // 异常上还挂着响应体，探针对话框同样把它展示出来。
+        if (e is DioException) submittedResponse ??= e.response;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(ApiFailure.fromError(e).message)),
+        );
+        // TODO: vote debug probe —— 通用提示之外，额外弹一次详情
+        // 对话框，原样展示服务端 message / status / code 与提交参数。
+        // 成功路径不走这里，所以成功时不会多弹任何调试信息。
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('投票失败详情（调试探针）'),
+            content: SingleChildScrollView(
+              child: SelectableText(
+                _voteFailureProbeText(
+                  failure: ApiFailure.fromError(e),
+                  response: submittedResponse,
+                  feedId: widget.data.id,
+                  optionIds: submittedOptionIds,
+                  anonymous: submittedAnonymous,
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('关闭'),
+              ),
+            ],
+          ),
         );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  // TODO: vote debug probe —— 只在投票失败时调用。原始响应体来自
+  // postVote 已返回的 Response，不经过全局 ApiFailure 文案过滤；
+  // message 一律原样展示（不翻译、不改写），字段缺失时明确写“（无）”
+  // 而不是留空，避免截图时分不清“空值”与“没展示”。
+  String _voteFailureProbeText({
+    required ApiFailure failure,
+    required Response<dynamic>? response,
+    required dynamic feedId,
+    required List<String> optionIds,
+    required bool anonymous,
+  }) {
+    final lines = <String>[
+      '本对话框仅为调试探针，待根因确认后移除。',
+      '',
+      '客户端通用提示：${failure.message}',
+      '',
+      '接口：POST /v6/vote/createUserVote',
+      'HTTP 状态：${response?.statusCode ?? '（无响应，未到达服务端或未返回）'}',
+    ];
+    final body = response?.data;
+    final bodyMap = _voteProbeBodyMap(body);
+    if (bodyMap != null) {
+      lines
+        ..add('')
+        ..add('服务端原话 message：${_voteProbeField(bodyMap['message'])}')
+        ..add('messageStatus：${_voteProbeField(bodyMap['messageStatus'])}')
+        ..add('code：${_voteProbeField(bodyMap['code'])}')
+        ..add('status：${_voteProbeField(bodyMap['status'])}')
+        ..add('error：${_voteProbeField(bodyMap['error'])}');
+      final data = bodyMap['data'];
+      if (data != null) {
+        final dataText = data.toString();
+        lines.add(
+          dataText.length > 1000
+              ? 'data（摘要，前 1000 字，共 ${dataText.length} 字）：${dataText.substring(0, 1000)}'
+              : 'data：$dataText',
+        );
+      } else {
+        lines.add('data：（无）');
+      }
+    } else if (body is String) {
+      // 非 JSON 文本体（例如微页面回了 HTML）：不全文塞进对话框，
+      // 只放前 4000 字并注明总长度，避免超大体撑爆弹窗。
+      lines
+        ..add('')
+        ..add('响应体不是 JSON，原文前 4000 字（共 ${body.length} 字）：')
+        ..add(body.length > 4000 ? body.substring(0, 4000) : body);
+    } else if (body == null) {
+      lines
+        ..add('')
+        ..add('响应体：（无）');
+    } else {
+      lines
+        ..add('')
+        ..add('响应体类型：${body.runtimeType}');
+    }
+    lines
+      ..add('')
+      ..add('本次提交参数：')
+      ..add('  id = $feedId')
+      ..add('  anonymous_status = ${anonymous ? 1 : 0}');
+    if (optionIds.isEmpty) {
+      lines.add('  select_option = （空）');
+    } else {
+      for (var i = 0; i < optionIds.length; i++) {
+        lines.add('  select_option[$i] = ${optionIds[i]}');
+      }
+    }
+    return lines.join('\n');
+  }
+
+  Map<String, dynamic>? _voteProbeBodyMap(dynamic body) {
+    if (body is Map) {
+      return body.map((key, value) => MapEntry('$key', value));
+    }
+    if (body is String) {
+      try {
+        final decoded = jsonDecode(body);
+        if (decoded is Map) {
+          return decoded.map((key, value) => MapEntry('$key', value));
+        }
+      } on FormatException {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  String _voteProbeField(dynamic value) {
+    if (value == null) return '（无）';
+    final text = '$value';
+    return text.isEmpty ? '（空）' : text;
   }
 
   @override
@@ -181,7 +320,8 @@ class _VoteCardState extends State<VoteCard> {
               ],
             ),
             const Text(
-              '投票接口为未实测参考，首次提交即当探针；失败时请报提示。',
+              // TODO: vote debug probe —— 失败时会额外弹出详情对话框。
+              '投票接口为未实测参考，首次提交即当探针；失败时会弹出服务端原话详情。',
               style: TextStyle(fontSize: 12),
             ),
           ],
