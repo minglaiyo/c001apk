@@ -7,6 +7,7 @@ import '../../utils/storage_util.dart';
 import '../../pages/settings/settings_search_index.dart';
 import '../../constants/liquid_glass_level.dart';
 import '../expressive_list_section.dart';
+import '../glass_dropdown_picker.dart';
 
 /// Separate floating/glass preferences, like KernelSU's theme settings.
 class NavigationAppearanceSettings extends StatelessWidget {
@@ -26,23 +27,25 @@ class NavigationAppearanceSettings extends StatelessWidget {
         // ListTile limits trailing widgets to 56dp. Stack the selector when
         // larger text needs more vertical room.
         final stackPicker = MediaQuery.textScalerOf(context).scale(16) > 24;
-        final picker = DropdownButtonHideUnderline(
-          child: DropdownButton<LiquidGlassLevel>(
-            value: GStorage.liquidGlassLevel,
-            itemHeight: null,
-            items: [
-              for (final level in LiquidGlassLevel.values)
-                DropdownMenuItem(value: level, child: Text(level.label)),
-            ],
-            onChanged: enabled
-                ? (level) {
-                    if (level != null) {
-                      GStorage.settings.put(
-                          SettingsBoxKey.liquidGlassLevel, level.storedValue);
-                    }
+        // The level switch itself already existed (same storage key,
+        // labels and descriptions); only its popup is glassified here.
+        // The level is not a no-op on the fork's fake glass: `GlassSurface`
+        // maps it to blur/tint (low = flat tint, medium sigma 10,
+        // high sigma 16, complete sigma 22, plus rim/sheen strength).
+        // It still does not enable refraction — that needs a glass
+        // pipeline the fork deliberately does not have yet.
+        final picker = GlassDropdownPicker<LiquidGlassLevel>(
+          value: GStorage.liquidGlassLevel,
+          items: LiquidGlassLevel.values,
+          labelOf: (level) => level.label,
+          onChanged: enabled
+              ? (level) {
+                  if (level != null) {
+                    GStorage.settings.put(
+                        SettingsBoxKey.liquidGlassLevel, level.storedValue);
                   }
-                : null,
-          ),
+                }
+              : null,
         );
         return ExpressiveListSection(children: [
           SettingsItemLocator(
