@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide Response;
 
 import '../../logic/model/feed/datum.dart';
 import '../../logic/model/feed/vote_model.dart';
