@@ -557,43 +557,93 @@ class _ProductPageState extends State<ProductPage> {
   }
 
 
-  /// The ⋮ sort menu in the AppBar, mirroring the topic discussion
-  /// sort menu (默认 / 最新发布 / 热门). Picking a sort reloads every
-  /// tab controller that already exists; tabs built afterwards read
-  /// the shared selection on their first load.
-  Widget _buildSortMenu(ProductDetail detail) {
+  /// Applies a sort selection: same semantics as the old AppBar ⋮
+  /// sort menu (0 = 默认 keeps the tab's listType, 1 = 最新 uses
+  /// `dateline_desc`, 2 = 热门 uses `rank_score`; see
+  /// `ProductFeedSortController`). Picking a sort reloads every tab
+  /// controller that already exists; tabs built afterwards read the
+  /// shared selection on their first load.
+  void _applySort(ProductDetail detail, int value) {
+    _sortController.sortType.value = value;
+    for (final tab in detail.tabs) {
+      final tag = '${detail.id}${tab.key}';
+      if (Get.isRegistered<ProductFeedController>(tag: tag)) {
+        final controller = Get.find<ProductFeedController>(tag: tag);
+        controller.onReset();
+        controller.onGetData();
+      }
+    }
+  }
+
+  /// Discussion sort as a grey pill segmented control, in the
+  /// Yuxiximyxx `_buildSortSelector` shape (grey pill track, selected
+  /// pill white with a light shadow; dark mode uses a translucent
+  /// white track and a dark selected pill). It replaces the AppBar ⋮
+  /// sort menu — the values and the reload behaviour above are
+  /// unchanged, only the labels follow the reference pill
+  /// (默认 / 最新 / 热度 instead of the menu's 最新发布 / 热门).
+  /// Note the scope is the same as the old menu: the sort is shared
+  /// across all tabs through `ProductFeedSortController`, so the pill
+  /// is shown for the whole product page, not only for a discussion
+  /// tab; narrowing it to one tab would change the sort semantics.
+  Widget _buildSortPill(ProductDetail detail) {
     return Obx(() {
       final current = _sortController.sortType.value;
-      return PopupMenuButton<int>(
-        tooltip: '排序',
-        icon: const Icon(Icons.more_vert),
-        onSelected: (value) {
-          _sortController.sortType.value = value;
-          for (final tab in detail.tabs) {
-            final tag = '${detail.id}${tab.key}';
-            if (Get.isRegistered<ProductFeedController>(tag: tag)) {
-              final controller = Get.find<ProductFeedController>(tag: tag);
-              controller.onReset();
-              controller.onGetData();
-            }
-          }
-        },
-        itemBuilder: (context) => [
-          for (final entry in {
-            0: '默认',
-            1: '最新发布',
-            2: '热门',
-          }.entries)
-            PopupMenuItem<int>(
-              value: entry.key,
-              child: Row(
-                children: [
-                  Expanded(child: Text(entry.value)),
-                  if (entry.key == current) const Icon(Icons.check),
-                ],
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      return Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.12)
+              : const Color(0xFFF4F3F8),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final entry in {
+              0: '默认',
+              1: '最新',
+              2: '热度',
+            }.entries)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _applySort(detail, entry.key),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 13, vertical: 5),
+                  decoration: entry.key == current
+                      ? BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF3A3A3C)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(999),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        )
+                      : null,
+                  child: Text(
+                    entry.value,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: entry.key == current
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                      color: entry.key == current
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.outline,
+                    ),
+                  ),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       );
     });
   }
@@ -644,7 +694,6 @@ class _ProductPageState extends State<ProductPage> {
                 icon: const Icon(Icons.search),
                 tooltip: '搜索',
               ),
-              _buildSortMenu(detail),
             ],
           ),
           body: DefaultTabController(
@@ -657,6 +706,14 @@ class _ProductPageState extends State<ProductPage> {
                     duration: const Duration(milliseconds: 250),
                     alignment: Alignment.topCenter,
                     child: _buildHeader(detail),
+                  ),
+                  Padding(
+                    padding:
+                        const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: _buildSortPill(detail),
+                    ),
                   ),
                   TabBar(
                     isScrollable: true,
