@@ -34,6 +34,28 @@ class ProductTab {
   final String? listType;
 }
 
+/// One product configuration (variant) from the detail's
+/// `configRows`, mirroring Costben/c001apk's `ProductConfigInfo.from`
+/// (AGPL-3.0): empty ids are dropped, an empty title falls back to
+/// "默认配置". These are the entries the parameter dialogs list.
+class ProductConfig {
+  const ProductConfig({
+    required this.id,
+    this.productId,
+    required this.title,
+    this.price,
+    this.url,
+    this.isAddCompare = false,
+  });
+
+  final String id;
+  final String? productId;
+  final String title;
+  final String? price;
+  final String? url;
+  final bool isAddCompare;
+}
+
 class ProductDetail {
   const ProductDetail({
     required this.id,
@@ -49,6 +71,7 @@ class ProductDetail {
     required this.ratingItems,
     required this.tabs,
     this.followed,
+    required this.configs,
   });
 
   final String id;
@@ -65,6 +88,10 @@ class ProductDetail {
   final List<String> specs;
   final List<ProductRatingItem> ratingItems;
   final List<ProductTab> tabs;
+
+  /// Configurations from `configRows` (empty when the detail carries
+  /// none). The parameter/compare buttons only appear from this.
+  final List<ProductConfig> configs;
 
   /// Follow state from the detail's userAction (follow == 1);
   /// null when the server did not report it (e.g. anonymous).
@@ -210,6 +237,37 @@ ProductDetail parseProductDetail(String productId, dynamic data) {
       data['owner_star_total_count'] ??
       data['star_total_count']);
   bool? followed;
+  final configs = <ProductConfig>[];
+  final rawConfigs = data['configRows'];
+  if (rawConfigs is List) {
+    for (final item in rawConfigs) {
+      if (item is! Map) continue;
+      final id = _text(item['id']);
+      if (id.isEmpty) continue;
+      final title = _firstText(item, ['title']);
+      final priceText = _text(item['price']);
+      final urlText = _text(item['url']);
+      final rawCompare = item['is_add_compare'];
+      bool isAddCompare = false;
+      if (rawCompare is bool) {
+        isAddCompare = rawCompare;
+      } else if (rawCompare is num) {
+        isAddCompare = rawCompare != 0;
+      } else if (rawCompare is String) {
+        isAddCompare =
+            rawCompare == '1' || rawCompare.toLowerCase() == 'true';
+      }
+      configs.add(ProductConfig(
+        id: id,
+        productId:
+            _text(item['product_id']).isNotEmpty ? _text(item['product_id']) : null,
+        title: title.isNotEmpty ? title : '默认配置',
+        price: priceText.isNotEmpty ? priceText : null,
+        url: urlText.isNotEmpty ? urlText : null,
+        isAddCompare: isAddCompare,
+      ));
+    }
+  }
   final userAction = data['userAction'];
   if (userAction is Map) {
     final follow = userAction['follow'];
@@ -249,5 +307,6 @@ ProductDetail parseProductDetail(String productId, dynamic data) {
     ratingItems: ratingItems,
     tabs: parseProductTabs(productId, data['tabList']),
     followed: followed,
+    configs: configs,
   );
 }
