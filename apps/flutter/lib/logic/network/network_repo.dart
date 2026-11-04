@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:get/get.dart' hide Response, FormData;
 
@@ -859,6 +861,54 @@ class NetworkRepo {
           ApiFailureKind.invalidResponse, '产品详情格式异常，请稍后重试');
     }
     return parseProductDetail(id, data);
+  }
+
+  /// Parameter table for one config, from the coolapk micro-page
+  /// `GET https://m.coolapk.com/mp/product/configInfo?id=...`,
+  /// mirroring Costben/c001apk's `productConfigInfo` (AGPL-3.0).
+  /// The micro-page answers `dataRows` at the top level or wrapped
+  /// in `data`; the usual api envelope check (`readApiObject`) does
+  /// not apply here, so the body is validated directly. Only
+  /// User-Agent + X-Requested-With are sent for this host, matching
+  /// Costben's client: that is what makes the page answer JSON
+  /// instead of HTML. The api-host token interceptor does not run
+  /// for this host. Returns the raw decoded body for
+  /// `productSpecSections` to parse.
+  static Future<dynamic> getProductConfigInfo(String id) async {
+    final response = await Request().get(
+      Api.getProductConfigInfo,
+      queryParameters: {'id': id},
+      options: Options(headers: {
+        'User-Agent': GStorage.userAgent,
+        'X-Requested-With': Constants.REQUEST_WITH,
+      }),
+    );
+    final status = response.statusCode;
+    if (status == null || status < 200 || status >= 300) {
+      throw ApiFailure.http(status);
+    }
+    dynamic body = response.data;
+    if (body is String) {
+      try {
+        body = jsonDecode(body);
+      } on FormatException {
+        throw const ApiFailure(
+            ApiFailureKind.invalidResponse, '参数响应格式异常，请稍后重试');
+      }
+    }
+    if (body is! Map) {
+      throw const ApiFailure(
+          ApiFailureKind.invalidResponse, '参数响应格式异常，请稍后重试');
+    }
+    if (body['dataRows'] == null && body['data'] == null) {
+      final message =
+          body['message'] is String ? (body['message'] as String).trim() : '';
+      throw ApiFailure(
+        ApiFailureKind.business,
+        message.isNotEmpty ? message : '参数数据为空，请稍后重试',
+      );
+    }
+    return body;
   }
 
   /// Product feed list for one product tab, from

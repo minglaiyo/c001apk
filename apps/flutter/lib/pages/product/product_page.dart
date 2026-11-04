@@ -4,6 +4,9 @@ import 'package:get/get.dart' hide Response, FormData;
 
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
+import '../../pages/product/product_comparison_controller.dart';
+import '../../pages/product/product_config.dart';
+import '../../pages/product/product_config_ui.dart';
 import '../../pages/product/product_detail.dart';
 import '../../pages/product/product_feed_content.dart';
 import '../../pages/product/product_feed_controller.dart';
@@ -73,9 +76,15 @@ class _ProductPageState extends State<ProductPage> {
 
   late final ProductFeedSortController _sortController;
 
+  /// Process-wide comparison selection (see
+  /// `ProductComparisonController`): shared across product pages and
+  /// never deleted with this page.
+  late final ProductComparisonController _comparison;
+
   @override
   void initState() {
     super.initState();
+    _comparison = ProductComparisonController.instance;
     _sortController = Get.isRegistered<ProductFeedSortController>(tag: _id)
         ? Get.find<ProductFeedSortController>(tag: _id)
         : Get.put(ProductFeedSortController(), tag: _id);
@@ -151,6 +160,132 @@ class _ProductPageState extends State<ProductPage> {
         _followBusy = false;
       }
     }
+  }
+
+  void _showComparisonSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  /// Opens the config list dialog for this product. The dialog's
+  /// "参数" action closes the list and opens the details dialog;
+  /// its "对比" action toggles the process-wide selection with the
+  /// same toasts as Costben's `toggleProductConfig`.
+  void _openConfigList(ProductDetail detail) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => ProductConfigListDialog(
+        productTitle: detail.title,
+        configs: detail.configs,
+        comparison: _comparison,
+        onViewConfig: (config) {
+          Navigator.of(dialogContext).pop();
+          _showConfigDetails(config);
+        },
+        onToggleCompare: (config) {
+          final result = _comparison.toggle(
+            ProductComparisonSelection(
+              productTitle: detail.title,
+              productLogo: detail.logo.isNotEmpty ? detail.logo : null,
+              config: config,
+            ),
+          );
+          switch (result) {
+            case ProductComparisonToggleResult.added:
+              _showComparisonSnack('已加入对比');
+            case ProductComparisonToggleResult.removed:
+              _showComparisonSnack('已移出对比');
+            case ProductComparisonToggleResult.limitReached:
+              _showComparisonSnack(
+                '最多选择 ${ProductComparisonController.maxSelections} 个配置',
+              );
+            case ProductComparisonToggleResult.invalid:
+              _showComparisonSnack('该配置暂不支持对比');
+          }
+        },
+        onOpenComparison: () {
+          Navigator.of(dialogContext).pop();
+          _openComparison();
+        },
+      ),
+    );
+  }
+
+  void _showConfigDetails(ProductConfig config) {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) => ProductConfigDetailsDialog(config: config),
+    );
+  }
+
+  /// Opens the comparison dialog, with Costben's entry guards:
+  /// 0 selections and 1 selection only toast, 2+ load in parallel
+  /// inside the dialog.
+  void _openComparison() {
+    final selections = _comparison.selections.toList();
+    if (selections.isEmpty) {
+      _showComparisonSnack('请先选择要对比的配置');
+      return;
+    }
+    if (selections.length < 2) {
+      _showComparisonSnack('再选择一个配置即可对比');
+      return;
+    }
+    showDialog<void>(
+      context: context,
+      builder: (context) => ProductComparisonDialog(
+        selections: selections,
+        comparison: _comparison,
+      ),
+    );
+  }
+
+  /// Second row under the product header, mirroring Costben's
+  /// `TopicHeader` buttons: "参数（N）" only when this product's
+  /// detail carries `configRows`, "对比（M）" when configs exist or
+  /// the process-wide selection is non-empty (M = selection count).
+  /// When neither applies, no row and no spacing is left behind.
+  /// The row is reactive: toggling a config on any product page
+  /// updates the comparison count here.
+  Widget _buildConfigButtons(ProductDetail detail) {
+    return Obx(() {
+      final hasConfigs = detail.configs.isNotEmpty;
+      final comparisonCount = _comparison.selections.length;
+      final buttons = <Widget>[];
+      if (hasConfigs) {
+        buttons.add(
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => _openConfigList(detail),
+              child: Text('参数（${detail.configs.length}）'),
+            ),
+          ),
+        );
+      }
+      if (hasConfigs || comparisonCount > 0) {
+        if (buttons.isNotEmpty) {
+          buttons.add(const SizedBox(width: 10));
+        }
+        buttons.add(
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _openComparison,
+              child: Text('对比（$comparisonCount）'),
+            ),
+          ),
+        );
+      }
+      if (buttons.isEmpty) return const SizedBox.shrink();
+      return Column(
+        children: [
+          const SizedBox(height: 12),
+          Row(children: buttons),
+        ],
+      );
+    });
   }
 
   /// Shows the already-parsed rating detail: total score, rater count,
@@ -392,6 +527,7 @@ class _ProductPageState extends State<ProductPage> {
               ),
             ],
           ),
+          _buildConfigButtons(detail),
           if (detail.specs.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(

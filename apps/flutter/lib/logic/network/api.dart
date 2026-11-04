@@ -25,6 +25,15 @@ class Api {
   static String getProductDetail =
       '${Constants.URL_API_SERVICE}/v6/product/detail';
 
+  // Product parameter table, mirroring Costben/c001apk's
+  // PRODUCT_CONFIG_INFO (AGPL-3.0). Note this is the coolapk
+  // micro-page host, not the api host: Costben's client only sends
+  // User-Agent + X-Requested-With here (so the page answers JSON
+  // instead of HTML), and `getProductConfigInfo` does the same per
+  // request instead of relying on the api-host interceptor.
+  static String getProductConfigInfo =
+      'https://m.coolapk.com/mp/product/configInfo';
+
   static String getFeedChangeHistory =
       '${Constants.URL_API_SERVICE}/v6/feed/changeHistoryList';
 
