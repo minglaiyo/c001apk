@@ -39,6 +39,12 @@ class _VoteCardState extends State<VoteCard> {
   bool _anonymous = false;
   bool _busy = false;
   bool _submitted = false;
+  // 已结束兜底（B 方案）：vote_model.dart 里没有任何结束字段（无结束
+  // 时间、无结束状态、无 deadline/expire 类字段），所以不在渲染前凭
+  // 日期推测结束态；只在一次提交返回“已结束”类服务端原话后，才把
+  // 本卡标记为已结束。卡片级状态，不跨重启持久化；首次提交仍会
+  // 失败一次，之后不再让用户反复提交同一张已结束的票。
+  bool _ended = false;
 
   bool get _voted =>
       _submitted || _vote.votedOptionIds.isNotEmpty;
@@ -52,7 +58,7 @@ class _VoteCardState extends State<VoteCard> {
   }
 
   Future<void> _submit() async {
-    if (_busy || _selected.isEmpty) return;
+    if (_ended || _busy || _selected.isEmpty) return;
     if (!GlobalData().isLogin) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -103,6 +109,16 @@ class _VoteCardState extends State<VoteCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(ApiFailure.fromError(e).message)),
         );
+        // 已结束兜底：只认服务端原话 message 里含“已结束”（探针实测
+        // 原话为“该投票已结束”），不凭 status/code 单独判定，避免把
+        // 其他 -1 类业务失败误标为已结束。标记后立即清掉勾选，后续
+        // 渲染走已结束表现，不再发 createUserVote 请求。
+        if (_responseIndicatesEnded(submittedResponse)) {
+          setState(() {
+            _ended = true;
+            _selected.clear();
+          });
+        }
         // TODO: vote debug probe —— 通用提示之外，额外弹一次详情
         // 对话框，原样展示服务端 message / status / code 与提交参数。
         // 成功路径不走这里，所以成功时不会多弹任何调试信息。
@@ -223,6 +239,14 @@ class _VoteCardState extends State<VoteCard> {
     return null;
   }
 
+  // 已结束兜底判定：只看原始响应体 message 字段是否含“已结束”。
+  // 不读 status/code/messageStatus，不读日期，不做任何启发式推测。
+  bool _responseIndicatesEnded(Response<dynamic>? response) {
+    final bodyMap = _voteProbeBodyMap(response?.data);
+    final message = bodyMap?['message'];
+    return message != null && '$message'.contains('已结束');
+  }
+
   String _voteProbeField(dynamic value) {
     if (value == null) return '（无）';
     final text = '$value';
@@ -248,7 +272,13 @@ class _VoteCardState extends State<VoteCard> {
             children: [
               const Icon(Icons.how_to_vote_outlined, size: 16),
               const SizedBox(width: 4),
-              Text(_voted ? '投票（已投票）' : '投票'),
+              Text(
+                _ended
+                    ? '投票（已结束）'
+                    : _voted
+                        ? '投票（已投票）'
+                        : '投票',
+              ),
               if (_vote.totalVotes != null) ...[
                 const SizedBox(width: 8),
                 Text('${_vote.totalVotes} 票'),
@@ -259,7 +289,7 @@ class _VoteCardState extends State<VoteCard> {
           for (final option in _vote.options)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: _voted
+              child: _voted || _ended
                   ? Row(
                       children: [
                         Expanded(
@@ -303,7 +333,18 @@ class _VoteCardState extends State<VoteCard> {
                       },
                     ),
             ),
-          if (!_voted) ...[
+          if (_ended) ...[
+            Row(
+              children: const [
+                Spacer(),
+                FilledButton(
+                  onPressed: null,
+                  child: Text('已结束'),
+                ),
+              ],
+            ),
+          ],
+          if (!_voted && !_ended) ...[
             Row(
               children: [
                 Checkbox(
