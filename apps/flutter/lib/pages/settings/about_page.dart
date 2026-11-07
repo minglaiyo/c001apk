@@ -73,6 +73,13 @@ class AboutPage extends StatelessWidget {
                           subtitle: const Text('c001apk-flutter'),
                           onTap: () => Utils.launchURL(Constants.URL_UPSTREAM),
                         ),
+                        ListTile(
+                          leading: const Icon(Icons.code),
+                          title: const Text('上游项目'),
+                          subtitle: const Text(Constants.URL_UPSTREAM_C001APK),
+                          onTap: () => Utils.launchURL(
+                              Constants.URL_UPSTREAM_C001APK),
+                        ),
                       ]),
                     ],
                   )))),

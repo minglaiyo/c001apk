@@ -12,7 +12,7 @@ import 'package:hive/hive.dart';
 
 Map<String, dynamic> releaseJson({String tag = '1.2.0-release'}) => {
       'tag_name': tag,
-      'html_url': 'https://github.com/TG-Twilight/c001apk/releases/tag/$tag',
+      'html_url': 'https://github.com/minglaiyo/c001apk/releases/tag/$tag',
       'draft': false,
       'prerelease': false,
       'body': '修复问题\n新增功能',
@@ -30,7 +30,27 @@ Map<String, dynamic> releaseJson({String tag = '1.2.0-release'}) => {
             'state': 'uploaded',
             'size': 1024,
             'browser_download_url':
-                'https://github.com/TG-Twilight/c001apk/releases/download/$tag/c001apk-1.2.0%2B20261015-$name',
+                'https://github.com/minglaiyo/c001apk/releases/download/$tag/c001apk-1.2.0%2B20261015-$name',
+          }
+      ],
+    };
+
+Map<String, dynamic> forkReleaseJson({String tag = 'v1.2.0-own-keystore-3'}) =>
+    {
+      'tag_name': tag,
+      'html_url': 'https://github.com/minglaiyo/c001apk/releases/tag/$tag',
+      'draft': false,
+      'prerelease': false,
+      'body': '修复问题',
+      'published_at': '2026-11-03T00:00:00Z',
+      'assets': [
+        for (final abi in ['arm64-v8a', 'armeabi-v7a', 'x86_64'])
+          {
+            'name': 'app-$abi-release.apk',
+            'state': 'uploaded',
+            'size': 1024,
+            'browser_download_url':
+                'https://github.com/minglaiyo/c001apk/releases/download/$tag/app-$abi-release.apk',
           }
       ],
     };
@@ -90,6 +110,12 @@ void main() {
     expect(
         AppVersion.parse('1.1.0-release') > AppVersion.parse('1.2.0'), false);
     expect(() => AppVersion.parse('1.3.0-beta'), throwsFormatException);
+    expect(
+        AppVersion.parse('v1.5.1-own-keystore-8') > AppVersion.parse('1.5.0'),
+        true);
+    expect(
+        AppVersion.parse('v1.5.1-own-keystore-8') > AppVersion.parse('1.5.1'),
+        false);
   });
   test('release selects an exact platform and compatible Android ABI', () {
     final release = AppRelease.fromJson(releaseJson());
@@ -99,6 +125,16 @@ void main() {
     expect(release.downloadFor('windows').path, endsWith('windows-x86_64.zip'));
     expect(release.downloadFor('linux').path, endsWith('linux-x86_64.tar.gz'));
     expect(release.downloadFor('ios'), release.page);
+    expect(release.downloadFor('android', abis: ['mips']), release.page);
+  });
+  test('fork releases resolve own-keystore tags and Gradle APK names', () {
+    final release = AppRelease.fromJson(forkReleaseJson());
+    expect(release.version > AppVersion.parse('1.1.9'), true);
+    expect(release.version > AppVersion.parse('1.2.0'), false);
+    expect(
+        release.downloadFor('android', abis: ['unknown', 'armeabi-v7a']).path,
+        endsWith('app-armeabi-v7a-release.apk'));
+    expect(release.downloadFor('windows'), release.page);
     expect(release.downloadFor('android', abis: ['mips']), release.page);
   });
   test('drafts, prereleases and malformed payloads are rejected', () {
@@ -218,7 +254,7 @@ void main() {
     await service.check();
     final request = adapter.requests.single;
     expect(request.uri.toString(),
-        'https://api.github.com/repos/TG-Twilight/c001apk/releases/latest');
+        'https://api.github.com/repos/minglaiyo/c001apk/releases/latest');
     expect(request.method, 'GET');
     expect(
         request.headers.keys.map((key) => key.toLowerCase()),
