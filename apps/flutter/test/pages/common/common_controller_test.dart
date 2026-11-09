@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:c001apk_flutter/logic/network/network_repo.dart';
 import 'package:c001apk_flutter/logic/state/loading_state.dart';
 import 'package:c001apk_flutter/pages/common/common_controller.dart';
+import 'package:c001apk_flutter/utils/storage_util.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
 
 /// A [CommonController] whose pages are scripted in advance, so the
 /// pagination, failure and refresh mechanics of [CommonController.onGetData]
@@ -50,6 +54,20 @@ List<dynamic> idsOf(CommonController controller) {
 }
 
 void main() {
+  late Directory temp;
+  setUpAll(() async {
+    temp = await Directory.systemTemp.createTemp('common-controller-');
+    Hive.init(temp.path);
+    GStorage.blackList = await Hive.openBox('blackList');
+  });
+  setUp(() async {
+    await GStorage.blackList.put(BlackListBoxKey.userBlackList, <String>[]);
+  });
+  tearDownAll(() async {
+    await Hive.close();
+    await temp.delete(recursive: true);
+  });
+
   test('continuous pagination appends pages and ends on Empty', () async {
     final controller = ScriptedController(
         [await page([1, 2]), await page([3, 4]), LoadingState.empty()]);
