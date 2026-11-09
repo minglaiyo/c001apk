@@ -63,8 +63,7 @@ void main() {
     ]);
     await controller.onGetData();
     expect(controller.lastItem, '2');
-    final Success(:final response) = controller.loadingState.value;
-    expect(response.single.id, 1);
+    expect((controller.loadingState.value as Success).response.single.id, 1);
     controller.onClose();
   });
 
@@ -76,8 +75,7 @@ void main() {
     ]);
     await controller.onGetData();
     expect(controller.cursors, [null, '1']);
-    final Success(:final response) = controller.loadingState.value;
-    expect(response.single.id, 2);
+    expect((controller.loadingState.value as Success).response.single.id, 2);
     controller.onClose();
   });
 
@@ -104,11 +102,9 @@ void main() {
       [feed(1, uid: '1007278'), feed(2, uid: '7')]
     ]);
     await controller.onGetData();
-    final Success(:final response) = controller.loadingState.value;
-    expect(response.length, 1);
+    expect((controller.loadingState.value as Success).response.length, 1);
     await AppContentFilter.service!.setEnabled(false);
-    final Success(:final unfiltered) = controller.loadingState.value;
-    expect(unfiltered.length, 2);
+    expect((controller.loadingState.value as Success).response.length, 2);
     expect(controller.calls, 1);
     expect(controller.lastItem, '2');
     controller.onClose();

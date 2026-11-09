@@ -313,9 +313,9 @@ class _UserPageState extends State<UserPage> {
                           showDialog<void>(
                             context: context,
                             builder: (BuildContext context) {
-                              final Success(:final response) =
-                                  _userController.userState.value;
-                              Datum user = response;
+                              Datum user =
+                                  (_userController.userState.value as Success)
+                                      .response;
                               return AlertDialog(
                                 title: Text(
                                   user.username ?? '',

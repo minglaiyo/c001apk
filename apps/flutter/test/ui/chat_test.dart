@@ -340,9 +340,9 @@ void main() {
     adapter.mutationGate!.complete();
     await pumpTask(tester, pin);
     await tester.pumpAndSettle();
-    final Success(:final response) = controller.loadingState.value;
     expect(
-        response
+        (controller.loadingState.value as Success)
+            .response
             .where((dynamic item) => item.ukey == 'chat-b')
             .single
             .isTop,

@@ -313,8 +313,7 @@ abstract class CommonController extends GetxController {
         if (isFeed && handleLike(like, datum.data['count'])) {
           return;
         }
-        final Success(:final response) = loadingState.value;
-        List<Datum> dataList = response;
+        List<Datum> dataList = (loadingState.value as Success).response;
         dataList = dataList.map((data) {
           if (data.id == id) {
             return data
@@ -359,8 +358,7 @@ abstract class CommonController extends GetxController {
   }
 
   void onPM(dynamic id) {
-    final Success(:final response) = loadingState.value;
-    List<Datum> dataList = response;
+    List<Datum> dataList = (loadingState.value as Success).response;
     dataList = dataList.map((data) {
       if (data.id == id) {
         return data..unreadNum = null;

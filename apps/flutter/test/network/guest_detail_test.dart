@@ -104,8 +104,8 @@ void main() {
     final controller = FeedController(id: '123', recordHistory: false);
     await controller.getFeedData();
     expect(controller.feedState.value, isA<Success>());
-    final Success(:final response) = controller.feedState.value;
-    expect(response.message, '完整的合成动态正文');
+    expect(
+        (controller.feedState.value as Success).response.message, '完整的合成动态正文');
     final web = adapter.requests
         .singleWhere((request) => request.uri.host == 'www.coolapk.com');
     expect(web.uri.path, '/feed/123');
@@ -142,7 +142,7 @@ void main() {
     await controller.getFeedData();
     expect(controller.feedState.value, isA<Success>());
     expect(controller.articleList, isEmpty);
-    final Success(:final feed) = controller.feedState.value;
+    final feed = (controller.feedState.value as Success).response;
     expect(feed.message, '完整的合成动态正文');
     expect(feed.picArr, ['https://image.coolapk.com/synthetic-feed.jpg']);
   });
@@ -335,8 +335,8 @@ void main() {
     final controller = FeedController(id: '123', recordHistory: false);
     await controller.getFeedData();
     await controller.loadReplies();
-    final Success(:final response) = controller.loadingState.value;
-    expect(response.single.message, '已读评论');
+    final comments = controller.loadingState.value as Success;
+    expect(comments.response.single.message, '已读评论');
     adapter.replyBody = {
       'messageStatus': 'err_request_captcha_v2',
       'messageExtra': {
@@ -404,9 +404,9 @@ void main() {
     final controller = FeedController(id: '123', recordHistory: false);
     await controller.getFeedData();
     expect(controller.feedState.value, isA<Success>());
-    final Success(:final response) = controller.feedState.value;
-    expect(response.message, '完整的合成动态正文');
-    expect(response.userAction, isNull);
+    final result = controller.feedState.value as Success;
+    expect(result.response.message, '完整的合成动态正文');
+    expect(result.response.userAction, isNull);
     expect(GlobalData().isLogin, isTrue);
     expect(GlobalData().uid, 'synthetic-uid');
     expect(GlobalData().token, 'synthetic-token');
@@ -421,8 +421,7 @@ void main() {
     final controller = FeedController(id: '123', recordHistory: false);
     await controller.getFeedData();
     expect(controller.feedState.value, isA<Success>());
-    final Success(:final response) = controller.feedState.value;
-    expect(response.id, 123);
+    expect((controller.feedState.value as Success).response.id, 123);
   });
 
   test('rejected verified detail preserves public body and reports the failure',
@@ -467,10 +466,9 @@ void main() {
       return challenge.proof('synthetic-validate');
     };
     await controller.getFeedData(verify: true);
-    final Success(:final response, :final isPublic) =
-        controller.feedState.value;
-    expect(isPublic, isFalse);
-    expect(response.userAction.like, 1);
+    final result = controller.feedState.value as Success;
+    expect(result.isPublic, isFalse);
+    expect(result.response.userAction.like, 1);
     expect((controller as dynamic).accountDetailNotice.value, isEmpty);
   });
 
