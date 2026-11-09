@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:c001apk_flutter/components/glass_dropdown_picker.dart';
 import 'package:c001apk_flutter/components/settings/navigation_appearance_settings.dart';
 import 'package:c001apk_flutter/constants/liquid_glass_level.dart';
 import 'package:c001apk_flutter/pages/settings/settings_page.dart';
@@ -129,11 +130,11 @@ void main() {
       await tester.runAsync(() => GStorage.settings.put(disabledKey, false));
       await mount(tester);
       // Scope to the glass-level picker: the navigation section also has
-      // the back-to-top side picker, so a generic DropdownButton finder
-      // now matches more than one element.
-      final picker = tester.widget<DropdownButton<LiquidGlassLevel>>(
+      // the back-to-top side picker, so match the picker type directly.
+      // (The picker is a GlassDropdownPicker now, not a DropdownButton.)
+      final picker = tester.widget<GlassDropdownPicker<LiquidGlassLevel>>(
           find.byWidgetPredicate(
-              (widget) => widget is DropdownButton<LiquidGlassLevel>));
+              (widget) => widget is GlassDropdownPicker<LiquidGlassLevel>));
       expect(picker.onChanged, isNull);
       expect(find.text('低档'), findsOneWidget);
       expect(GStorage.settings.get('liquidGlassLevel'), 'minimal');
@@ -222,7 +223,7 @@ void main() {
     final semantics = tester.ensureSemantics();
     await mount(tester);
     final picker = find.byWidgetPredicate(
-        (widget) => widget is DropdownButton<LiquidGlassLevel>);
+        (widget) => widget is GlassDropdownPicker<LiquidGlassLevel>);
     final row = find.widgetWithText(ListTile, '液态玻璃档位');
     expect(tester.getSemantics(picker).rect.height,
         lessThanOrEqualTo(tester.getSize(row).height));
