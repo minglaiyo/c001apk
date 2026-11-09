@@ -25,7 +25,7 @@ import '../pages/feed/article_editor_page.dart';
 import '../pages/home/app/update/app_update_page.dart';
 import '../pages/login/login_page.dart';
 import '../pages/main/main_page.dart';
-import '../pages/noitfication/notification_page.dart';
+import '../pages/notification/notification_page.dart';
 import '../pages/others/copy_page.dart';
 import '../pages/others/imageview_page.dart';
 import '../pages/search/search_page.dart';
