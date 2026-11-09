@@ -119,7 +119,8 @@ class UserController extends CommonController {
     _followBusy = true;
     try {
       final store = LocalFollowStore();
-      final data = (userState.value as Success).response as Datum;
+      final Success(:final response) = userState.value;
+      final data = response as Datum;
       final following = store.contains(uid);
       if (following) {
         await store.unfollow(uid);
@@ -147,7 +148,8 @@ class UserController extends CommonController {
       if (!datum.message.isNullOrEmpty) {
         SmartDialog.showToast(datum.message!);
       } else if (datum.data != null) {
-        Datum data = (userState.value as Success).response;
+        final Success(:final response) = userState.value;
+        Datum data = response;
         userState.value = LoadingState.success(data..isFollow = datum.data);
         SmartDialog.showToast(isFollow == 1 ? '取消关注成功' : '关注成功');
       }

@@ -867,30 +867,28 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                   child: Container(
                     color: Colors.transparent,
                     width: double.infinity,
-                    child: visible && _feedController.feedState.value is Success
-                        ? header(
-                            context,
-                            (_feedController.feedState.value as Success)
-                                .response,
-                            true,
-                            isHeader: true,
-                          )
-                        : _feedController.feedState.value is Success
-                            ? Text(
-                                _feedController.feedTypeName!,
-                                textAlign: Platform.isIOS
-                                    ? TextAlign.center
-                                    : TextAlign.start,
-                              )
-                            : null,
+                    child: switch (_feedController.feedState.value) {
+                      Success(:final response) when visible => header(
+                        context,
+                        response,
+                        true,
+                        isHeader: true,
+                      ),
+                      Success() => Text(
+                        _feedController.feedTypeName!,
+                        textAlign: Platform.isIOS
+                            ? TextAlign.center
+                            : TextAlign.start,
+                      ),
+                      _ => null,
+                    },
                   ),
                 );
               },
             ),
-            actions: _feedController.feedState.value is Success
-                ? [
-                    if ((_feedController.feedState.value as Success).isPublic &&
-                        GlobalData().isLogin)
+            actions: switch (_feedController.feedState.value) {
+              Success(:final response, :final isPublic) => [
+                    if (isPublic && GlobalData().isLogin)
                       IconButton(
                         tooltip: '账号信息暂不可用',
                         onPressed: _feedController.isLoadingDetail.value
@@ -906,8 +904,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                             : const Icon(Icons.info_outline),
                       ),
                     ContentExportButton(
-                      feed: (_feedController.feedState.value as Success)
-                          .response as Datum,
+                      feed: response as Datum,
                       articles: _feedController.articleList ?? const [],
                     ),
                     PopupMenuButton(
@@ -918,9 +915,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                                 Utils.getShareUrl(_id, ShareType.feed));
                             break;
                           case FeedMenuItem.Share:
-                            final data =
-                                (_feedController.feedState.value as Success)
-                                    .response as Datum;
+                            final data = response as Datum;
                             Utils.shareContent(_id, ShareType.feed,
                                 title:
                                     data.messageTitle?.trim().isNotEmpty == true
@@ -986,8 +981,9 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                               ))
                           .toList(),
                     )
-                  ]
-                : null,
+                  ],
+                  _ => null,
+                },
           ),
         ),
       ),

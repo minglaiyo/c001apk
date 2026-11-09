@@ -112,9 +112,8 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
             child: Text((_loadingState as Error).errMsg),
           ),
         );
-      case Success():
-        List<Datum> dataList =
-            (_loadingState as Success).response as List<Datum>;
+      case Success(:final response):
+        List<Datum> dataList = response as List<Datum>;
         return ListView.separated(
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),

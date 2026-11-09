@@ -86,9 +86,11 @@ abstract class CommonController extends GetxController {
 
   void publishItems(List<Datum> items, {bool append = false}) {
     _listenToFilters();
-    final previous = !supportsContentFilter && loadingState.value is Success
-        ? List<Datum>.from((loadingState.value as Success).response)
-        : rawItems;
+    final previous = switch (loadingState.value) {
+      Success(:final response) when !supportsContentFilter =>
+        List<Datum>.from(response),
+      _ => rawItems,
+    };
     final combined = append ? [...previous, ...items] : items;
     rawItems = handleUnique(combined) ?? combined;
     reapplyFilters();
@@ -178,7 +180,7 @@ abstract class CommonController extends GetxController {
               footerState.value = LoadingState.error('点击继续加载');
             }
           } else {
-            isEnd = response is Empty;
+            if (response is Empty) isEnd = true;
             automaticLoadPaused = response is Error;
             LoadingState? extraResponse = handleExtraResponse();
             if (extraResponse != null) {
@@ -311,7 +313,8 @@ abstract class CommonController extends GetxController {
         if (isFeed && handleLike(like, datum.data['count'])) {
           return;
         }
-        List<Datum> dataList = (loadingState.value as Success).response;
+        final Success(:final response) = loadingState.value;
+        List<Datum> dataList = response;
         dataList = dataList.map((data) {
           if (data.id == id) {
             return data
@@ -356,7 +359,8 @@ abstract class CommonController extends GetxController {
   }
 
   void onPM(dynamic id) {
-    List<Datum> dataList = (loadingState.value as Success).response;
+    final Success(:final response) = loadingState.value;
+    List<Datum> dataList = response;
     dataList = dataList.map((data) {
       if (data.id == id) {
         return data..unreadNum = null;
