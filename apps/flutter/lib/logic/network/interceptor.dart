@@ -82,63 +82,9 @@ class ApiInterceptor extends Interceptor {
           options.method == 'GET' &&
           RegExp(r'^/feed/[0-9]+$').hasMatch(uri.path);
       if (uri.host == 'account.coolapk.com') {
-        options.headers['sec-ch-ua'] =
-            '"Android WebView";v="117", "Not;A=Brand";v="8", "Chromium";v="117"';
-        options.headers['sec-ch-ua-mobile'] = '?1';
-        options.headers['sec-ch-ua-platform'] = 'Android';
-        options.headers['Upgrade-Insecure-Requests'] = '1';
-        options.headers['User-Agent'] = userAgent;
-        options.headers['Accept'] =
-            'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7';
-        options.headers['X-Requested-With'] = Constants.APP_ID;
-        if (GlobalData().loginSession.isNotEmpty) {
-          options.headers['Cookie'] =
-              '${GlobalData().loginSession}; forward=https://www.coolapk.com';
-        }
-        if (options.method == 'POST') {
-          options.headers['X-Requested-With'] = Constants.REQUEST_WITH;
-        } else if (options.responseType == ResponseType.bytes) {
-          options.headers['Accept'] = 'image/*,*/*;q=0.8';
-          options.headers['Referer'] =
-              'https://account.coolapk.com/auth/loginByCoolApk';
-        } else {
-          options.responseType = ResponseType.plain;
-        }
+        _applyAccountHeaders(options);
       } else if (ApiSessionStore.allows(uri) || publicFeed) {
-        options.headers['User-Agent'] = userAgent;
-        options.headers['X-Requested-With'] = Constants.REQUEST_WITH;
-        options.headers['X-Sdk-Int'] = sdkInt;
-        options.headers['X-Sdk-Locale'] = Constants.LOCALE;
-        options.headers['X-App-Id'] = Constants.APP_ID;
-        options.headers['X-App-Token'] = token;
-        options.headers['X-App-Version'] = versionName;
-        options.headers['X-App-Code'] = versionCode;
-        options.headers['X-Api-Version'] = apiVersion;
-        options.headers['X-App-Device'] = xAppDevice;
-        options.headers['X-Dark-Mode'] = '0';
-        options.headers['X-App-Channel'] = Constants.CHANNEL;
-        options.headers['X-App-Mode'] = Constants.MODE;
-        options.headers['X-App-Supported'] = versionCode;
-        if (publicFeed) {
-          // Official public feed JSON needs signed client headers, but no
-          // account/session cookie. Restrict these headers to numeric feed IDs.
-          options.headers = Map.fromEntries(options.headers.entries
-              .where((entry) => entry.key.toLowerCase() != 'cookie'));
-          options.responseType = ResponseType.plain;
-        } else {
-          options.extra['apiSessionContext'] = _sessions.capture();
-          final sessionCookie = _sessions.cookieFor(uri);
-          options.headers['Cookie'] = GlobalData().isLogin
-              ? 'uid=${GlobalData().uid}; username=${GlobalData().username}; token=${GlobalData().token}${sessionCookie.isEmpty ? '' : '; $sessionCookie'}'
-              : sessionCookie;
-          final validation = _currentCaptchaCookie;
-          options.extra['apiCaptchaCookie'] = validation;
-          if (uri.scheme == 'https' && validation != null) {
-            final cookie = options.headers['Cookie'] as String;
-            options.headers['Cookie'] =
-                '${cookie.isEmpty ? '' : '$cookie; '}validate=$validation';
-          }
-        }
+        _applyApiHeaders(options, publicFeed);
       }
 
       handler.next(options);
@@ -149,6 +95,72 @@ class ApiInterceptor extends Interceptor {
             const ApiFailure(ApiFailureKind.business, '请求参数异常，请检查客户端协议设置和系统时间'),
         stackTrace: stackTrace,
       ));
+    }
+  }
+
+  /// Headers for the account host: a WebView-shaped login flow, no app token.
+  void _applyAccountHeaders(RequestOptions options) {
+    options.headers['sec-ch-ua'] =
+        '"Android WebView";v="117", "Not;A=Brand";v="8", "Chromium";v="117"';
+    options.headers['sec-ch-ua-mobile'] = '?1';
+    options.headers['sec-ch-ua-platform'] = 'Android';
+    options.headers['Upgrade-Insecure-Requests'] = '1';
+    options.headers['User-Agent'] = userAgent;
+    options.headers['Accept'] =
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7';
+    options.headers['X-Requested-With'] = Constants.APP_ID;
+    if (GlobalData().loginSession.isNotEmpty) {
+      options.headers['Cookie'] =
+          '${GlobalData().loginSession}; forward=https://www.coolapk.com';
+    }
+    if (options.method == 'POST') {
+      options.headers['X-Requested-With'] = Constants.REQUEST_WITH;
+    } else if (options.responseType == ResponseType.bytes) {
+      options.headers['Accept'] = 'image/*,*/*;q=0.8';
+      options.headers['Referer'] =
+          'https://account.coolapk.com/auth/loginByCoolApk';
+    } else {
+      options.responseType = ResponseType.plain;
+    }
+  }
+
+  /// Signed client headers for the API hosts. A public feed id gets the same
+  /// signature but no account or session cookie.
+  void _applyApiHeaders(RequestOptions options, bool publicFeed) {
+    final uri = options.uri;
+    options.headers['User-Agent'] = userAgent;
+    options.headers['X-Requested-With'] = Constants.REQUEST_WITH;
+    options.headers['X-Sdk-Int'] = sdkInt;
+    options.headers['X-Sdk-Locale'] = Constants.LOCALE;
+    options.headers['X-App-Id'] = Constants.APP_ID;
+    options.headers['X-App-Token'] = token;
+    options.headers['X-App-Version'] = versionName;
+    options.headers['X-App-Code'] = versionCode;
+    options.headers['X-Api-Version'] = apiVersion;
+    options.headers['X-App-Device'] = xAppDevice;
+    options.headers['X-Dark-Mode'] = '0';
+    options.headers['X-App-Channel'] = Constants.CHANNEL;
+    options.headers['X-App-Mode'] = Constants.MODE;
+    options.headers['X-App-Supported'] = versionCode;
+    if (publicFeed) {
+      // Official public feed JSON needs signed client headers, but no
+      // account/session cookie. Restrict these headers to numeric feed IDs.
+      options.headers = Map.fromEntries(options.headers.entries
+          .where((entry) => entry.key.toLowerCase() != 'cookie'));
+      options.responseType = ResponseType.plain;
+    } else {
+      options.extra['apiSessionContext'] = _sessions.capture();
+      final sessionCookie = _sessions.cookieFor(uri);
+      options.headers['Cookie'] = GlobalData().isLogin
+          ? 'uid=${GlobalData().uid}; username=${GlobalData().username}; token=${GlobalData().token}${sessionCookie.isEmpty ? '' : '; $sessionCookie'}'
+          : sessionCookie;
+      final validation = _currentCaptchaCookie;
+      options.extra['apiCaptchaCookie'] = validation;
+      if (uri.scheme == 'https' && validation != null) {
+        final cookie = options.headers['Cookie'] as String;
+        options.headers['Cookie'] =
+            '${cookie.isEmpty ? '' : '$cookie; '}validate=$validation';
+      }
     }
   }
 
