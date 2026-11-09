@@ -251,10 +251,19 @@ void main() {
       await tap(tester, find.text('我也会发布'));
       for (var step = 0; step < 3; step++) {
         await next(tester);
+        // Diagnostic: the step indicator must advance after every tap, so
+        // a stall here points at the tap/layout instead of the final save.
+        expect(find.text('${step + 2} / 4'), findsOneWidget,
+            reason:
+                'step ${step + 1} did not advance after tapping next; the tap may have missed the button in this viewport');
         expect(tester.takeException(), isNull);
       }
       await tap(tester, find.byKey(const ValueKey('onboarding-next')),
           persist: true);
+      // Diagnostic: if the steps advanced but completion is false, a save
+      // error text means finish() failed; no error text means the save was
+      // still in flight when checked.
+      expect(find.textContaining('保存失败'), findsNothing);
       expect(state.completed, isTrue);
       expect(GStorage.hideHomePublishButton, isFalse);
       expect(tester.takeException(), isNull);
