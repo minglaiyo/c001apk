@@ -133,9 +133,13 @@ void main() {
 
   test('stale session generation rejects before the request is sent',
       () async {
+    // The rejection routes through onError, which toasts via SmartDialog;
+    // this non-widget test never initializes it, so silence the toast and
+    // assert only the rejection.
     await expectLater(
         dio.get('https://api.coolapk.com/v6/main/indexV8',
-            options: Options(extra: {'sessionGeneration': 99})),
+            options: Options(
+                extra: {'sessionGeneration': 99, 'silentError': true})),
         throwsA(isA<DioException>()
             .having((error) => error.type, 'type', DioExceptionType.cancel)
             .having((error) => error.error, 'error', '账号已切换')));
@@ -151,8 +155,11 @@ void main() {
 
   test('unparseable version code rejects as a client error', () async {
     await GStorage.settings.put(SettingsBoxKey.versionCode, 'not-a-number');
+    // Same as the stale-generation test: silence the onError toast, assert
+    // only the rejection.
     await expectLater(
-        dio.get('https://api.coolapk.com/v6/main/indexV8'),
+        dio.get('https://api.coolapk.com/v6/main/indexV8',
+            options: Options(extra: {'silentError': true})),
         throwsA(isA<DioException>().having(
             (error) => error.error,
             'error',
