@@ -261,9 +261,15 @@ void main() {
       await tap(tester, find.byKey(const ValueKey('onboarding-next')),
           persist: true);
       // Diagnostic: if the steps advanced but completion is false, a save
-      // error text means finish() failed; no error text means the save was
-      // still in flight when checked.
+      // error text means finish() failed.
       expect(find.textContaining('保存失败'), findsNothing);
+      // Diagnostic: '正在保存…' proves the final tap started the save, so a
+      // later completed=false means the save was still running; neither
+      // saving nor completed means the tap never reached the button.
+      final saving = find.text('正在保存…').evaluate().isNotEmpty;
+      expect(saving || state.completed, isTrue,
+          reason:
+              'tapping 完成 did not start the save; the tap may have missed the button');
       expect(state.completed, isTrue);
       expect(GStorage.hideHomePublishButton, isFalse);
       expect(tester.takeException(), isNull);
