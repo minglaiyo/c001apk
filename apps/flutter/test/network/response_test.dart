@@ -48,8 +48,8 @@ void main() {
       ]
     }));
     expect(state, isA<Success>());
-    final Success(:final response) = state;
-    expect(response.map((item) => item.id).toList(), ['1', '3']);
+    expect((state as Success).response.map((item) => item.id).toList(),
+        ['1', '3']);
     await GStorage.blackList.clear();
   });
   test('200 with negative status is an error even without message', () async {

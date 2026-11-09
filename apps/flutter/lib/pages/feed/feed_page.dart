@@ -915,7 +915,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                                 Utils.getShareUrl(_id, ShareType.feed));
                             break;
                           case FeedMenuItem.Share:
-                            final data = response as Datum;
+                            final data = response;
                             Utils.shareContent(_id, ShareType.feed,
                                 title:
                                     data.messageTitle?.trim().isNotEmpty == true

@@ -34,7 +34,8 @@ Map<String, dynamic> feed(int id) => {
     };
 
 /// A successful page built the same way the content-filter tests build one.
-LoadingState page(List<int> ids) => NetworkRepo.handleListResponse(Response(
+Future<LoadingState> page(List<int> ids) =>
+    NetworkRepo.handleListResponse(Response(
       requestOptions: RequestOptions(path: '/v6/feed/test'),
       statusCode: 200,
       data: {'data': ids.map(feed).toList()},
@@ -50,8 +51,8 @@ List<dynamic> idsOf(CommonController controller) {
 
 void main() {
   test('continuous pagination appends pages and ends on Empty', () async {
-    final controller =
-        ScriptedController([page([1, 2]), page([3, 4]), LoadingState.empty()]);
+    final controller = ScriptedController(
+        [await page([1, 2]), await page([3, 4]), LoadingState.empty()]);
     await controller.onGetData();
     expect(idsOf(controller), [1, 2]);
     expect(controller.page, 2);
@@ -72,9 +73,9 @@ void main() {
       () async {
     final error = LoadingState.error('网络异常');
     final controller = ScriptedController([
-      page([1, 2]),
+      await page([1, 2]),
       error,
-      page([3]),
+      await page([3]),
     ]);
     await controller.onGetData();
     expect(idsOf(controller), [1, 2]);
@@ -95,8 +96,8 @@ void main() {
   });
 
   test('refresh replaces the list instead of appending', () async {
-    final controller =
-        ScriptedController([page([1, 2]), page([3, 4]), page([1, 2])]);
+    final controller = ScriptedController(
+        [await page([1, 2]), await page([3, 4]), await page([1, 2])]);
     await controller.onGetData();
     await controller.onGetData(false);
     expect(idsOf(controller), [1, 2, 3, 4]);

@@ -175,8 +175,7 @@ class FeedController extends CommonController {
   }
 
   void onFav() {
-    final Success(:final response) = feedState.value;
-    Datum data = response;
+    Datum data = (feedState.value as Success).response;
     GStorage.favFeed.put(id, getFeed(data));
   }
 
@@ -240,8 +239,8 @@ class FeedController extends CommonController {
 
   @override
   bool handleLike(dynamic like, dynamic likenum) {
-    final Success(:final response, :final isPublic) = feedState.value;
-    Datum data = response;
+    Datum data = (feedState.value as Success).response;
+    final isPublic = (feedState.value as Success).isPublic;
     feedState.value = Success(
         data
           ..likenum = likenum
