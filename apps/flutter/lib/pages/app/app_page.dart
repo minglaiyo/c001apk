@@ -94,9 +94,9 @@ class _AppPageState extends State<AppPage> with TickerProviderStateMixin {
             child: Text((controller.appState.value as Error).errMsg),
           ),
         );
-      case Success():
+      case Success(:final response):
         return AppInfoCard(
-          data: (controller.appState.value as Success).response!,
+          data: response!,
           onDownloadApk: controller.entityType == 'apk'
               ? (id, versionName, versionCode) async {
                   if (!_url.isNullOrEmpty) {

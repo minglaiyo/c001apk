@@ -77,11 +77,13 @@ void main() {
           : const Empty();
     });
     await c.onGetData();
-    expect((c.loadingState.value as Success).response, isEmpty);
+    final Success(:final response) = c.loadingState.value;
+    expect(response, isEmpty);
     expect(c.filteredItems.length, 1);
     final oldCalls = calls;
     await AppContentFilter.service!.setEnabled(false);
-    expect((c.loadingState.value as Success).response.single.id, 1);
+    final Success(:final unfiltered) = c.loadingState.value;
+    expect(unfiltered.single.id, 1);
     expect(calls, oldCalls);
     c.onClose();
   });
@@ -155,7 +157,8 @@ void main() {
     c.revealAuthorForPage('1007278');
     await Future<void>.delayed(Duration.zero);
     expect(c.calls, 1);
-    expect((c.loadingState.value as Success).response.single.id, 1);
+    final Success(:final response) = c.loadingState.value;
+    expect(response.single.id, 1);
     c.onClose();
     await GStorage.blackList.clear();
   });

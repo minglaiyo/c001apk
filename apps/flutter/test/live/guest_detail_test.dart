@@ -86,7 +86,7 @@ void main() {
         final controller = FeedController(id: id, recordHistory: false);
         await controller.getFeedData();
         expect(controller.feedState.value, isA<Success>());
-        final data = (controller.feedState.value as Success).response;
+        final Success(:final data) = controller.feedState.value;
         expect('${data.id}', id);
         expect(data.message, isNotEmpty);
         if (id == '74194711') {

@@ -43,7 +43,8 @@ void main() {
     // Same entry point as the common empty-state retry, no external reset.
     await controller.onGetData(true);
     expect(controller.loadingState.value, isA<Success>());
-    expect((controller.loadingState.value as Success).response.single.id, 10);
+    final Success(:final response) = controller.loadingState.value;
+    expect(response.single.id, 10);
     controller.onClose();
   });
 

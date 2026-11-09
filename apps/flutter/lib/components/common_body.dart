@@ -97,9 +97,8 @@ Widget buildBody(
           commonController.onGetData(true);
         },
       );
-    case Success():
-      var dataList = (commonController.loadingState.value as Success).response
-          as List<Datum>;
+    case Success(:final response):
+      var dataList = response as List<Datum>;
       if (isReply2Reply) {
         return ListView.separated(
           controller: commonController.scrollController,
