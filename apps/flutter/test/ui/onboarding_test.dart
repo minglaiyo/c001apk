@@ -270,6 +270,14 @@ void main() {
       expect(saving || state.completed, isTrue,
           reason:
               'tapping 完成 did not start the save; the tap may have missed the button');
+      // The save runs after the final tap (see diagnostic above) but Hive +
+      // filter writes can outrun the tap's 50 ms window on a loaded runner,
+      // so wait for completion instead of asserting it immediately.
+      for (var i = 0; i < 20 && !state.completed; i++) {
+        await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 100)));
+        await tester.pump();
+      }
       expect(state.completed, isTrue);
       expect(GStorage.hideHomePublishButton, isFalse);
       expect(tester.takeException(), isNull);
