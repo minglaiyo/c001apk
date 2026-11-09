@@ -43,7 +43,7 @@ class CarouselController extends CommonController {
       firstItem: firstItem,
       lastItem: lastItem,
       page: page,
-      inCluldeConfigCard: isInit,
+      inIncludeConfigCard: isInit,
     );
   }
 

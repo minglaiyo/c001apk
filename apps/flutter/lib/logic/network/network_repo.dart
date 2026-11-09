@@ -1078,7 +1078,7 @@ class NetworkRepo {
     required String? firstItem,
     required String? lastItem,
     required int page,
-    bool inCluldeConfigCard = false,
+    bool inIncludeConfigCard = false,
   }) async {
     return getListData(
       () => Request().get(
@@ -1092,7 +1092,7 @@ class NetworkRepo {
           'page': page,
         },
       ),
-      inCluldeConfigCard: inCluldeConfigCard,
+      inIncludeConfigCard: inIncludeConfigCard,
     );
   }
 
@@ -1175,13 +1175,13 @@ class NetworkRepo {
 
   static Future<LoadingState> getListData(
     Future<Response<dynamic>> Function() get, {
-    bool inCluldeConfigCard = false,
+    bool inIncludeConfigCard = false,
   }) async {
     try {
       var response = await get();
       return await handleListResponse(
         response,
-        inCluldeConfigCard: inCluldeConfigCard,
+        inIncludeConfigCard: inIncludeConfigCard,
       );
     } catch (err) {
       return LoadingState.error(ApiFailure.fromError(err).message);
@@ -1204,7 +1204,7 @@ class NetworkRepo {
 
   static Future<LoadingState> handleListResponse(
     Response<dynamic> response, {
-    bool inCluldeConfigCard = false,
+    bool inIncludeConfigCard = false,
   }) async {
     try {
       final object = readApiObject(response);
@@ -1224,7 +1224,7 @@ class NetworkRepo {
               ? true
               : (Constants.entityTypeList.contains(item.entityType) ||
                   (Constants.entityTemplateList +
-                          (inCluldeConfigCard ? ['configCard'] : []))
+                          (inIncludeConfigCard ? ['configCard'] : []))
                       .contains(item.entityTemplate));
         }).toList();
         final filterList = accepted

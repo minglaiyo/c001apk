@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true">
+    <!-- Release: cleartext is off and only system certificates are trusted,
+         so release traffic cannot be intercepted with a user-installed CA.
+         Loopback is the only cleartext exception: LocalWebPage serves the
+         captcha page from http://127.0.0.1 (see lib/utils/local_web_page.dart). -->
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
-            <certificates src="user" />
         </trust-anchors>
     </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
 </network-security-config>
