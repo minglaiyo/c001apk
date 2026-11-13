@@ -223,8 +223,8 @@ class _VoteCardState extends State<VoteCard> {
                     ),
             ),
           if (_ended) ...[
-            Row(
-              children: const [
+            const Row(
+              children: [
                 Spacer(),
                 FilledButton(
                   onPressed: null,

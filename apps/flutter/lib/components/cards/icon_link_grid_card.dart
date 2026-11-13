@@ -3,7 +3,6 @@ import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:expandable_page_view/expandable_page_view.dart';
 import 'package:flutter/material.dart';
 
-import '../../constants/app_motion.dart';
 
 import '../../logic/model/feed/entity.dart';
 import '../../utils/extensions.dart';

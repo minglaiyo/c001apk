@@ -1,5 +1,6 @@
 import 'expressive_refresh_indicator.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:get/get.dart';
 
 import '../components/footer.dart';
@@ -99,7 +100,7 @@ Widget buildBody(
           // Default is 250 px: items just off-screen are disposed and
           // their images must be re-resolved on scroll-back. 800 px
           // keeps a few screens of cards (and their thumbnails) alive.
-          cacheExtent: 800,
+          scrollCacheExtent: const ScrollCacheExtent.pixels(800),
           physics: AlwaysScrollableScrollPhysics(
             parent: isReply2Reply
                 ? const ClampingScrollPhysics()

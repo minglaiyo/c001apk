@@ -8,8 +8,8 @@ import '../../logic/state/loading_state.dart';
 import '../product/product_detail.dart';
 import '../../utils/date_util.dart';
 import '../../utils/extensions.dart';
+import '../../router/link_resolver.dart';
 import '../../utils/global_data.dart';
-import '../../utils/utils.dart';
 
 /// 云端浏览历史页，B 层参考级。
 ///
@@ -195,7 +195,7 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
           ? body
           : InkWell(
               borderRadius: const BorderRadius.all(Radius.circular(12)),
-              onTap: () => Utils.onOpenLink(url, title, true, context),
+              onTap: () => openLink(url, title, true, context),
               child: body,
             ),
     );
@@ -403,7 +403,7 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
       color: Theme.of(context).colorScheme.onInverseSurface,
       child: InkWell(
         borderRadius: const BorderRadius.all(Radius.circular(12)),
-        onTap: () => Utils.onOpenLink(url, detail.title, true, context),
+        onTap: () => openLink(url, detail.title, true, context),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(

@@ -133,43 +133,13 @@ class _HomeFeedPageState extends State<HomeFeedPage>
         _homeFeedController.animateToTop();
       }
     });
-<<<<<<< HEAD
-=======
 
     _homeFeedController.scrollController?.addListener(_onTipScroll);
-
-    if (isLogin) {
-      _fabAnimationCtr = AnimationController(
-          vsync: this, duration: const Duration(milliseconds: 300));
-      _fabAnimationCtr?.forward();
-      _homeFeedController.scrollController?.addListener(() {
-        final ScrollDirection? direction =
-            _homeFeedController.scrollController?.position.userScrollDirection;
-        if (direction == ScrollDirection.forward) {
-          _showFab();
-        } else if (direction == ScrollDirection.reverse) {
-          _hideFab();
-        }
-      });
-    }
   }
 
-  void _showFab() {
-    if (!_isFabVisible) {
-      _isFabVisible = true;
-      _fabAnimationCtr?.forward();
-      widget.onPublishVisibilityChanged?.call(true);
-    }
-  }
-
-  void _hideFab() {
-    if (_isFabVisible) {
-      _isFabVisible = false;
-      _fabAnimationCtr?.reverse();
-      widget.onPublishVisibilityChanged?.call(false);
-    }
->>>>>>> origin/scroll-hide-floating-nav
-  }
+  /// 发布按钮当前是否可见（由 ScrollHideAnimator 回调驱动），
+  /// 供回顶键的避让布局使用。
+  bool _publishVisible = true;
 
   @override
   Widget build(BuildContext context) {
@@ -181,13 +151,18 @@ class _HomeFeedPageState extends State<HomeFeedPage>
     final publishVisible = GlobalData().isLogin &&
         widget.tabType == TabType.FEED &&
         !widget.useRail &&
-        _isFabVisible;
+        _publishVisible;
     return Scaffold(
       floatingActionButton: GlobalData().isLogin &&
               widget.tabType == TabType.FEED
           ? ScrollHideAnimator(
               scrollController: _homeFeedController.scrollController,
-              onVisibilityChanged: widget.onPublishVisibilityChanged,
+              onVisibilityChanged: (visible) {
+                if (_publishVisible != visible && mounted) {
+                  setState(() => _publishVisible = visible);
+                }
+                widget.onPublishVisibilityChanged?.call(visible);
+              },
               builder: (_, animation) => widget.useRail
                   // 侧栏布局由 main 外壳消费显隐状态渲染发布入口，
                   // 这里不重复渲染悬浮按钮。

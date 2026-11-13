@@ -126,6 +126,6 @@ String? feedChangeBadge(
   if (item.content == older.content) return '文本无改动';
   final added = item.content.length - older.content.length;
   if (added > 0) return '+$added字';
-  if (added < 0) return '${added}字';
+  if (added < 0) return '$added字';
   return '文本有改动';
 }

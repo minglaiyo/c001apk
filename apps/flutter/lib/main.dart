@@ -191,7 +191,7 @@ class _C001APKAPPState extends State<C001APKAPP>
     if (open == true && mounted) {
       // No context: feed links fall back to the plain /feed/:id route
       // instead of the split-pane FeedNavigation.open.
-      Utils.onOpenLink(link, null, true);
+      openLink(link, null, true);
     }
   }
 

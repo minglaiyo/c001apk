@@ -58,11 +58,11 @@ String productDiscussionSortUrl(String id, TopicSortType type) {
   const base = '/page?url=/product/feedList?type=feed&id=';
   switch (type) {
     case TopicSortType.DEFAULT:
-      return '${base}$id&ignoreEntityById=1';
+      return '$base$id&ignoreEntityById=1';
     case TopicSortType.DATELINE:
-      return '${base}$id&ignoreEntityById=1&listType=dateline_desc';
+      return '$base$id&ignoreEntityById=1&listType=dateline_desc';
     case TopicSortType.HOT:
-      return '${base}$id&listType=rank_score';
+      return '$base$id&listType=rank_score';
   }
 }
 

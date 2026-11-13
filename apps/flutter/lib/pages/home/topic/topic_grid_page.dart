@@ -8,7 +8,7 @@ import '../../../components/network_image.dart';
 import '../../../logic/model/feed/datum.dart';
 import '../../../logic/state/loading_state.dart';
 import '../../../utils/extensions.dart';
-import '../../../utils/utils.dart';
+import '../../../router/link_resolver.dart';
 import '../../product/rating_chart.dart' show parseHotCount;
 import '../../carousel/carousel_page.dart';
 import 'topic_grid_controller.dart';
@@ -264,7 +264,7 @@ class _TopicCategoryGridState extends State<TopicCategoryGrid> {
                 final item = displayItems[index];
                 return TopicGridCell(
                   data: item,
-                  onTap: () => Utils.onOpenLink(
+                  onTap: () => openLink(
                     item.url.orEmpty,
                     item.title,
                     true,

@@ -6,7 +6,6 @@ import '../../components/expressive_loading_indicator.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -607,9 +606,10 @@ class _FeedPageState extends State<FeedPage> {
     // The target card may not be built yet (a lazy sliver far below the
     // viewport): scroll toward the bottom until it builds, then reveal
     // it precisely.
-    for (var attempt = 0; attempt < 25 && mounted; attempt++) {
+    for (var attempt = 0; attempt < 25; attempt++) {
+      if (!mounted) return;
       final target = _replyKeys[floor - 1]?.currentContext;
-      if (target != null) {
+      if (target != null && target.mounted) {
         await Scrollable.ensureVisible(
           target,
           duration: const Duration(milliseconds: 400),

@@ -98,9 +98,7 @@ class _HomeTopicPageState extends State<HomeTopicPage>
                           flex: 1,
                           child: Container(
                             alignment: Alignment.center,
-                            padding: EdgeInsets.symmetric(
-                                vertical:
-                                    10),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                             child: Text(
                                 widget.tabType == TabType.TOPIC
                                     ? data![0]

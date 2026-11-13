@@ -1,17 +1,17 @@
-/// Product parameter parsing and comparison merging.
-///
-/// Port of the *parsing and merging logic* (not the UI) of
-/// Costben/c001apk's `ui/topic/ProductComparison.kt`
-/// (`productSpecSections`, `mergeSections`, `priceLabel`) and its
-/// `data/ProductComparisonStore.kt` selection rules, adapted to Dart.
-/// The reference project is AGPL-3.0; this file keeps its own
-/// Material rendering in `product_config_ui.dart` and does not reuse
-/// any coui17 component, brand asset, or emoji asset from it.
-///
-/// The endpoint is the coolapk micro-page
-/// `https://m.coolapk.com/mp/product/configInfo?id=<config id>`,
-/// which answers `dataRows` at the top level or wrapped in `data`.
-/// See `NetworkRepo.getProductConfigInfo` for the request shape.
+// Product parameter parsing and comparison merging.
+//
+// Port of the *parsing and merging logic* (not the UI) of
+// Costben/c001apk's `ui/topic/ProductComparison.kt`
+// (`productSpecSections`, `mergeSections`, `priceLabel`) and its
+// `data/ProductComparisonStore.kt` selection rules, adapted to Dart.
+// The reference project is AGPL-3.0; this file keeps its own
+// Material rendering in `product_config_ui.dart` and does not reuse
+// any coui17 component, brand asset, or emoji asset from it.
+//
+// The endpoint is the coolapk micro-page
+// `https://m.coolapk.com/mp/product/configInfo?id=<config id>`,
+// which answers `dataRows` at the top level or wrapped in `data`.
+// See `NetworkRepo.getProductConfigInfo` for the request shape.
 
 import 'product_detail.dart';
 

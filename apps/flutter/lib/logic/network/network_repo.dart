@@ -511,7 +511,7 @@ class NetworkRepo {
     // 而走相对路径的产品关注却正常。其余写操作（改名/删除/加项/移项）
     // 同走 _postCollection，同样被这个拼写错误连累。改：先把完整 URL
     // 还原成相对路径，再走与关注相同的相对路径传输。端点本身不变。
-    final base = Constants.URL_API_SERVICE;
+    const base = Constants.URL_API_SERVICE;
     final path = url.startsWith(base) ? url.substring(base.length) : url;
     final stringFields = <String, dynamic>{
       for (final e in fields.entries) e.key: e.value.toString(),
@@ -766,7 +766,7 @@ class NetworkRepo {
           (rowDatum.deviceTitle ?? '').isNotEmpty) {
         datum.deviceTitle = rowDatum.deviceTitle;
       }
-      if (datum.userInfo == null) datum.userInfo = rowDatum.userInfo;
+      datum.userInfo ??= rowDatum.userInfo;
       // FeedCard's header reads the name from userInfo, not from the
       // flat username field: a row that carries username/avatar but
       // no userInfo object would otherwise render a blank name line.

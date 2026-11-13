@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../constants/app_motion.dart';
 
 import '../../logic/model/feed/entity.dart';
 import '../../utils/extensions.dart';
