@@ -15,20 +15,113 @@ class LiquidPopupMenuButton<T> extends StatefulWidget {
       {super.key,
       required this.child,
       required this.tooltip,
-      required this.items,
+      this.items,
+      this.itemBuilder,
       required this.onSelected,
       required this.height,
-      required this.width});
+      required this.width})
+      : assert(items != null || itemBuilder != null);
 
   final Widget child;
   final String tooltip;
-  final List<PopupMenuEntry<T>> items;
+
+  /// Fixed entries, as before.
+  final List<PopupMenuEntry<T>>? items;
+
+  /// When given, evaluated when the menu opens (like
+  /// `PopupMenuButton.itemBuilder`), so entries that depend on
+  /// just-changed state — e.g. a topic page's Sort entry, which flips
+  /// with the selected tab without a page rebuild — are always current.
+  final PopupMenuItemBuilder<T>? itemBuilder;
   final ValueChanged<T> onSelected;
   final double height, width;
 
   @override
   State<LiquidPopupMenuButton<T>> createState() =>
       _LiquidPopupMenuButtonState<T>();
+}
+
+/// Opens [items] in the existing fake-glass panel (see [_GlassPopupPanel],
+/// which is built on `GlassSurface` from `basic_glass.dart`: blur + tint,
+/// no shader, no refraction), anchored below [anchorRect] in overlay
+/// coordinates. This is the Yuxiximyxx `showGlassMenu` shape adapted to
+/// the fork's own panel: fade + scale 0.95→1 on entry (200ms), height
+/// capped at 55% of the overlay height, items keep their
+/// `PopupMenuEntry` semantics unchanged.
+///
+/// Note the deltas from the Yuxiximyxx original, kept deliberately:
+/// the panel width is the existing fixed 232dp (inside Yuxiximyxx's
+/// 168–280dp band) rather than per-item `IntrinsicWidth`, and the exit
+/// animation reuses the 200ms entry duration because `showGeneralDialog`
+/// exposes no separate reverse duration (Yuxiximyxx used 130ms).
+Future<T?> showLiquidMenu<T>({
+  required BuildContext context,
+  required Rect anchorRect,
+  required List<PopupMenuEntry<T>> items,
+  required String tooltip,
+}) {
+  final navigator = Navigator.of(context);
+  final media = MediaQuery.of(context);
+  final themes = InheritedTheme.capture(from: context, to: navigator.context);
+  return showGeneralDialog<T>(
+    context: context,
+    useRootNavigator: false,
+    barrierDismissible: true,
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    barrierColor: Colors.transparent,
+    transitionDuration: MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 200),
+    transitionBuilder: (_, animation, __, child) => FadeTransition(
+      opacity: animation,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.95, end: 1).animate(animation),
+        child: child,
+      ),
+    ),
+    pageBuilder: (context, _, __) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+            textScaler: media.textScaler,
+            highContrast: media.highContrast,
+            disableAnimations: media.disableAnimations),
+        child: themes.wrap(
+          CustomSingleChildLayout(
+            delegate: _MenuLayout(anchorRect, MediaQuery.paddingOf(context)),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Semantics(
+                namesRoute: true,
+                scopesRoute: true,
+                explicitChildNodes: true,
+                role: ui.SemanticsRole.menu,
+                label: tooltip,
+                child: Shortcuts(
+                  shortcuts: const <ShortcutActivator, Intent>{
+                    SingleActivator(LogicalKeyboardKey.arrowDown):
+                        NextFocusIntent(),
+                    SingleActivator(LogicalKeyboardKey.arrowUp):
+                        PreviousFocusIntent(),
+                  },
+                  child: FocusTraversalGroup(
+                    policy: WidgetOrderTraversalPolicy(),
+                    child: Focus(
+                      autofocus: true,
+                      child: _GlassPopupPanel(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: items),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        )),
+  );
 }
 
 class _LiquidPopupMenuButtonState<T> extends State<LiquidPopupMenuButton<T>> {
@@ -40,61 +133,11 @@ class _LiquidPopupMenuButtonState<T> extends State<LiquidPopupMenuButton<T>> {
     final overlay = navigator.overlay!.context.findRenderObject()! as RenderBox;
     final origin = box.localToGlobal(Offset.zero, ancestor: overlay);
     final anchor = origin & box.size;
-    final media = MediaQuery.of(context);
-    final themes = InheritedTheme.capture(from: context, to: navigator.context);
-    final selected = await showGeneralDialog<T>(
+    final selected = await showLiquidMenu<T>(
       context: context,
-      useRootNavigator: false,
-      barrierDismissible: true,
-      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      barrierColor: Colors.transparent,
-      transitionDuration: MediaQuery.disableAnimationsOf(context)
-          ? Duration.zero
-          : const Duration(milliseconds: 160),
-      transitionBuilder: (_, animation, __, child) =>
-          FadeTransition(opacity: animation, child: child),
-      pageBuilder: (context, _, __) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-              textScaler: media.textScaler,
-              highContrast: media.highContrast,
-              disableAnimations: media.disableAnimations),
-          child: themes.wrap(
-            CustomSingleChildLayout(
-              delegate: _MenuLayout(anchor, MediaQuery.paddingOf(context)),
-              child: Material(
-                type: MaterialType.transparency,
-                child: Semantics(
-                  namesRoute: true,
-                  scopesRoute: true,
-                  explicitChildNodes: true,
-                  role: ui.SemanticsRole.menu,
-                  label: widget.tooltip,
-                  child: Shortcuts(
-                    shortcuts: const <ShortcutActivator, Intent>{
-                      SingleActivator(LogicalKeyboardKey.arrowDown):
-                          NextFocusIntent(),
-                      SingleActivator(LogicalKeyboardKey.arrowUp):
-                          PreviousFocusIntent(),
-                    },
-                    child: FocusTraversalGroup(
-                      policy: WidgetOrderTraversalPolicy(),
-                      child: Focus(
-                        autofocus: true,
-                        child: _GlassPopupPanel(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: widget.items),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          )),
+      anchorRect: anchor,
+      items: widget.itemBuilder?.call(context) ?? widget.items ?? const [],
+      tooltip: widget.tooltip,
     );
     if (mounted && selected != null) widget.onSelected(selected);
   }
@@ -122,7 +165,10 @@ class _MenuLayout extends SingleChildLayoutDelegate {
     final width =
         math.min(232.0, constraints.maxWidth - padding.horizontal - 16);
     return BoxConstraints.tightFor(width: width).copyWith(
-      maxHeight: math.max(0, constraints.maxHeight - padding.vertical - 16),
+      maxHeight: math.max(
+          0,
+          math.min(constraints.maxHeight - padding.vertical - 16,
+              constraints.maxHeight * 0.55)),
     );
   }
 

@@ -20,7 +20,6 @@ class CarouselCard extends StatefulWidget {
 }
 
 class _CarouselCardState extends State<CarouselCard> {
-  int _currentPage = 0;
   late List<Entity> _filterList;
   late PageController _controller;
   Timer? _timer;
@@ -52,7 +51,14 @@ class _CarouselCardState extends State<CarouselCard> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
         builder: (context, constraints) => SizedBox(
-              height: (constraints.maxWidth / 3).clamp(0.0, 240.0),
+              // Server home banners are ~4.45:1 (measured on two live
+              // banners). width/3 made the box taller than the image, so
+              // BoxFit.contain left ~18 logical dark bands above and
+              // below it inside the card, which read as oversized gaps
+              // to the neighbouring components. Match the box to the
+              // banner aspect so the image fills it and the gaps fall
+              // back to the normal 10.
+              height: (constraints.maxWidth / 4.5).clamp(0.0, 240.0),
               child: ClipRRect(
                 borderRadius: const BorderRadius.all(Radius.circular(12)),
                 child: Stack(
@@ -80,14 +86,6 @@ class _CarouselCardState extends State<CarouselCard> {
                             } else {
                               _timer?.cancel();
                             }
-                            setState(
-                                () => _currentPage = _filterList.length == 1
-                                    ? index
-                                    : index == 0
-                                        ? _filterList.length - 3
-                                        : index == _filterList.length - 1
-                                            ? 0
-                                            : index - 1);
                           }
                         },
                         itemBuilder: (context, page) {
@@ -107,38 +105,6 @@ class _CarouselCardState extends State<CarouselCard> {
                         },
                       ),
                     ),
-                    if (_filterList.length != 1)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 5, right: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: List.generate(
-                              _filterList.length == 1
-                                  ? 1
-                                  : _filterList.length - 2, (index) {
-                            return GestureDetector(
-                              onTap: () {
-                                _controller.animateToPage(
-                                  index + 1,
-                                  duration: AppDurations.imageViewer,
-                                  curve: Curves.ease,
-                                );
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.all(2),
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _currentPage == index
-                                      ? Colors.white
-                                      : Colors.white.withAlpha(128),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
                   ],
                 ),
               ),

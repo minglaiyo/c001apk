@@ -382,13 +382,23 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                     child: _content());
                 final body = compact
-                    ? SingleChildScrollView(
-                        controller: _scroll,
-                        child: Column(children: [
-                          _header(),
-                          content,
-                          _footer(),
-                        ]))
+                    ? Column(children: [
+                        Expanded(
+                            child: SingleChildScrollView(
+                                controller: _scroll,
+                                child: Column(children: [
+                                  _header(),
+                                  content,
+                                ]))),
+                        // The footer stays pinned even in compact mode:
+                        // on a narrow viewport with large text the page
+                        // is far taller than the screen, and a footer
+                        // buried at the end of the scroll content leaves
+                        // the final action unreachable (the 320-wide
+                        // large-text onboarding test caught exactly
+                        // this: the last tap never completed).
+                        _footer(),
+                      ])
                     : Column(children: [
                         _header(),
                         Expanded(

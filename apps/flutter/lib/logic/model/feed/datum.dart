@@ -286,6 +286,12 @@ class Datum {
   int? itemNum;
   dynamic isFollow;
 
+  /// Vote payload, B 层参考级：只保留原始 Map，内层键名不假设。
+  /// 由 vote_model.dart 宽容解析；读不到选项时卡片显示“未识别”而不崩。
+  /// 未实测参考，来自 daimiaopeng/coolapk-desktop 公开代码。
+  @JsonKey(name: 'vote')
+  Map<String, dynamic>? vote;
+
   Datum({
     this.entityId,
     this.entityType,
@@ -477,6 +483,7 @@ class Datum {
     this.isOpenTitle,
     this.itemNum,
     this.isFollow,
+    this.vote,
   });
 
   factory Datum.fromJson(Map<String, dynamic> json) => _$DatumFromJson(json);

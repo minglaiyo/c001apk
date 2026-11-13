@@ -251,10 +251,33 @@ void main() {
       await tap(tester, find.text('我也会发布'));
       for (var step = 0; step < 3; step++) {
         await next(tester);
+        // Diagnostic: the step indicator must advance after every tap, so
+        // a stall here points at the tap/layout instead of the final save.
+        expect(find.text('${step + 2} / 4'), findsOneWidget,
+            reason:
+                'step ${step + 1} did not advance after tapping next; the tap may have missed the button in this viewport');
         expect(tester.takeException(), isNull);
       }
       await tap(tester, find.byKey(const ValueKey('onboarding-next')),
           persist: true);
+      // Diagnostic: if the steps advanced but completion is false, a save
+      // error text means finish() failed.
+      expect(find.textContaining('保存失败'), findsNothing);
+      // Diagnostic: '正在保存…' proves the final tap started the save, so a
+      // later completed=false means the save was still running; neither
+      // saving nor completed means the tap never reached the button.
+      final saving = find.text('正在保存…').evaluate().isNotEmpty;
+      expect(saving || state.completed, isTrue,
+          reason:
+              'tapping 完成 did not start the save; the tap may have missed the button');
+      // The save runs after the final tap (see diagnostic above) but Hive +
+      // filter writes can outrun the tap's 50 ms window on a loaded runner,
+      // so wait for completion instead of asserting it immediately.
+      for (var i = 0; i < 20 && !state.completed; i++) {
+        await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 100)));
+        await tester.pump();
+      }
       expect(state.completed, isTrue);
       expect(GStorage.hideHomePublishButton, isFalse);
       expect(tester.takeException(), isNull);

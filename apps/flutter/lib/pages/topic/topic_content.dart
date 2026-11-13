@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 
+import '../../components/back_to_top_action.dart';
 import '../../components/common_body.dart';
 import '../../logic/state/loading_state.dart';
 import '../../pages/home/return_top_controller.dart';
+import '../../pages/topic/discussion_sort_url.dart';
 import '../../pages/topic/topic_content_controller.dart';
 import '../../pages/topic/topic_order_controller.dart';
-import '../../pages/topic/topic_page.dart' show TopicSortType;
 
 class TopicContent extends StatefulWidget {
   const TopicContent({
@@ -71,27 +72,18 @@ class _TopicContentState extends State<TopicContent>
       }
     });
 
-    if (widget.entityType == 'product' && widget.title == '讨论') {
+    if (_isSortableDiscussion) {
       _topicOrderController = Get.find<TopicOrderController>(
           tag: (widget.tag ?? widget.id!) + widget.random);
       _topicOrderController?.topicSortType.listen((type) {
-        _topicController.url =
-            '/page?url=/product/feedList?type=feed&id=${widget.id}&';
-        switch (type) {
-          case TopicSortType.DEFAULT:
-            _topicController.url = '${_topicController.url}ignoreEntityById=1';
-            _topicController.title = '默认';
-            break;
-          case TopicSortType.DATELINE:
-            _topicController.url =
-                '${_topicController.url}ignoreEntityById=1&listType=dateline_desc';
-            _topicController.title = '最新';
-            break;
-          case TopicSortType.HOT:
-            _topicController.url = '${_topicController.url}listType=rank_score';
-            _topicController.title = '热度';
-            break;
+        if (_isProductDiscussion) {
+          _topicController.url =
+              productDiscussionSortUrl(widget.id!, type);
+        } else {
+          _topicController.url =
+              topicDiscussionSortUrl(_topicController.url, type);
         }
+        _topicController.title = discussionSortLabel(type);
         if (_topicController.loadingState.value is Success) {
           _topicController.animateToTop();
         } else {
@@ -102,9 +94,29 @@ class _TopicContentState extends State<TopicContent>
     }
   }
 
+  bool get _isProductDiscussion =>
+      widget.entityType == 'product' && widget.title == '讨论';
+
+  /// 可排序的讨论：产品讨论，或 tab URL 带 topic/tagFeedList
+  /// 且 withSortCard=1 的话题讨论。排序入口统一走右上角 ⋮ 菜单，
+  /// 不在列表顶部另放排序条。
+  bool get _isSortableDiscussion =>
+      _isProductDiscussion || isTopicDiscussionUrl(widget.url);
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return commonBody(_topicController);
+    return Stack(
+      children: [
+        commonBody(_topicController),
+        BackToTopOverlay(
+          controller: _topicController.scrollController,
+          onLongPress: () {
+            _topicController.onReset();
+            _topicController.onGetData();
+          },
+        ),
+      ],
+    );
   }
 }

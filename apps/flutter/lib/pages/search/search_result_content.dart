@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 
+import '../../components/back_to_top_action.dart';
 import '../../components/common_body.dart';
 import '../../logic/state/loading_state.dart';
 import '../../pages/home/return_top_controller.dart';
@@ -140,6 +141,17 @@ class _SearchResultContentState extends State<SearchResultContent>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return commonBody(_searchController);
+    return Stack(
+      children: [
+        commonBody(_searchController),
+        BackToTopOverlay(
+          controller: _searchController.scrollController,
+          onLongPress: () {
+            _searchController.onReset();
+            _searchController.onGetData();
+          },
+        ),
+      ],
+    );
   }
 }

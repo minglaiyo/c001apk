@@ -4,8 +4,10 @@ class AppVersion implements Comparable<AppVersion> {
   final int major, minor, patch;
 
   factory AppVersion.parse(String value) {
+    // The fork's stable releases carry an own-keystore build counter
+    // (e.g. v1.5.1-own-keystore-8) instead of upstream's -release suffix.
     final match = RegExp(
-            r'^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-release)?(?:\+\d+)?$')
+            r'^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-release|-own-keystore-\d+)?(?:\+\d+)?$')
         .firstMatch(value);
     if (match == null) throw const FormatException('无法识别正式版本');
     return AppVersion(
@@ -38,7 +40,7 @@ class AppRelease {
   final String notes;
   final DateTime? publishedAt;
   final Map<String, Uri> _assets;
-  static const _repository = '/TG-Twilight/c001apk/releases/';
+  static const _repository = '/minglaiyo/c001apk/releases/';
 
   static bool _trusted(Uri uri, String prefix) =>
       uri.scheme == 'https' &&
@@ -105,6 +107,17 @@ class AppRelease {
           '(?:\\+\\d+)?-${RegExp.escape(suffix)}\$');
       for (final asset in _assets.entries) {
         if (pattern.hasMatch(asset.key)) return asset.value;
+      }
+    }
+    // Fork releases upload the Gradle split APKs directly.
+    if (platform == 'android') {
+      for (final abi
+          in abis.where(['arm64-v8a', 'armeabi-v7a', 'x86_64'].contains)) {
+        final forkPattern =
+            RegExp('^app-${RegExp.escape(abi)}-release\\.apk\$');
+        for (final asset in _assets.entries) {
+          if (forkPattern.hasMatch(asset.key)) return asset.value;
+        }
       }
     }
     return page;

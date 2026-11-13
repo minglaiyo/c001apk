@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../components/cards/icon_mini_scroll_card.dart' show miniCardItem;
+import '../../components/cards/vote_card.dart';
+import '../../pages/collection/collection_picker_dialog.dart';
 import '../../components/html_text.dart';
 import '../../components/markdown_body.dart';
 import '../../components/icon_text.dart';
@@ -103,6 +105,7 @@ class FeedCard extends StatelessWidget {
                 _summary(context)
               else ...[
                 ..._message(),
+                if (hasVoteData(data)) VoteCard(data: data),
                 if (!data.picArr.isNullOrEmpty) _image(),
                 if (!data.forwardSourceType.isNullOrEmpty)
                   _forwardSourceFeed(context),
@@ -138,6 +141,7 @@ class FeedCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w600)),
+        if (hasVoteData(data)) VoteCard(data: data),
         ContentFilterText(
             key: ValueKey('feed-summary:${data.id}'),
             source: data.message ?? '',
@@ -615,6 +619,13 @@ Widget header(
                   onBlock?.call();
                 },
               ),
+              if (!isHistory)
+                MorePanelAction(
+                  icon: Icons.star_border,
+                  label: '收藏到收藏单…',
+                  onSelected: () =>
+                      showCollectionPickerDialog(context, data.id),
+                ),
               if (Utils.isSupportWebview())
                 MorePanelAction(
                   icon: Icons.error_outline,

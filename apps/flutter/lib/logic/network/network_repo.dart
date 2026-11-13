@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:get/get.dart' hide Response, FormData;
 
@@ -5,11 +7,16 @@ import '../../constants/constants.dart';
 import '../../logic/model/feed/data_list_model.dart';
 import '../../logic/model/feed/data_model.dart';
 import '../../logic/model/feed/datum.dart';
+import '../../logic/model/feed/user_info.dart';
 import '../../logic/network/api.dart';
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/request.dart';
 import '../../logic/state/loading_state.dart';
+import '../../pages/feed/feed_change_history.dart';
+import '../../pages/product/product_detail.dart';
+import '../../pages/search/search_suggestion.dart';
 import '../../utils/extensions.dart';
+import '../../utils/global_data.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/token_util.dart';
 
@@ -352,6 +359,598 @@ class NetworkRepo {
     );
   }
 
+  /// Hot-search keywords for the empty global search page, from
+  /// `GET /v6/search?type=hotSearch&refresh=1&returnType=all` (the same
+  /// request the official client and coolapk-desktop use). Returns an
+  /// empty list on any failure so the hot section simply stays hidden
+  /// instead of breaking the search page.
+  static Future<List<String>> getHotSearches() async {
+    try {
+      final response = await Request().get(Api.getSearch, queryParameters: {
+        'type': 'hotSearch',
+        'refresh': 1,
+        'returnType': 'all',
+      });
+      return parseHotSearchKeywords(readApiObject(response)['data']);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Input suggestions for a keyword, from
+  /// `GET /v6/search/suggestSearchWordsNew`. The `app` variant is tried
+  /// first by the caller (like coolapk-desktop); this method only runs
+  /// one variant. Returns an empty list on any failure.
+  static Future<List<SearchSuggestion>> getSearchSuggestions(
+    String query, {
+    bool app = false,
+  }) async {
+    try {
+      final response = await Request().get(Api.getSearchSuggest,
+          queryParameters: {
+            'searchValue': query,
+            if (app) 'type': 'app',
+          });
+      return parseSearchSuggestions(readApiObject(response)['data']);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ---- B 层参考接口（未实测参考，来自 daimiaopeng/coolapk-desktop 公开代码）----
+  // 所有方法只做宽容解析：形状不对时返回空/错误态，绝不抛到 UI 崩溃。
+  // 投票提交、收藏写操作的首个真机使用即当探针。
+
+  /// All picture URLs carried by one mediaList item. The previous
+  /// version returned only the first image of picArr/imageUriList, so
+  /// a gallery that arrives as a single album object showed as one
+  /// picture even though the server returned many.
+  static List<String> _picsFromItem(dynamic item) {
+    final urls = <String>[];
+    void add(String? value) {
+      final url = (value ?? '').trim();
+      if (url.isNotEmpty && !urls.contains(url)) urls.add(url);
+    }
+
+    if (item is String) {
+      add(item);
+      return urls;
+    }
+    if (item is! Map) return urls;
+    for (final key in ['picArr', 'imageUriList']) {
+      final arr = item[key];
+      if (arr is List) {
+        for (final entry in arr) {
+          if (entry is String) {
+            add(entry);
+          } else if (entry is Map) {
+            add((entry['pic'] ?? entry['url'] ?? entry['image'] ?? '')
+                .toString());
+          }
+        }
+      }
+    }
+    for (final key in ['pic', 'image', 'url', 'logo', 'cover_pic']) {
+      final value = item[key];
+      if (value is String) add(value);
+    }
+    return urls;
+  }
+
+  /// Product media gallery, from
+  /// `GET /v6/product/mediaList?id=...&type=image&is_recommend=...&page=...`
+  /// (reference only, untested). Returns picture URLs, picArr /
+  /// imageUriList / pic兜底；失败或为空时调用方回落到单图 logo。
+  static Future<LoadingState<List<String>>> getProductMediaList({
+    required String id,
+    int page = 1,
+    int isRecommend = 0,
+  }) async {
+    try {
+      final response = await Request().get(Api.getProductMediaList,
+          queryParameters: {
+            'id': id,
+            'type': 'image',
+            'is_recommend': isRecommend,
+            'page': page,
+          });
+      final raw = readApiObject(response)['data'];
+      final items = raw is List
+          ? raw
+          : raw is Map
+              ? (raw['data'] as List? ??
+                  raw['list'] as List? ??
+                  raw['mediaList'] as List? ??
+                  raw['items'] as List? ??
+                  const [])
+              : const [];
+      final urls = <String>[];
+      for (final item in items) {
+        for (final url in _picsFromItem(item)) {
+          if (!urls.contains(url)) urls.add(url);
+        }
+      }
+      return urls.isEmpty
+          ? LoadingState.empty()
+          : LoadingState.success(urls);
+    } catch (error) {
+      return LoadingState.error(ApiFailure.fromError(error).message);
+    }
+  }
+
+  /// Dynamic vote submit, from POST /v6/vote/createUserVote
+  /// (reference only, untested; NOT /v6/goodsList/vote, which is a
+  /// goods-list vote). Form: id + select_option[0..n] + anonymous_status.
+  /// 成功回包可能 message-only，调用方须 allowSuccessWithoutData。
+  static Future<Response> postVote({
+    required dynamic feedId,
+    required List<String> optionIds,
+    bool anonymous = false,
+  }) async {
+    final fields = <String, dynamic>{
+      'id': feedId.toString(),
+      'anonymous_status': anonymous ? 1 : 0,
+    };
+    for (var i = 0; i < optionIds.length; i++) {
+      fields['select_option[$i]'] = optionIds[i];
+    }
+    return postLikeDeleteFollow(
+      '/v6/vote/createUserVote',
+      data: FormData.fromMap(fields),
+    );
+  }
+
+  static Future<Response> _postCollection(
+    String url,
+    Map<String, dynamic> fields,
+  ) {
+    // BUGFIX (#53 真机复验): Api.postCollection* 已是完整 URL，而
+    // postLikeDeleteFollow 还会经 getDataFromUrl 再拼一次域名，拼出
+    // 'https://api.coolapk.comhttps://...' 这种非法 URL，Dio 在连接层
+    // 就失败（connectionError），于是新建收藏单永远报“未到达服务端”，
+    // 而走相对路径的产品关注却正常。其余写操作（改名/删除/加项/移项）
+    // 同走 _postCollection，同样被这个拼写错误连累。改：先把完整 URL
+    // 还原成相对路径，再走与关注相同的相对路径传输。端点本身不变。
+    final base = Constants.URL_API_SERVICE;
+    final path = url.startsWith(base) ? url.substring(base.length) : url;
+    final stringFields = <String, dynamic>{
+      for (final e in fields.entries) e.key: e.value.toString(),
+    };
+    return postLikeDeleteFollow(path, data: FormData.fromMap(stringFields));
+  }
+
+  /// Collection writes (reference only, untested). update 的 id 必须
+  /// 放表单字段；removeItem 的 itemId 是收藏单条目 id，不是动态 id。
+  static Future<Response> createCollection({
+    required String title,
+    String description = '',
+    int isOpen = 0,
+    String pic = '',
+    String sourceId = '',
+  }) =>
+      _postCollection(Api.postCollectionCreate, {
+        'title': title,
+        if (description.isNotEmpty) 'description': description,
+        'isOpen': isOpen,
+        if (pic.isNotEmpty) 'pic': pic,
+        if (sourceId.isNotEmpty) 'sourceId': sourceId,
+      });
+
+  static Future<Response> updateCollection({
+    required dynamic id,
+    required String title,
+    String description = '',
+    int isOpen = 0,
+    String pic = '',
+  }) =>
+      _postCollection(Api.postCollectionUpdate, {
+        'id': id.toString(),
+        'title': title,
+        if (description.isNotEmpty) 'description': description,
+        'isOpen': isOpen,
+        if (pic.isNotEmpty) 'pic': pic,
+      });
+
+  static Future<Response> deleteCollection(dynamic id) =>
+      _postCollection(Api.postCollectionDelete, {'id': id.toString()});
+
+  /// id = 收藏单 id（可多个时逗号分隔传参由服务端定，单选先行）；
+  /// cancelId = 移出的单 id；targetId = 内容 id；type 如 'feed'。
+  static Future<Response> addCollectionItem({
+    required dynamic id,
+    dynamic cancelId,
+    required dynamic targetId,
+    String type = 'feed',
+  }) =>
+      _postCollection(Api.postCollectionAddItem, {
+        'id': id.toString(),
+        if (cancelId != null) 'cancelId': cancelId.toString(),
+        'targetId': targetId.toString(),
+        'type': type,
+        'trace': '',
+      });
+
+  static Future<Response> removeCollectionItem(dynamic itemId) =>
+      _postCollection(Api.postCollectionRemoveItem, {
+        'itemId': itemId.toString(),
+      });
+
+  static Future<Response> removeUnUseCollectionItem(dynamic colId) =>
+      _postCollection(Api.postCollectionRemoveUnUseItem, {
+        'colId': colId.toString(),
+      });
+
+  /// Which collections already contain a feed, from
+  /// `GET /v6/collection/list?uid=&id={feedId}&type=feed&showDefault=1`
+  /// (reference only, untested). Returns collection Datum rows.
+  static Future<LoadingState> getCollectionStateForFeed(dynamic feedId) {
+    return getDataListFromUrl(
+      url: '/v6/collection/list',
+      data: {
+        'uid': GlobalData().uid,
+        'id': feedId.toString(),
+        'type': 'feed',
+        'showDefault': 1,
+        'page': 1,
+      },
+    );
+  }
+
+  /// Cloud browsing history, from
+  /// `GET /v6/user/hitHistoryList?type=...&page=...&firstItem=...&lastItem=...`
+  /// (reference only, untested). NOTE: this is NOT recentHistoryList,
+  /// which is “我的常去”. type 取值未实测，先传空，客户端再兜底筛。
+  static Future<LoadingState> getHitHistoryList({
+    String type = '',
+    int page = 1,
+    String? firstItem,
+    String? lastItem,
+  }) async {
+    // BUGFIX (#53 真机复验：云端历史恒为“暂无内容”): 旧实现走
+    // getDataListFromUrl -> handleListResponse，那里按 entityTypeList /
+    // entityTemplateList 白名单过滤；hitHistoryList 返回的条目类型若不在
+    // 白名单里，会被整批丢掉，页面拿到 Success([]) 就静默显示“暂无内容”，
+    // 请求明明成功却看起来像空。改：云端历史页单独走原始解析，不经
+    // 白名单过滤，只按 Datum 宽容解析，逐条跳过解析失败的行；服务端
+    // 确实返回空时返回 Empty，让页面明确写“服务端返回为空”，不再
+    // 与“被过滤丢光”混成同一个“暂无内容”。
+    try {
+      final response = await Request().get(
+        Api.getDataFromUrl('/v6/user/hitHistoryList'),
+        queryParameters: {
+          if (type.isNotEmpty) 'type': type,
+          'page': page,
+          if (firstItem != null) 'firstItem': firstItem,
+          if (lastItem != null) 'lastItem': lastItem,
+        },
+      );
+      final raw = readApiObject(response)['data'];
+      final rows = raw is List
+          ? raw
+          : raw is Map
+              ? (raw['data'] as List? ??
+                  raw['list'] as List? ??
+                  raw['items'] as List? ??
+                  raw['historyList'] as List? ??
+                  raw['records'] as List? ??
+                  const [])
+              : const [];
+      final items = <Datum>[];
+      for (final row in rows) {
+        final datum = _datumFromHistoryRow(row);
+        if (datum != null) items.add(datum);
+      }
+      if (items.isEmpty) return LoadingState.empty();
+      final cursorRows = items.where((item) => item.id != null).toList();
+      return Success(items,
+          firstItem: cursorRows.isNotEmpty
+              ? cursorRows.first.id.toString()
+              : null,
+          lastItem: cursorRows.isNotEmpty
+              ? cursorRows.last.id.toString()
+              : null);
+    } catch (error) {
+      return LoadingState.error(ApiFailure.fromError(error).message);
+    }
+  }
+
+  /// itemCard 能渲染的 entityType（见 components/item_card.dart）；
+  /// 不在此表里的类型会落到默认分支显示“暂不支持此内容”。
+  static const _renderableHistoryTypes = {
+    'card',
+    'feed',
+    'feed_reply',
+    'apk',
+    'product',
+    'user',
+    'topic',
+    'contacts',
+    'recentHistory',
+    'notification',
+    'message',
+    'collection',
+  };
+
+  /// 云端历史单行宽容解析。
+  ///
+  /// BUGFIX（#54 真机复验：整页“暂不支持此内容”）：旧实现先试行本身，
+  /// 行本身带 id 且 entityType='history' 时直接被接受，而 itemCard
+  /// 没有 'history' 分支，于是每行都落到默认“暂不支持”。行真正的目标
+  /// 往往嵌在 feed/target/data/targetRow 等子对象里。改：先试嵌套目标
+  /// （且 entityType 必须是 itemCard 能渲染的），再回落行本身；嵌套
+  /// 目标的 entityType 为空但 targetType 可渲染时，用服务端自己的
+  /// targetType 补 entityType（不编造新类型）；嵌套目标缺 dateline /
+  /// url 时用行本身的补齐。回落的行本身若仍是 'history'，页面会用
+  /// 历史记录卡片显示它自带的标题/时间，不再走 itemCard 的默认分支。
+  static Datum? _datumFromHistoryRow(dynamic row) {
+    if (row is! Map) return null;
+    Map<String, dynamic> asMap(Map value) => Map<String, dynamic>.fromEntries(
+        value.entries.map((e) => MapEntry(e.key.toString(), e.value)));
+    Datum? tryParse(Map candidate) {
+      try {
+        final datum = Datum.fromJson(asMap(candidate));
+        final hasTitle = (datum.title ?? '').trim().isNotEmpty ||
+            (datum.messageTitle ?? '').trim().isNotEmpty ||
+            (datum.message ?? '').trim().isNotEmpty;
+        if (datum.id == null && !hasTitle) return null;
+        return datum;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    bool renderable(Datum datum) =>
+        _renderableHistoryTypes.contains((datum.entityType ?? '').trim());
+    // A nested raw feed object usually carries NO envelope fields:
+    // list rows get entityType='feed' from the list envelope, but a
+    // feed object nested inside a history row is just id/username/
+    // message/deviceTitle/dateline. The old code only accepted a
+    // nested candidate whose entityType was already renderable, so
+    // such a full feed was skipped and the row fell back to the
+    // title+time info card. Accept shape-based feed/product targets.
+    bool feedLike(Datum datum) =>
+        datum.id != null &&
+        ((datum.message ?? '').trim().isNotEmpty ||
+            (datum.messageTitle ?? '').trim().isNotEmpty ||
+            datum.userInfo != null ||
+            (datum.username ?? '').trim().isNotEmpty ||
+            (datum.userAvatar ?? '').trim().isNotEmpty ||
+            (datum.picArr ?? []).isNotEmpty);
+    bool productLike(Datum datum) =>
+        (datum.title ?? '').trim().isNotEmpty &&
+        ((datum.logo ?? '').trim().isNotEmpty ||
+            (datum.pic ?? '').trim().isNotEmpty ||
+            (datum.cover ?? '').trim().isNotEmpty ||
+            (datum.coverPic ?? '').trim().isNotEmpty ||
+            (datum.picArr ?? []).isNotEmpty) &&
+        (datum.message ?? '').trim().isEmpty;
+    // Effective product image: the server sometimes puts it in pic /
+    // cover / picArr instead of logo. Only fields the row actually
+    // carries are used here, nothing is invented.
+    String effectiveProductLogo(Datum datum) {
+      for (final value in [
+        datum.logo,
+        datum.pic,
+        datum.cover,
+        datum.coverPic,
+      ]) {
+        if ((value ?? '').trim().isNotEmpty) return value!.trim();
+      }
+      final pics = datum.picArr ?? [];
+      if (pics.isNotEmpty) return pics.first;
+      return '';
+    }
+
+    Datum? rowDatum;
+    try {
+      rowDatum = Datum.fromJson(asMap(row));
+    } catch (_) {
+      rowDatum = null;
+    }
+
+    Datum fillFromRow(Datum datum) {
+      if (rowDatum == null) return datum;
+      datum.dateline ??= rowDatum.dateline;
+      if ((datum.url ?? '').isEmpty && (rowDatum.url ?? '').isNotEmpty) {
+        datum.url = rowDatum.url;
+      }
+      if ((datum.username ?? '').isEmpty &&
+          (rowDatum.username ?? '').isNotEmpty) {
+        datum.username = rowDatum.username;
+      }
+      if ((datum.userAvatar ?? '').isEmpty &&
+          (rowDatum.userAvatar ?? '').isNotEmpty) {
+        datum.userAvatar = rowDatum.userAvatar;
+      }
+      if ((datum.deviceTitle ?? '').isEmpty &&
+          (rowDatum.deviceTitle ?? '').isNotEmpty) {
+        datum.deviceTitle = rowDatum.deviceTitle;
+      }
+      if (datum.userInfo == null) datum.userInfo = rowDatum.userInfo;
+      // FeedCard's header reads the name from userInfo, not from the
+      // flat username field: a row that carries username/avatar but
+      // no userInfo object would otherwise render a blank name line.
+      // Synthesize it from fields the row actually carries.
+      if (datum.userInfo == null) {
+        final name = (datum.username ?? rowDatum.username ?? '').trim();
+        final avatar =
+            (datum.userAvatar ?? rowDatum.userAvatar ?? '').trim();
+        if (name.isNotEmpty || avatar.isNotEmpty) {
+          final rawUid = datum.uid ?? rowDatum.uid;
+          datum.userInfo = UserInfo(
+            uid: rawUid is int ? rawUid : null,
+            username: name.isEmpty ? null : name,
+            userAvatar: avatar.isEmpty ? null : avatar,
+          );
+        }
+      }
+      return datum;
+    }
+
+    // 1. Nested target first. The row's own top-level fields (time,
+    // username, device) are used only to fill gaps in the target,
+    // never to invent target content.
+    for (final key in [
+      'feed',
+      'target',
+      'data',
+      'targetRow',
+      'target_row',
+      'entity',
+      'item',
+      'feed_info',
+      'target_info',
+      'detail',
+      'content',
+      'object',
+    ]) {
+      final candidate = row[key];
+      if (candidate is! Map) continue;
+      final datum = tryParse(candidate);
+      if (datum == null) continue;
+      if ((datum.entityType ?? '').trim().isEmpty) {
+        final targetType = (datum.targetType ?? '').trim();
+        if (_renderableHistoryTypes.contains(targetType)) {
+          datum.entityType = targetType;
+        } else if (feedLike(datum)) {
+          // Envelope type for a feed card; the content itself comes
+          // from the nested object, nothing is invented here.
+          datum.entityType = 'feed';
+        } else if (productLike(datum)) {
+          datum.entityType = 'product';
+          if ((datum.logo ?? '').trim().isEmpty) {
+            datum.logo = effectiveProductLogo(datum);
+          }
+        }
+      }
+      if (!renderable(datum)) continue;
+      return fillFromRow(datum);
+    }
+    // 2. Row itself, flattened: a row that already carries full feed
+    // fields (message/username/avatar) renders as the same feed card
+    // the local history page uses, instead of an info card.
+    final own = tryParse(row);
+    if (own == null) return null;
+    if (renderable(own)) return own;
+    if (feedLike(own)) {
+      own.entityType = 'feed';
+      return own;
+    }
+    if (productLike(own)) {
+      own.entityType = 'product';
+      if ((own.logo ?? '').trim().isEmpty) {
+        own.logo = effectiveProductLogo(own);
+      }
+      return own;
+    }
+    // 3. Pure history record (title + time only, no body/user data):
+    // the page renders it as an info card with every field the row
+    // actually carries. Nothing is invented here.
+    return own;
+  }
+
+  /// Product detail for the product page, from
+  /// `GET /v6/product/detail?id=...`. Throws [ApiFailure] on a bad
+  /// response so the page can show its error state with a retry.
+  static Future<ProductDetail> getProductDetail(String id) async {
+    final response = await Request().get(Api.getProductDetail,
+        queryParameters: {'id': id});
+    final data = readApiObject(response)['data'];
+    if (data is! Map) {
+      throw const ApiFailure(
+          ApiFailureKind.invalidResponse, '产品详情格式异常，请稍后重试');
+    }
+    return parseProductDetail(id, data);
+  }
+
+  /// Parameter table for one config, from the coolapk micro-page
+  /// `GET https://m.coolapk.com/mp/product/configInfo?id=...`,
+  /// mirroring Costben/c001apk's `productConfigInfo` (AGPL-3.0).
+  /// The micro-page answers `dataRows` at the top level or wrapped
+  /// in `data`; the usual api envelope check (`readApiObject`) does
+  /// not apply here, so the body is validated directly. Only
+  /// User-Agent + X-Requested-With are sent for this host, matching
+  /// Costben's client: that is what makes the page answer JSON
+  /// instead of HTML. The api-host token interceptor does not run
+  /// for this host. Returns the raw decoded body for
+  /// `productSpecSections` to parse.
+  static Future<dynamic> getProductConfigInfo(String id) async {
+    final response = await Request().get(
+      Api.getProductConfigInfo,
+      queryParameters: {'id': id},
+      options: Options(headers: {
+        'User-Agent': GStorage.userAgent,
+        'X-Requested-With': Constants.REQUEST_WITH,
+      }),
+    );
+    final status = response.statusCode;
+    if (status == null || status < 200 || status >= 300) {
+      throw ApiFailure.http(status);
+    }
+    dynamic body = response.data;
+    if (body is String) {
+      try {
+        body = jsonDecode(body);
+      } on FormatException {
+        throw const ApiFailure(
+            ApiFailureKind.invalidResponse, '参数响应格式异常，请稍后重试');
+      }
+    }
+    if (body is! Map) {
+      throw const ApiFailure(
+          ApiFailureKind.invalidResponse, '参数响应格式异常，请稍后重试');
+    }
+    if (body['dataRows'] == null && body['data'] == null) {
+      final message =
+          body['message'] is String ? (body['message'] as String).trim() : '';
+      throw ApiFailure(
+        ApiFailureKind.business,
+        message.isNotEmpty ? message : '参数数据为空，请稍后重试',
+      );
+    }
+    return body;
+  }
+
+  /// Product feed list for one product tab, from
+  /// `GET /v6/page/dataList?url=/page?url=/product/feedList` with the
+  /// product id and the tab's type (or `subTabFeed` + `subId` for a
+  /// server sub-tab), mirroring coolapk-desktop's query builders.
+  static Future<LoadingState> getProductFeeds({
+    required String productId,
+    required String feedType,
+    String? subId,
+    String? listType,
+    required int page,
+    String? firstItem,
+    String? lastItem,
+  }) async {
+    return getListData(
+      () => Request().get(Api.getDataList, queryParameters: {
+        'url': '/page?url=/product/feedList',
+        'id': productId,
+        'type': subId != null ? 'subTabFeed' : feedType,
+        if (subId != null) 'subId': subId,
+        if (subId != null) 'cacheExpires': '60',
+        if (subId != null) 'withSortCard': '1',
+        if (subId != null) 'withSubTabFeedCard': '1',
+        if (subId != null) 'ignoreEntityById': '1',
+        if (listType != null && listType.isNotEmpty) 'listType': listType,
+        if (!firstItem.isNullOrEmpty) 'firstItem': firstItem,
+        if (!lastItem.isNullOrEmpty) 'lastItem': lastItem,
+        'page': page,
+      }),
+    );
+  }
+
+  /// Edit history for one feed, from
+  /// `GET /v6/feed/changeHistoryList?id=...`, current version first.
+  static Future<List<FeedChangeHistoryItem>> getFeedChangeHistory(
+      String id) async {
+    final response = await Request().get(Api.getFeedChangeHistory,
+        queryParameters: {'id': id});
+    return parseFeedChangeHistory(readApiObject(response)['data']);
+  }
+
   static Future<Response> getAppDownloadUrl({
     required String packageName,
     required int id,
@@ -479,7 +1078,7 @@ class NetworkRepo {
     required String? firstItem,
     required String? lastItem,
     required int page,
-    bool inCluldeConfigCard = false,
+    bool inIncludeConfigCard = false,
   }) async {
     return getListData(
       () => Request().get(
@@ -493,7 +1092,7 @@ class NetworkRepo {
           'page': page,
         },
       ),
-      inCluldeConfigCard: inCluldeConfigCard,
+      inIncludeConfigCard: inIncludeConfigCard,
     );
   }
 
@@ -576,13 +1175,13 @@ class NetworkRepo {
 
   static Future<LoadingState> getListData(
     Future<Response<dynamic>> Function() get, {
-    bool inCluldeConfigCard = false,
+    bool inIncludeConfigCard = false,
   }) async {
     try {
       var response = await get();
       return await handleListResponse(
         response,
-        inCluldeConfigCard: inCluldeConfigCard,
+        inIncludeConfigCard: inIncludeConfigCard,
       );
     } catch (err) {
       return LoadingState.error(ApiFailure.fromError(err).message);
@@ -605,7 +1204,7 @@ class NetworkRepo {
 
   static Future<LoadingState> handleListResponse(
     Response<dynamic> response, {
-    bool inCluldeConfigCard = false,
+    bool inIncludeConfigCard = false,
   }) async {
     try {
       final object = readApiObject(response);
@@ -625,7 +1224,7 @@ class NetworkRepo {
               ? true
               : (Constants.entityTypeList.contains(item.entityType) ||
                   (Constants.entityTemplateList +
-                          (inCluldeConfigCard ? ['configCard'] : []))
+                          (inIncludeConfigCard ? ['configCard'] : []))
                       .contains(item.entityTemplate));
         }).toList();
         final filterList = accepted

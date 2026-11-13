@@ -1,5 +1,6 @@
 import '../../utils/share_util.dart';
 import '../../components/expressive_loading_indicator.dart';
+import '../../components/liquid_popup_menu.dart';
 // ignore_for_file: constant_identifier_names
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import '../../components/app_sheet.dart';
 
 import '../../logic/state/loading_state.dart';
 import '../../pages/home/return_top_controller.dart';
+import '../../pages/topic/discussion_sort_url.dart';
 import '../../pages/feed/reply/reply_page.dart';
 import '../../pages/topic/topic_content.dart';
 import '../../pages/topic/topic_controller.dart';
@@ -108,8 +110,12 @@ class _TopicPageState extends State<TopicPage> with TickerProviderStateMixin {
   }
 
   void setShouldShowActions(int index) {
-    _shouldShowActions = _topicController.entityType == 'product' &&
-        _topicController.tabList![index].title == '讨论';
+    final tab = _topicController.tabList![index];
+    // 排序入口统一走 ⋮ 菜单：产品讨论和话题讨论都显示，
+    // 其他 tab（参数、点评等）不显示。
+    _shouldShowActions = (_topicController.entityType == 'product' &&
+            tab.title == '讨论') ||
+        isTopicDiscussionUrl(tab.url ?? '');
   }
 
   Widget _buildBody(LoadingState topicState) {
@@ -198,7 +204,18 @@ class _TopicPageState extends State<TopicPage> with TickerProviderStateMixin {
                       icon: const Icon(Icons.search),
                       tooltip: '搜索',
                     ),
-                  PopupMenuButton(
+                  // Glass menu: same entries, labels and callbacks as
+                  // the old Material menu, only the panel is the fork's
+                  // fake-glass panel (see `showLiquidMenu`). The trigger
+                  // is a 48dp glass button with the same more_vert icon.
+                  // `itemBuilder` is still evaluated when the menu opens,
+                  // so the Sort entry follows the selected tab exactly
+                  // as before (it flips without a page rebuild).
+                  LiquidPopupMenuButton<TopicMenuItem>(
+                    height: 48,
+                    width: 48,
+                    tooltip: '显示菜单',
+                    child: const Icon(Icons.more_vert),
                     onSelected: (TopicMenuItem item) {
                       switch (item) {
                         case TopicMenuItem.Copy:
@@ -318,21 +335,26 @@ class _TopicPageState extends State<TopicPage> with TickerProviderStateMixin {
     );
   }
 
+  /// Sort submenu, also through the glass panel: anchored at the
+  /// top-right AppBar corner (the old native menu used the same
+  /// top-right position). Entries and the selection callback are
+  /// unchanged; the old menu's `initialValue` scroll position is not
+  /// carried over, which is immaterial for a three-item menu.
   void _showPopupMenu() async {
-    final screenSize = MediaQuery.of(context).size;
-    await showMenu(
-      initialValue: _topicOrderController.topicSortType.value,
+    final size = MediaQuery.of(context).size;
+    final padding = MediaQuery.paddingOf(context);
+    final anchor = Rect.fromLTWH(
+        size.width - padding.right - 56, padding.top, 48, 48);
+    final value = await showLiquidMenu<TopicSortType>(
       context: context,
-      position:
-          RelativeRect.fromLTRB(screenSize.width, 0, 0, screenSize.height),
+      anchorRect: anchor,
+      tooltip: '排序',
       items: TopicSortType.values
           .map((type) => PopupMenuItem(value: type, child: Text(type.label)))
           .toList(),
-      elevation: 8.0,
-    ).then((value) {
-      if (value != null) {
-        _topicOrderController.setTopicSortType(value);
-      }
-    });
+    );
+    if (value != null) {
+      _topicOrderController.setTopicSortType(value);
+    }
   }
 }

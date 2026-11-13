@@ -25,6 +25,7 @@ class GlassSurface extends StatelessWidget {
     this.press = 0,
     this.borderRadius,
     this.shadow = true,
+    this.glow = 1,
   });
 
   factory GlassSurface.navigationBase({
@@ -35,6 +36,7 @@ class GlassSurface extends StatelessWidget {
     required LiquidGlassLevel level,
     bool shadow = true,
     double press = 0,
+    double glow = 1,
   }) =>
       GlassSurface(
           shader: shader,
@@ -45,7 +47,8 @@ class GlassSurface extends StatelessWidget {
           tint: theme.colorScheme.surfaceContainer,
           level: level,
           shadow: shadow,
-          press: press);
+          press: press,
+          glow: glow);
 
   factory GlassSurface.navigationLens({
     required ui.FragmentShader? shader,
@@ -56,6 +59,7 @@ class GlassSurface extends StatelessWidget {
     required double progress,
     bool shadow = true,
     Color? tint,
+    double glow = 1,
   }) =>
       GlassSurface(
           shader: shader,
@@ -67,12 +71,13 @@ class GlassSurface extends StatelessWidget {
           level: level,
           depthEffect: true,
           shadow: shadow,
-          press: progress);
+          press: progress,
+          glow: glow);
 
   final ui.FragmentShader? shader;
   final bool enabled, depthEffect, shadow;
   final Size extent;
-  final double depth, dispersion, refractionHeight, blur, press;
+  final double depth, dispersion, refractionHeight, blur, press, glow;
   final Color tint;
   final Color? fallbackTint;
   final LiquidGlassLevel level;
@@ -82,17 +87,96 @@ class GlassSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = borderRadius ?? BorderRadius.circular(extent.height / 2);
     final solid = !enabled || MediaQuery.highContrastOf(context);
-    final content = ColoredBox(
-      color: (fallbackTint ?? tint).withValues(alpha: solid ? 1 : .9),
-      child: const SizedBox.expand(),
-    );
+    final baseTint = fallbackTint ?? tint;
+    // Flat opaque surface for low level / disabled / high contrast,
+    // exactly as before.
+    if (solid || level == LiquidGlassLevel.low) {
+      return ClipRRect(
+        borderRadius: radius,
+        child: ColoredBox(
+          color: baseTint.withValues(alpha: solid ? 1 : .9),
+          child: const SizedBox.expand(),
+        ),
+      );
+    }
+    // Fake glass, made less flat: blur strength grows with the level
+    // (the old code used sigma 4 for every non-low level), the tint is
+    // a top-light gradient instead of one flat colour, a 1px rim catches
+    // light from above, and a soft top sheen sits over it all. This is
+    // still blur + tint, not refraction, but the levels now actually
+    // look different from each other.
+    double sigma;
+    double rimBase;
+    if (level == LiquidGlassLevel.medium) {
+      sigma = 10;
+      rimBase = 0.22;
+    } else if (level == LiquidGlassLevel.high) {
+      sigma = 16;
+      rimBase = 0.35;
+    } else {
+      sigma = 22;
+      rimBase = 0.5;
+    }
+    // Scroll-linked brightness: glow is the bar's show progress
+    // (1 = fully shown). As a bar hides with scrolling its glass dims
+    // slightly on top of the existing fade, instead of staying flat.
+    final glowFactor = 0.6 + 0.4 * glow.clamp(0.0, 1.0);
+    final rim = rimBase * glowFactor;
+    final sheen = Colors.white.withValues(alpha: 0.10 * glowFactor);
     return ClipRRect(
       borderRadius: radius,
-      child: solid || level == LiquidGlassLevel.low
-          ? content
-          : BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-              child: content),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white.withValues(alpha: rim),
+              Colors.white.withValues(alpha: rim * 0.3),
+              Colors.transparent,
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.3, 0.6, 1.0],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(1),
+          child: Stack(
+            children: [
+              BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        baseTint.withValues(alpha: 0.72),
+                        baseTint.withValues(alpha: 0.92),
+                      ],
+                    ),
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.center,
+                        colors: [sheen, Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -112,7 +196,7 @@ class LiquidGlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ClipRRect(
       borderRadius: borderRadius,
-      child: Stack(children: [
+      child: Stack(clipBehavior: Clip.hardEdge, alignment: Alignment.center, children: [
         Positioned.fill(
             child: IgnorePointer(
                 child: LayoutBuilder(
@@ -180,19 +264,30 @@ class LiquidNavigationBar extends StatefulWidget {
       required this.onDestinationSelected,
       this.program,
       this.refract = true,
-      this.level = LiquidGlassLevel.medium})
+      this.level = LiquidGlassLevel.medium,
+      this.glow = 1})
       : labels = const ['主页', '关注', '我的'],
+        selectedPosition = null,
         tabs = false;
   const LiquidNavigationBar.tabs(
       {super.key,
       required this.selectedIndex,
       required this.onDestinationSelected,
       required this.labels,
+      this.selectedPosition,
       this.program,
       this.refract = true,
-      this.level = LiquidGlassLevel.medium})
+      this.level = LiquidGlassLevel.medium,
+      this.glow = 1})
       : tabs = true;
   final int selectedIndex;
+  // Bar show progress (1 = fully shown), driven by the scroll-hide
+  // animation. Scales the glass rim/sheen brightness with scrolling.
+  final double glow;
+  // Fractional selected position (e.g. a TabController animation value).
+  // When set, the selected pill slides continuously instead of jumping
+  // between cells when selectedIndex flips at the end of a transition.
+  final double? selectedPosition;
   final ValueChanged<int> onDestinationSelected;
   final ui.FragmentProgram? program;
   final bool refract, tabs;
@@ -227,12 +322,28 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                 final height = widget.tabs
                     ? math.max(48.0, textHeight + 24)
                     : math.max(64.0, textHeight + 40);
-                final selected = (_dragIndex ?? widget.selectedIndex)
-                    .clamp(0, widget.labels.length - 1);
+                // With a fractional position the pill follows the
+                // transition; without one it stays on the selected cell,
+                // exactly as before.
+                final double effectivePosition =
+                    (_dragIndex?.toDouble() ??
+                            widget.selectedPosition ??
+                            widget.selectedIndex.toDouble())
+                        .clamp(0.0, (widget.labels.length - 1).toDouble());
+                final selected = widget.selectedPosition == null
+                    ? (_dragIndex ?? widget.selectedIndex)
+                        .clamp(0, widget.labels.length - 1)
+                    : effectivePosition.round()
+                        .clamp(0, widget.labels.length - 1);
                 void drag(Offset point) => setState(() => _dragIndex =
                     (point.dx / bounds.maxWidth * widget.labels.length)
                         .floor()
                         .clamp(0, widget.labels.length - 1));
+                // The Row below has 4dp horizontal padding and equal-width
+                // Expanded cells, so a cell is (maxWidth - 8) / count wide
+                // and the per-cell pill spans cell +/- 2dp horizontally.
+                final cellWidth =
+                    (bounds.maxWidth - 8) / widget.labels.length;
                 return _BasicRoundHitRegion(
                     child: ClipRRect(
                         borderRadius: BorderRadius.circular(height / 2),
@@ -266,8 +377,30 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                                 Size(bounds.maxWidth, height),
                                             theme: theme,
                                             level: widget.level,
-                                            shadow: false))),
-                                Row(
+                                            shadow: false,
+                                            glow: widget.glow))),
+                                // Sliding pill: same rect as the per-cell
+                                // pill at integer positions, but it moves
+                                // continuously with effectivePosition.
+                                if (widget.selectedPosition != null)
+                                  Positioned(
+                                      left: 4 +
+                                          effectivePosition * cellWidth +
+                                          2,
+                                      width: cellWidth - 4,
+                                      top: 4,
+                                      bottom: 4,
+                                      child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                              color: theme.colorScheme
+                                                  .primaryContainer,
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      height / 2)))),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
                                     for (var i = 0;
                                         i < widget.labels.length;
@@ -279,7 +412,21 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                               selected: selected == i,
                                               button: true,
                                               inMutuallyExclusiveGroup: true,
-                                              child: TextButton(
+                                              child: Stack(
+                                                  alignment: Alignment.center,
+                                                  children: [
+                                                    if (widget.selectedPosition ==
+                                                            null &&
+                                                        selected == i)
+                                                      Positioned.fill(
+                                                          child: Padding(
+                                                              padding: const EdgeInsets.symmetric(
+                                                                  horizontal: 2, vertical: 4),
+                                                              child: DecoratedBox(
+                                                                  decoration: BoxDecoration(
+                                                                      color: theme.colorScheme.primaryContainer,
+                                                                      borderRadius: BorderRadius.circular(height / 2))))),
+                                                    TextButton(
                                                   onPressed: () => widget
                                                       .onDestinationSelected(i),
                                                   style: TextButton.styleFrom(
@@ -287,15 +434,14 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                                           const EdgeInsets
                                                               .symmetric(
                                                               horizontal: 2),
-                                                      backgroundColor: selected == i
-                                                          ? theme.colorScheme
-                                                              .primaryContainer
-                                                          : Colors.transparent,
+                                                      backgroundColor: Colors.transparent,
                                                       foregroundColor: selected == i
                                                           ? theme.colorScheme
                                                               .onPrimaryContainer
                                                           : theme.colorScheme
-                                                              .onSurface),
+                                                              .onSurface,
+                                                      shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(height / 2))),
                                                   child: widget.tabs
                                                       ? Text(widget.labels[i],
                                                           maxLines: 1)
@@ -307,8 +453,10 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                                           ][i % 3]),
                                                           Text(widget.labels[i],
                                                               maxLines: 1),
-                                                        ]))))
+                                                        ])),
+                                                  ])))
                                   ],
+                                ),
                                 ),
                               ])),
                         )));

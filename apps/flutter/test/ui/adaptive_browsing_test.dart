@@ -375,8 +375,11 @@ void main() {
     expect(tester.getSize(find.byType(CarouselCard)).height,
         lessThanOrEqualTo(240));
     await resize(tester, 400);
-    expect(
-        tester.getSize(find.byType(CarouselCard)).height, closeTo(400 / 3, 1));
+    // The banner box is width/4.5, not width/3: server banners are
+    // ~4.45:1, so the old 3:1 box left dark bands above and below the
+    // image (the gap complaint that motivated the width/4.5 fix).
+    expect(tester.getSize(find.byType(CarouselCard)).height,
+        closeTo(400 / 4.5, 1));
   });
 
   Widget reader(

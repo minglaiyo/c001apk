@@ -46,10 +46,7 @@ Widget commonBody(
                   commonController.onReset();
                   await commonController.onGetData();
                 },
-                child: Column(children: [
-                  ContentFilterSummary(controller: commonController),
-                  Expanded(child: body),
-                ]),
+                child: body,
               );
             }
             if (leading == null) return Center(child: body);
@@ -94,12 +91,15 @@ Widget buildBody(
           commonController.onGetData(true);
         },
       );
-    case Success():
-      var dataList = (commonController.loadingState.value as Success).response
-          as List<Datum>;
+    case Success(:final response):
+      var dataList = response as List<Datum>;
       if (isReply2Reply) {
         return ListView.separated(
           controller: commonController.scrollController,
+          // Default is 250 px: items just off-screen are disposed and
+          // their images must be re-resolved on scroll-back. 800 px
+          // keeps a few screens of cards (and their thumbnails) alive.
+          cacheExtent: 800,
           physics: AlwaysScrollableScrollPhysics(
             parent: isReply2Reply
                 ? const ClampingScrollPhysics()

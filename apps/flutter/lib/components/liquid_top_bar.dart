@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../utils/storage_util.dart';
@@ -8,9 +9,23 @@ import '../utils/extensions.dart';
 import 'basic_glass.dart';
 export 'basic_glass.dart' show LiquidGlassButton;
 
+/// Glass title builder: context plus the bar's show progress.
+typedef GlassTitleBuilder = Widget Function(
+    BuildContext context, double visibility);
+
 /// Root toolbar surfaces share the navigation glass preference and optics.
 /// Keep the body in the same element slot when preferences change.
-class LiquidTopBarScaffold extends StatelessWidget {
+///
+/// The top bar follows the same scroll behaviour as the floating bottom
+/// navigation bar: scrolling down (towards newer content) hides the
+/// search/tab bar so it does not cover the feed, and scrolling up brings
+/// it back. Horizontal tab/page swipes do not hide it.
+///
+/// Hiding fades the title and actions out at full height first, then
+/// collapses the bar height and the body's top inset in a single frame
+/// at the end, so the body does not relayout on every animation frame.
+/// Showing expands in a single frame first, then fades back in.
+class LiquidTopBarScaffold extends StatefulWidget {
   const LiquidTopBarScaffold({
     super.key,
     required this.title,
@@ -28,7 +43,10 @@ class LiquidTopBarScaffold extends StatelessWidget {
   final Widget title, body;
 
   /// Root pages opt in without changing the body element's position.
-  final WidgetBuilder? glassTitle;
+  /// The second argument is the bar's show progress (1 = fully shown),
+  /// so glass titles can dim their rim/sheen slightly as the bar hides
+  /// with scrolling.
+  final GlassTitleBuilder? glassTitle;
   final List<Widget> Function(BuildContext context)? glassActions;
   final bool compactTitle, floatWithoutGlass;
   final VoidCallback? onSearch;
@@ -37,86 +55,167 @@ class LiquidTopBarScaffold extends StatelessWidget {
   final double? titleSpacing;
 
   @override
+  State<LiquidTopBarScaffold> createState() => _LiquidTopBarScaffoldState();
+}
+
+class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
+    with SingleTickerProviderStateMixin {
+  // 200ms, and rebuilt only through AnimatedBuilder below. The previous
+  // version called setState on every animation tick, which rebuilt this
+  // whole scaffold and, through the changing body MediaQuery inset, the
+  // feed pages below it on every frame - that is what made scrolling feel
+  // laggy on a real device with images in the feed.
+  // Hiding is the laggy moment specifically: the height used to collapse
+  // frame by frame in the second half of the animation, so the body inset
+  // (and therefore the whole feed layout) changed on every frame while
+  // the list was already scrolling. Now the height stays full while the
+  // bar fades, and collapses in a single frame at the end, so the body
+  // relayouts once instead of once per frame.
+  late final _barAnimation = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      reverseDuration: const Duration(milliseconds: 150),
+      value: 1);
+
+  @override
+  void dispose() {
+    _barAnimation.dispose();
+    super.dispose();
+  }
+
+  bool _onScroll(UserScrollNotification notification, bool canHide) {
+    if (!canHide || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    if (notification.direction == ScrollDirection.reverse) {
+      _barAnimation.reverse();
+    } else if (notification.direction == ScrollDirection.forward) {
+      _barAnimation.forward();
+    }
+    return false;
+  }
+
+  @override
   Widget build(BuildContext context) => ValueListenableBuilder(
         valueListenable: GStorage.settings.listenable(keys: [
           SettingsBoxKey.floatingNavigation,
           SettingsBoxKey.liquidGlass,
           SettingsBoxKey.liquidGlassLevel,
         ]),
-        builder: (context, _, __) {
-          final media = MediaQuery.of(context);
-          final glass = glassTitle != null &&
+        builder: (context, _, __) => AnimatedBuilder(
+          animation: _barAnimation,
+          // The body widget instance is passed as AnimatedBuilder's child,
+          // so animation ticks rebuild only the AppBar and the inset
+          // Padding/MediaQuery around it, not the feed pages themselves.
+          child: widget.body,
+          builder: (context, child) {
+            final media = MediaQuery.of(context);
+          final glass = widget.glassTitle != null &&
               GStorage.floatingNavigation &&
-              (GStorage.liquidGlass || floatWithoutGlass);
+              (GStorage.liquidGlass || widget.floatWithoutGlass);
           final height = glass
               ? math.max(64.0, media.textScaler.scale(20) + 16)
               : kToolbarHeight;
-          final inset = media.padding.top + height;
-          final overlay = glass && overlayBody;
+          // Fade out at full height (value 1 -> 0.5), then collapse the
+          // height in a single frame at value == 0. Collapsing frame by
+          // frame used to relayout the body on every animation tick.
+          final value = _barAnimation.value;
+          final heightFactor = value > 0 ? 1.0 : 0.0;
+          final opacity = value >= 0.5 ? (value - 0.5) * 2.0 : 0.0;
+          final animatedHeight = height * heightFactor;
+          final inset = media.padding.top + animatedHeight;
+          final overlay = glass && widget.overlayBody;
+          final canHide = media.viewInsets.bottom == 0;
           final search = IconButton(
-            onPressed: onSearch,
+            onPressed: widget.onSearch,
             icon: const Icon(Icons.search),
             tooltip: '搜索',
           );
+          // glassTitle is only evaluated when glass is true: the original
+          // code only dereferenced it inside the glass branch, and building
+          // it eagerly here would crash with a null check when a page does
+          // not provide a glass title (glass == false).
+          final glassTitle = !glass || opacity == 0
+              ? const SizedBox.shrink()
+              : Opacity(
+                  opacity: opacity,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                          maxWidth:
+                              widget.compactTitle ? double.infinity : 720),
+                      child: Row(children: [
+                        Expanded(
+                          child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: SizedBox(
+                                key: const ValueKey('glass-top-title'),
+                                height: height - 16,
+                                child: widget.glassTitle!(context, value),
+                              )),
+                        ),
+                        if (widget.onSearch != null) ...[
+                          const SizedBox(width: 10),
+                          LiquidGlassButton(
+                            key: const ValueKey('glass-search'),
+                            level: GStorage.liquidGlassLevel,
+                            enabled: GStorage.liquidGlass,
+                            tooltip: '搜索',
+                            height: height - 16,
+                            width: height - 16,
+                            onPressed: widget.onSearch!,
+                            child: const Center(child: Icon(Icons.search)),
+                          ),
+                        ],
+                        if (widget.glassActions != null)
+                          ...widget.glassActions!(context),
+                      ]),
+                    ),
+                  ),
+                );
+          final plainTitle = opacity == 0
+              ? const SizedBox.shrink()
+              : Opacity(opacity: opacity, child: widget.title);
           return Scaffold(
             extendBodyBehindAppBar: true,
             appBar: AppBar(
               automaticallyImplyLeading: false,
-              toolbarHeight: height,
-              titleSpacing: glass ? 12 : titleSpacing,
+              toolbarHeight: animatedHeight,
+              titleSpacing: glass ? 12 : widget.titleSpacing,
               backgroundColor: glass ? Colors.transparent : null,
               forceMaterialTransparency: glass,
               systemOverlayStyle:
                   glass ? context.fitSystemUiOverlayStyle : null,
               elevation: glass ? 0 : null,
               scrolledUnderElevation: glass ? 0 : null,
-              title: glass
-                  ? Align(
-                      alignment: Alignment.centerLeft,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                            maxWidth: compactTitle ? double.infinity : 720),
-                        child: Row(children: [
-                          Expanded(
-                            child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: SizedBox(
-                                  key: const ValueKey('glass-top-title'),
-                                  height: height - 16,
-                                  child: glassTitle!(context),
-                                )),
-                          ),
-                          if (onSearch != null) ...[
-                            const SizedBox(width: 10),
-                            LiquidGlassButton(
-                              key: const ValueKey('glass-search'),
-                              level: GStorage.liquidGlassLevel,
-                              enabled: GStorage.liquidGlass,
-                              tooltip: '搜索',
-                              height: height - 16,
-                              width: height - 16,
-                              onPressed: onSearch!,
-                              child: const Center(child: Icon(Icons.search)),
-                            ),
-                          ],
-                          if (glassActions != null) ...glassActions!(context),
-                        ]),
-                      ),
-                    )
-                  : title,
-              actions:
-                  glass ? null : [...actions, if (onSearch != null) search],
+              title: glass ? glassTitle : plainTitle,
+              actions: glass
+                  ? null
+                  : opacity == 0
+                      ? const []
+                      : [
+                          for (final action in widget.actions)
+                            Opacity(opacity: opacity, child: action),
+                          if (widget.onSearch != null)
+                            Opacity(opacity: opacity, child: search),
+                        ],
             ),
-            body: Padding(
-              padding: EdgeInsets.only(top: overlay ? 0 : inset),
-              child: MediaQuery(
-                data: media.copyWith(
-                  padding: media.padding.copyWith(top: overlay ? inset : 0),
+            body: NotificationListener<UserScrollNotification>(
+              onNotification: (notification) =>
+                  _onScroll(notification, canHide),
+              child: Padding(
+                padding: EdgeInsets.only(top: overlay ? 0 : inset),
+                child: MediaQuery(
+                  data: media.copyWith(
+                    padding: media.padding.copyWith(top: overlay ? inset : 0),
+                  ),
+                  child: child!,
                 ),
-                child: body,
               ),
             ),
           );
-        },
+          },
+        ),
       );
 }

@@ -6,6 +6,8 @@ import '../../components/expressive_loading_indicator.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import '../../components/app_sheet.dart';
@@ -27,10 +29,12 @@ import '../../components/cards/feed_card.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/media/feed_media_context.dart';
 import '../../logic/state/loading_state.dart';
+import '../../pages/feed/feed_change_history_view.dart';
 import '../../pages/feed/feed_controller.dart';
 import '../../pages/feed/reply/reply_dialog.dart' show ReplyType;
 import '../../pages/feed/reply/reply_page.dart';
 import '../settings/device_identity_page.dart';
+import '../history/history_page.dart';
 import '../../utils/device_util.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
@@ -45,7 +49,9 @@ enum FeedMenuItem {
   Fav,
   Block,
   Source,
-  Report;
+  Report,
+  EditHistory,
+  FloorJump;
 
   String get label => switch (this) {
         FeedMenuItem.Copy => '复制',
@@ -54,6 +60,8 @@ enum FeedMenuItem {
         FeedMenuItem.Block => '屏蔽',
         FeedMenuItem.Source => '查看原文',
         FeedMenuItem.Report => '举报',
+        FeedMenuItem.EditHistory => '编辑记录',
+        FeedMenuItem.FloorJump => '跳楼层',
       };
 }
 
@@ -73,6 +81,11 @@ class _FeedPageState extends State<FeedPage> {
   late final String _id = widget.id ?? Get.parameters['id'].orEmpty;
   final _refreshKey = GlobalKey<RefreshIndicatorState>();
   late final _scrollController = ScrollController();
+  // One key per reply card, by list index, so floor jumps can
+  // Scrollable.ensureVisible the target card. Indices are stable:
+  // pagination only appends, and a refresh rebuilds the same index
+  // positions for the new sort order.
+  final _replyKeys = <int, GlobalKey>{};
   final _titleVisible = ValueNotifier<bool>(false);
   bool _showSource = false;
 
@@ -116,6 +129,77 @@ class _FeedPageState extends State<FeedPage> {
     (ReplySortType.author, '楼主'),
   ];
 
+  /// B 层离线快照（详情-only）：断网时若有本动态的快照，
+  /// 在错误页上方展示并明确标注保存时间，绝不冒充新鲜内容。
+  Widget _buildErrorWithSnapshot(LoadingState feedState, Widget errorBody) {
+    Datum? snapshotDatum;
+    String? savedText;
+    var hasSnapshot = false;
+    var snapshotBroken = false;
+    try {
+      final snapshot = GStorage.getFeedSnapshot(_id);
+      hasSnapshot = snapshot != null;
+      final json = snapshot?['json'];
+      final savedAt = snapshot?['savedAt'];
+      if (json is Map) {
+        snapshotDatum = Datum.fromJson(Map<String, dynamic>.from(json));
+      }
+      if (hasSnapshot && snapshotDatum == null) snapshotBroken = true;
+      if (savedAt is num) {
+        final date =
+            DateTime.fromMillisecondsSinceEpoch(savedAt.toInt());
+        savedText =
+            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
+            '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      }
+    } catch (_) {
+      snapshotDatum = null;
+    }
+    if (snapshotDatum == null) {
+      // Never silently show only the guidance buttons: tell the user
+      // whether a snapshot exists at all. Previously a parse failure
+      // here was swallowed and the page looked blank of content.
+      return SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            errorBody,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              child: Text(
+                snapshotBroken
+                    ? '离线快照已保存但无法读取，请联网重试。'
+                    : '无离线快照：该条详情此前未成功加载过，联网后打开一次即可离线查看。',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Text(
+              '离线内容 · 保存于 ${savedText ?? '未知时间'}，可能不是最新内容',
+              textAlign: TextAlign.center,
+            ),
+          ),
+          FeedCard(
+            data: snapshotDatum,
+            isFeedContent: true,
+            forcePlain: _showSource,
+          ),
+          errorBody,
+        ],
+      ),
+    );
+  }
+
   Widget _buildFeedContent(LoadingState feedState) {
     switch (feedState) {
       case Empty():
@@ -131,10 +215,32 @@ class _FeedPageState extends State<FeedPage> {
           ),
         );
       case Error():
-        return Padding(
+        return _buildErrorWithSnapshot(
+            feedState,
+            Padding(
           padding: const EdgeInsets.all(16),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Text(feedState.errMsg, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            const Text('加载失败时，本地收藏与浏览历史仍可离线查看',
+                textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.toNamed('/history',
+                        arguments: {'type': HistoryType.Favorite}),
+                    child: const Text('本地收藏'),
+                  ),
+                  TextButton(
+                    onPressed: () => Get.toNamed('/history',
+                        arguments: {'type': HistoryType.History}),
+                    child: const Text('浏览历史'),
+                  ),
+                ]),
             const SizedBox(height: 12),
             Wrap(
                 alignment: WrapAlignment.center,
@@ -163,7 +269,7 @@ class _FeedPageState extends State<FeedPage> {
                     ),
                 ]),
           ]),
-        );
+            ));
       case Success():
         return _feedController.articleList.isNullOrEmpty
             ? FeedCard(
@@ -270,7 +376,6 @@ class _FeedPageState extends State<FeedPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Divider(height: 1),
-            ContentFilterSummary(controller: _feedController),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
@@ -394,6 +499,136 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
+  /// Floor navigation, modelled on TiebaLite's thread comment navigation:
+  /// jump to a given floor, or to the last floor, in the current sort
+  /// order. Floors count reply cards from 1 (the first card in the
+  /// current list, pinned reply included); the total comes from the
+  /// detail's reply count when known. Arriving at the target gives a
+  /// medium haptic, like TiebaLite's last-floor feedback.
+  Future<void> _showFloorJumpDialog() async {
+    final replyState = _feedController.loadingState.value;
+    if (_feedController.repliesDeferred.value || replyState is! Success) {
+      SmartDialog.showToast('请先加载评论');
+      return;
+    }
+    final total = _feedController.replyNum;
+    final input = TextEditingController();
+    // -1 = last floor, chosen by the 末楼 button.
+    final floor = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('跳楼层'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (total != null) Text('共 $total 条评论，按当前排序计数'),
+            TextField(
+              controller: input,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                hintText: '输入楼层，如 42',
+              ),
+              onSubmitted: (value) {
+                final parsed = int.tryParse(value);
+                if (parsed != null && parsed > 0) {
+                  Navigator.of(context).pop(parsed);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(-1),
+            child: const Text('末楼'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final parsed = int.tryParse(input.text);
+              if (parsed != null && parsed > 0) {
+                Navigator.of(context).pop(parsed);
+              }
+            },
+            child: const Text('跳转'),
+          ),
+        ],
+      ),
+    );
+    input.dispose();
+    if (floor == null || !mounted) return;
+    await _jumpToFloor(floor);
+  }
+
+  int get _loadedReplyCount {
+    final state = _feedController.loadingState.value;
+    if (state is! Success) return 0;
+    return (state.response as List).length;
+  }
+
+  Future<void> _jumpToFloor(int floor) async {
+    // Wait out a footer auto-load already in progress, briefly.
+    for (var wait = 0;
+        _feedController.isLoading && wait < 50 && mounted;
+        wait++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    // Load pages until the target floor is loaded, or until the end
+    // for the last floor. A load that grows nothing (error / paused)
+    // breaks the loop instead of spinning.
+    var guard = 0;
+    if (floor == -1) {
+      while (!_feedController.isEnd && guard++ < 200 && mounted) {
+        final before = _loadedReplyCount;
+        await _feedController.onGetData(false);
+        if (_loadedReplyCount == before) break;
+      }
+      floor = _loadedReplyCount;
+    } else {
+      while (_loadedReplyCount < floor &&
+          !_feedController.isEnd &&
+          guard++ < 200 &&
+          mounted) {
+        final before = _loadedReplyCount;
+        await _feedController.onGetData(false);
+        if (_loadedReplyCount == before) break;
+      }
+      if (floor > _loadedReplyCount) {
+        if (!mounted) return;
+        SmartDialog.showToast('只有 $_loadedReplyCount 条评论，已定位到末楼');
+        floor = _loadedReplyCount;
+      }
+    }
+    if (floor <= 0 || !mounted) return;
+    // The target card may not be built yet (a lazy sliver far below the
+    // viewport): scroll toward the bottom until it builds, then reveal
+    // it precisely.
+    for (var attempt = 0; attempt < 25 && mounted; attempt++) {
+      final target = _replyKeys[floor - 1]?.currentContext;
+      if (target != null) {
+        await Scrollable.ensureVisible(
+          target,
+          duration: const Duration(milliseconds: 400),
+          alignment: 0.1,
+        );
+        await HapticFeedback.mediumImpact();
+        return;
+      }
+      if (!_scrollController.hasClients) return;
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    if (mounted) SmartDialog.showToast('未能定位到第 $floor 楼');
+  }
+
   Widget _buildFeedReply(LoadingState replyState) {
     if (_feedController.repliesDeferred.value && replyState is! Success) {
       return SliverToBoxAdapter(child: _buildDeferredReplyPrompt(replyState));
@@ -448,6 +683,7 @@ class _FeedPageState extends State<FeedPage> {
                 );
               } else {
                 return FeedReplyCard(
+                  key: _replyKeys.putIfAbsent(index, () => GlobalKey()),
                   data: dataList[index],
                   isTopReply: _feedController.topReply != null &&
                       index == 0 &&
@@ -547,30 +783,28 @@ class _FeedPageState extends State<FeedPage> {
                   child: Container(
                     color: Colors.transparent,
                     width: double.infinity,
-                    child: visible && _feedController.feedState.value is Success
-                        ? header(
-                            context,
-                            (_feedController.feedState.value as Success)
-                                .response,
-                            true,
-                            isHeader: true,
-                          )
-                        : _feedController.feedState.value is Success
-                            ? Text(
-                                _feedController.feedTypeName!,
-                                textAlign: Platform.isIOS
-                                    ? TextAlign.center
-                                    : TextAlign.start,
-                              )
-                            : null,
+                    child: switch (_feedController.feedState.value) {
+                      Success(:final response) when visible => header(
+                        context,
+                        response,
+                        true,
+                        isHeader: true,
+                      ),
+                      Success() => Text(
+                        _feedController.feedTypeName!,
+                        textAlign: Platform.isIOS
+                            ? TextAlign.center
+                            : TextAlign.start,
+                      ),
+                      _ => null,
+                    },
                   ),
                 );
               },
             ),
-            actions: _feedController.feedState.value is Success
-                ? [
-                    if ((_feedController.feedState.value as Success).isPublic &&
-                        GlobalData().isLogin)
+            actions: switch (_feedController.feedState.value) {
+              Success(:final response, :final isPublic) => [
+                    if (isPublic && GlobalData().isLogin)
                       IconButton(
                         tooltip: '账号信息暂不可用',
                         onPressed: _feedController.isLoadingDetail.value
@@ -585,8 +819,7 @@ class _FeedPageState extends State<FeedPage> {
                             : const Icon(Icons.info_outline),
                       ),
                     ContentExportButton(
-                      feed: (_feedController.feedState.value as Success)
-                          .response as Datum,
+                      feed: response as Datum,
                       articles: _feedController.articleList ?? const [],
                     ),
                     PopupMenuButton(
@@ -597,9 +830,7 @@ class _FeedPageState extends State<FeedPage> {
                                 getShareUrl(_id, ShareType.feed));
                             break;
                           case FeedMenuItem.Share:
-                            final data =
-                                (_feedController.feedState.value as Success)
-                                    .response as Datum;
+                            final data = response;
                             shareContent(_id, ShareType.feed,
                                 title:
                                     data.messageTitle?.trim().isNotEmpty == true
@@ -635,6 +866,12 @@ class _FeedPageState extends State<FeedPage> {
                           case FeedMenuItem.Source:
                             setState(() => _showSource = !_showSource);
                             break;
+                          case FeedMenuItem.EditHistory:
+                            showFeedChangeHistoryDialog(context, _id);
+                            break;
+                          case FeedMenuItem.FloorJump:
+                            _showFloorJumpDialog();
+                            break;
                         }
                       },
                       itemBuilder: (BuildContext context) => FeedMenuItem.values
@@ -659,8 +896,9 @@ class _FeedPageState extends State<FeedPage> {
                               ))
                           .toList(),
                     )
-                  ]
-                : null,
+                  ],
+                  _ => null,
+                },
           ),
         ),
       ),

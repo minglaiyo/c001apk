@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../components/back_to_top_action.dart';
 import '../../../components/expressive_loading_indicator.dart';
 import '../../../components/expressive_refresh_indicator.dart';
 import '../../../components/scroll_hide_animator.dart';
@@ -81,8 +82,10 @@ class _AppListPageState extends State<AppListPage>
                   ),
                 )
               : null,
-          body: ListView.builder(
-            controller: _scrollController,
+          body: Stack(
+            children: [
+              ListView.builder(
+                controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
@@ -102,7 +105,12 @@ class _AppListPageState extends State<AppListPage>
                 '${data[index].packageName}\n${data[index].versionName}(${data[index].versionCode})',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
-            ),
+                ),
+              ),
+              // Installed apps are local data with no first-page reload,
+              // so this button is tap-to-top only.
+              BackToTopOverlay(controller: _scrollController),
+            ],
           ),
         ),
       ),

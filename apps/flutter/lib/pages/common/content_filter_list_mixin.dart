@@ -71,9 +71,11 @@ mixin ContentFilterListMixin on GetxController {
 
   void publishItems(List<Datum> items, {bool append = false}) {
     initContentFiltering();
-    final previous = !supportsContentFilter && loadingState.value is Success
-        ? List<Datum>.from((loadingState.value as Success).response)
-        : rawItems;
+    final previous = switch (loadingState.value) {
+      Success(:final response) when !supportsContentFilter =>
+        List<Datum>.from(response),
+      _ => rawItems,
+    };
     final combined = append ? [...previous, ...items] : items;
     rawItems = handleUnique(combined) ?? combined;
     reapplyFilters();

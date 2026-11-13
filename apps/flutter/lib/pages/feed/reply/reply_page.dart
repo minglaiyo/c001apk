@@ -401,6 +401,18 @@ class _ReplyPageState extends State<ReplyPage>
                     }
                   },
                 ),
+                const SizedBox(width: 10),
+                Tooltip(
+                  message: '发文章',
+                  child: ToolbarIconButton(
+                    selected: false,
+                    icon: const Icon(Icons.article, size: 22),
+                    onPressed: () {
+                      Get.back();
+                      Get.toNamed('/article_editor');
+                    },
+                  ),
+                ),
                 const Spacer(),
                 StreamBuilder(
                   initialData: false,

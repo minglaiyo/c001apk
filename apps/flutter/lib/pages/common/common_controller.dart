@@ -91,10 +91,10 @@ abstract class CommonController extends GetxController
             if (hasVisibleItems || isEnd) break;
             if (attempt == 2) {
               automaticLoadPaused = true;
-              footerState.value = LoadingState.error('本批内容已过滤，点击继续加载');
+              footerState.value = LoadingState.error('点击继续加载');
             }
           } else {
-            isEnd = response is Empty;
+            if (response is Empty) isEnd = true;
             automaticLoadPaused = response is Error;
             LoadingState? extraResponse = handleExtraResponse();
             if (extraResponse != null) {

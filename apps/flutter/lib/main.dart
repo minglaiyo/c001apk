@@ -14,9 +14,12 @@ import 'package:window_manager/window_manager.dart';
 
 import 'components/custom_toast.dart';
 import 'components/app_keyboard_navigation.dart';
+import 'components/onboarding_gate.dart';
 import 'components/app_navigation_history.dart';
 import 'components/prompt_navigation.dart';
 import 'logic/accounts/account_store.dart';
+import 'logic/cache/auto_cache_cleanup.dart';
+import 'logic/clipboard/clipboard_link_detector.dart';
 import 'logic/media/media_load_policy.dart';
 import 'logic/content_filter/app_content_filter.dart';
 import 'components/announcement_monitor.dart';
@@ -28,6 +31,7 @@ import 'pages/webview/captcha_page.dart';
 import 'router/app_pages.dart';
 import 'constants/app_motion.dart';
 import 'router/page_transitions.dart';
+import 'utils/cache_util.dart';
 import 'utils/storage_util.dart';
 import 'utils/app_theme.dart';
 import 'utils/desktop_window.dart';
@@ -35,6 +39,12 @@ import 'utils/android_links.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Feed lists decode large photos; the 100 MB default image cache
+  // evicts them after a few screens, so scrolling back re-decodes
+  // (and, once the disk cache also rolls over, re-downloads). 300 MB
+  // keeps several screens of list thumbnails resident.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -98,6 +108,13 @@ void main() async {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     if (links != null) unawaited(links.ready());
   });
+  // Automatic cache cleanup, on launch only and never blocking startup:
+  // a failed cleanup simply retries on the next launch (see
+  // AutoCacheCleanupPreferences).
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(AutoCacheCleanupPreferences(GStorage.settings)
+        .runIfDue(DateTime.now(), CacheManage().clearCacheAll));
+  });
 }
 
 class C001APKAPP extends StatefulWidget {
@@ -107,21 +124,75 @@ class C001APKAPP extends StatefulWidget {
   State<C001APKAPP> createState() => _C001APKAPPState();
 }
 
-class _C001APKAPPState extends State<C001APKAPP> {
+class _C001APKAPPState extends State<C001APKAPP>
+    with WidgetsBindingObserver {
   final _navigationHistory =
       AppNavigationHistory(isReplayable: AppPages.canReplay);
   final _promptNavigation = PromptNavigationObserver();
+  bool _clipboardPrompting = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     AccountStore.changes.addListener(_navigationHistory.clear);
+    // Cold start with a copied link: resumed fires on launch too, but
+    // check once explicitly so the prompt is not tied to that timing.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkClipboard());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     AccountStore.changes.removeListener(_navigationHistory.clear);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkClipboard();
+  }
+
+  /// TiebaLite-style clipboard prompt: a copied Coolapk link offers to
+  /// open in-app when returning to the app. One prompt per clipboard
+  /// content, never while another prompt is up, and only when the
+  /// settings switch is on (see ClipboardLinkDetector).
+  Future<void> _checkClipboard() async {
+    if (_clipboardPrompting) return;
+    // Like AndroidLinks: never prompt over the onboarding flow.
+    await waitForOnboardingNavigation(OnboardingState.current);
+    final link = await ClipboardLinkDetector.checkClipboard();
+    if (link == null || !mounted) return;
+    _clipboardPrompting = true;
+    // Get.dialog, not showDialog: this state's context sits above the
+    // app's Navigator, so a context-based dialog would find none.
+    final open = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('检测到酷安链接'),
+        content: Text(
+          link,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('忽略'),
+          ),
+          FilledButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text('打开'),
+          ),
+        ],
+      ),
+    );
+    await ClipboardLinkDetector.markPrompted(link);
+    _clipboardPrompting = false;
+    if (open == true && mounted) {
+      // No context: feed links fall back to the plain /feed/:id route
+      // instead of the split-pane FeedNavigation.open.
+      Utils.onOpenLink(link, null, true);
+    }
   }
 
   @override

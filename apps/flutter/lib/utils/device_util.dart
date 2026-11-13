@@ -2,13 +2,6 @@ import 'dart:math';
 
 
 class DeviceUtil {
-  static bool isPreGetLoginParam = false;
-  static bool isGetLoginParam = false;
-  static bool isTryLogin = false;
-  static bool isGetCaptcha = false;
-  static bool isGetSmsLoginParam = false;
-  static bool isGetSmsToken = false;
-
   static int? atme;
   static int? atcommentme;
   static int? feedlike;
