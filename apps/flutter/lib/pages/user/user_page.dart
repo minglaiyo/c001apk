@@ -8,7 +8,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:indent/indent.dart';
 import 'package:intl/intl.dart';
 
 import '../../components/cards/user_info_card.dart';
@@ -24,6 +23,16 @@ import '../../utils/device_util.dart';
 import '../../utils/extensions.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/utils.dart';
+
+/// 去除多行字符串中每行 `|` 之前的缩进（替代 package:indent 的 trimMargin）。
+extension _StringTrimMargin on String {
+  String trimMargin() => split('\n')
+      .map((line) {
+        final index = line.indexOf('|');
+        return index == -1 ? line.trim() : line.substring(index + 1);
+      })
+      .join('\n');
+}
 
 enum UserMenuItem {
   Copy,

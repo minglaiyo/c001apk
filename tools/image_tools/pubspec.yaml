@@ -1,0 +1,7 @@
+name: image_tools
+description: 独立的资源压缩维护工具，不属于应用运行时依赖。
+publish_to: 'none'
+environment:
+  sdk: ^3.5.0
+dependencies:
+  image: ^4.2.0

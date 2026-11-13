@@ -17,14 +17,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.4.1"
-  android_intent_plus:
-    dependency: "direct main"
-    description:
-      name: android_intent_plus
-      sha256: "007703c1b2cac7ca98add3336b98cffa4baa11d5133cc463293dba9daa39cdf6"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.1.0"
   ansicolor:
     dependency: transitive
     description:
@@ -217,22 +209,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
-  connectivity_plus:
-    dependency: "direct main"
-    description:
-      name: connectivity_plus
-      sha256: "2056db5241f96cdc0126bd94459fc4cdc13876753768fc7a31c425e50a7177d0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.0.5"
-  connectivity_plus_platform_interface:
-    dependency: transitive
-    description:
-      name: connectivity_plus_platform_interface
-      sha256: "42657c1715d48b167930d5f34d00222ac100475f73d10162ddf43e714932f204"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.1"
   convert:
     dependency: transitive
     description:
@@ -265,14 +241,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
-  cupertino_icons:
-    dependency: "direct main"
-    description:
-      name: cupertino_icons
-      sha256: ba631d1c7f7bef6b729a622b7b752645a2d076dba9976925b8f25725a30e1ee6
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.8"
   dart_style:
     dependency: transitive
     description:
@@ -281,14 +249,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.6"
-  dbus:
-    dependency: transitive
-    description:
-      name: dbus
-      sha256: "365c771ac3b0e58845f39ec6deebc76e3276aa9922b0cc60840712094d9047ac"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.7.10"
   device_info_plus:
     dependency: "direct main"
     description:
@@ -337,14 +297,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.17"
-  expressive_refresh:
-    dependency: "direct main"
-    description:
-      name: expressive_refresh
-      sha256: "99bb70ae1719ebdedbaf3b4a49031ef7b916da157f7843b8e83efbe6633b20ad"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.2"
   extended_nested_scroll_view:
     dependency: "direct main"
     description:
@@ -410,7 +362,7 @@ packages:
     source: hosted
     version: "2.6.2"
   file_selector_windows:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: file_selector_windows
       sha256: "2ad726953f6e8affbc4df8dc78b77c3b4a060967a291e528ef72ae846c60fb69"
@@ -732,14 +684,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.1+1"
-  indent:
-    dependency: "direct main"
-    description:
-      name: indent
-      sha256: "819319a5c185f7fe412750c798953378b37a0d0d32564ce33e7c5acfd1372d2a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.0"
   intl:
     dependency: "direct main"
     description:
@@ -773,7 +717,7 @@ packages:
     source: hosted
     version: "4.9.0"
   json_serializable:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       name: json_serializable
       sha256: ea1432d167339ea9b5bb153f0571d0039607a873d6e04e0117af043f14a1fd4b
@@ -844,22 +788,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.13.0"
-  material_loading_indicator:
-    dependency: "direct main"
-    description:
-      name: material_loading_indicator
-      sha256: "432508986e0efa6bf7de48221a0433a57b0e2ad3d927f6b1f2a6d20500676a3e"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0"
-  material_new_shapes:
-    dependency: transitive
-    description:
-      name: material_new_shapes
-      sha256: e4bc375205e187e8fb232573387112dd8c0dd45b03af8aa2b3c79eb4b9e3e0dc
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0"
   meta:
     dependency: transitive
     description:
@@ -876,22 +804,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
-  modal_bottom_sheet:
-    dependency: "direct main"
-    description:
-      name: modal_bottom_sheet
-      sha256: eac66ef8cb0461bf069a38c5eb0fa728cee525a531a8304bd3f7b2185407c67e
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.0.0"
-  nm:
-    dependency: transitive
-    description:
-      name: nm
-      sha256: "2c9aae4127bdc8993206464fcc063611e0e36e72018696cd9631023a31b24254"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.5.0"
   octo_image:
     dependency: transitive
     description:
@@ -1498,7 +1410,7 @@ packages:
     source: hosted
     version: "1.0.4"
   xml:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: xml
       sha256: b015a8ad1c488f66851d762d3090a21c600e479dc75e68328c52774040cf9226

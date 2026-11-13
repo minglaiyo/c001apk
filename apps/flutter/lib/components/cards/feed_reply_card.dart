@@ -1,7 +1,7 @@
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
+import '../app_sheet.dart';
 
 import '../../components/html_text.dart';
 import '../content_filter_gate.dart';
@@ -290,14 +290,12 @@ class FeedReplyCard extends StatelessWidget {
           if (data.replyRowsMore != null && data.replyRowsMore! > 0)
             InkWell(
               onTap: () {
-                showCupertinoModalBottomSheet(
+                showBottomSheetPage(
                   context: context,
-                  builder: (context) {
-                    return Reply2ReplyPage(
-                        id: data.id.toString(),
-                        replynum: data.replynum,
-                        originReply: data);
-                  },
+                  page: Reply2ReplyPage(
+                      id: data.id.toString(),
+                      replynum: data.replynum,
+                      originReply: data),
                 );
               },
               child: Container(
@@ -383,15 +381,13 @@ class FeedReplyCard extends StatelessWidget {
                     return '<a class="feed-link-uname" href="/u/${reply.uid}">${reply.userInfo?.username}$replyTag</a>回复$rReplyUser: $message$replyPic';
                   }(),
                   fontSize: 14,
-                  onShowTotalReply: () => showCupertinoModalBottomSheet(
+                  onShowTotalReply: () => showBottomSheetPage(
                     context: context,
-                    builder: (context) {
-                      return Reply2ReplyPage(
-                        id: data.id.toString(),
-                        replynum: data.replynum,
-                        originReply: data,
-                      );
-                    },
+                    page: Reply2ReplyPage(
+                      id: data.id.toString(),
+                      replynum: data.replynum,
+                      originReply: data,
+                    ),
                   ),
                   picArr: reply.picArr,
                   mediaItems:
@@ -485,14 +481,12 @@ class _MorePanel extends StatelessWidget {
         break;
       case PanelAction.showReply:
         Get.back();
-        showCupertinoModalBottomSheet(
+        showBottomSheetPage(
           context: context!,
-          builder: (context) {
-            return Reply2ReplyPage(
-                id: id.toString(),
-                replynum: reply!.replynum,
-                originReply: reply!);
-          },
+          page: Reply2ReplyPage(
+              id: id.toString(),
+              replynum: reply!.replynum,
+              originReply: reply!),
         );
         break;
     }

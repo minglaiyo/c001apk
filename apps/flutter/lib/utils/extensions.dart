@@ -1,11 +1,9 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 extension ScrollControllerExt on ScrollController {
   void animToTop() {
@@ -133,53 +131,11 @@ extension NullableStringExt on String? {
     HapticFeedback.mediumImpact();
   }
 
-  Future<void> launchAppAndCopy() async {
-    if (isNullOrBlank) {
-      return '内容为空，取消操作'.toast();
-    }
-    // Kept with the disabled external launch flow below.
-    // ignore: unused_element
-    Future doOtherAction() async {
-      if (await canLaunchUrlString(this!)) {
-        await launchUrlString(this!, mode: LaunchMode.externalApplication);
-      } else {
-        '未找到可打开应用'.toast();
-      }
-    }
-
-    // await FlutterClipboard.copy(this!);
-    // if (Platform.isAndroid) {
-    //   unawaited(
-    //     AndroidIntent(
-    //       action: 'android.intent.action.VIEW',
-    //       flags: [
-    //         Flag.FLAG_ACTIVITY_NEW_TASK,
-    //         Flag.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED,
-    //       ],
-    //       data: this,
-    //     ).launch().catchError((e, s) async {
-    //       e.debug(stackTrace: s);
-    //       await doOtherAction();
-    //     }),
-    //   );
-    // } else {
-    //   await doOtherAction();
-    // }
-  }
-
-  void copy() {
-    if (isNullOrBlank) {
-      return '内容为空，取消操作'.toast();
-    }
-    // FlutterClipboard.copy(this!).then((_) => '已复制到剪切板'.toast());
-  }
-
   void share() {
     if (isNullOrBlank) {
       return '内容为空，取消操作'.toast();
     }
     Share.share(this!);
-    // FlutterClipboard.copy(this!).then((_) => '尝试分享，并复制到剪切板'.toast());
   }
 }
 
