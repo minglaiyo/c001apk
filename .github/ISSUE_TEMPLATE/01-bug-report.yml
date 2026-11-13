@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        这是作者个人维护的 vibe coding 项目，优先 Android 与 Windows。提交反馈不等于承诺修复或排期。
+        这是作者个人维护的 vibe coding 项目，聚焦 Android（自 2026-11 起为 Android-only）。提交反馈不等于承诺修复或排期。
 
         请报告实际测到的现象。其他项目的 issue 只能作为线索，不能代替本项目的复现，也不能直接当作根因结论。
         对厂商 ROM、旧系统、第三方模块或服务端限制导致的问题，作者可能不提供兼容；系统或上游已有修复时，请优先升级复测。本项目不承诺为个别环境加入影响全体用户的全局兜底。
@@ -49,10 +49,6 @@ body:
       label: 运行平台
       options:
         - Android
-        - Windows
-        - Linux
-        - iOS
-        - 其他（请说明）
     validations:
       required: true
   - type: textarea
@@ -64,7 +60,7 @@ body:
         设备型号：
         系统 / ROM 完整版本：
         第三方模块、修改或其他来源说明（无则写无）：
-        相关显示环境（如小窗 / 分屏 / 横屏，或桌面窗口大小、屏幕缩放）：
+        相关显示环境（如小窗 / 分屏 / 横屏）：
     validations:
       required: true
   - type: textarea

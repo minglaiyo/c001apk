@@ -20,10 +20,6 @@ on:
         description: 'Build Android with the official release certificate (requires Secrets)'
         type: boolean
         default: true
-      ios:
-        description: 'Also build an unsigned iOS arm64 IPA (requires your own signing)'
-        type: boolean
-        default: false
       implementation:
         description: 'Official private implementation or public basic implementation'
         type: choice
@@ -78,82 +74,6 @@ jobs:
       - name: Offline regression tests
         run: flutter test --no-pub
 
-  desktop:
-    name: ${{ matrix.platform }} x86_64 release
-    needs: checks
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows
-            runner: windows-2022
-          - platform: linux
-            runner: ubuntu-22.04
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 35
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - name: Linux native dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
-      - name: Sync build date
-        run: dart tool/update_build_date.dart ${{ needs.checks.outputs.build_date }}
-      - run: flutter pub get --enforce-lockfile
-      - name: Assemble official implementation
-        if: env.USE_PRIVATE_EXTENSIONS == 'true'
-        uses: ./.github/actions/private-extensions
-        with:
-          private-key: ${{ secrets.PRIVATE_EXTENSIONS_DEPLOY_KEY }}
-      - run: flutter build ${{ matrix.platform }} --release --no-pub
-      - name: Package Windows runtime
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $version = ((Select-String -Path pubspec.yaml -Pattern '^version: ').Line -replace '^version: ', '').Trim()
-          $runtime = 'build/windows/x64/runner/Release'
-          foreach ($file in @('c001apk.exe', 'flutter_windows.dll', 'data/icudtl.dat', 'data/app.so', 'data/flutter_assets/assets/icon/icon.png', 'data/flutter_assets/fonts/MaterialIcons-Regular.otf')) {
-            if (!(Test-Path -LiteralPath "$runtime/$file")) { throw "Missing runtime file: $file" }
-          }
-          foreach ($asset in Get-ChildItem -LiteralPath assets/emojis -File) {
-            $bundled = "$runtime/data/flutter_assets/assets/emojis/$($asset.Name)"
-            if (!(Test-Path -LiteralPath $bundled) -or (Get-FileHash -LiteralPath $asset.FullName).Hash -ne (Get-FileHash -LiteralPath $bundled).Hash) {
-              throw "Missing or different emoji asset: $($asset.Name)"
-            }
-          }
-          New-Item -ItemType Directory -Force -Path build/distribution | Out-Null
-          $archive = "c001apk-$version-windows-x86_64.zip"
-          Compress-Archive -Path "$runtime/*" -DestinationPath "build/distribution/$archive"
-          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath "build/distribution/$archive").Hash.ToLowerInvariant()
-          "$hash  $archive" | Set-Content -Encoding ascii -Path build/distribution/SHA256SUMS.txt
-      - name: Package Linux runtime
-        if: runner.os == 'Linux'
-        run: |
-          version=$(sed -n 's/^version: //p' pubspec.yaml | tr -d '\r')
-          bundle=build/linux/x64/release/bundle
-          test -x "$bundle/c001apk"
-          test -f "$bundle/lib/libflutter_linux_gtk.so"
-          test -f "$bundle/lib/libapp.so"
-          test -f "$bundle/data/icudtl.dat"
-          mkdir -p build/distribution
-          archive="c001apk-$version-linux-x86_64.tar.gz"
-          tar -czf "build/distribution/$archive" -C "$bundle" .
-          (cd build/distribution && sha256sum "$archive" > SHA256SUMS.txt)
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: c001apk-${{ matrix.platform }}-x86_64-release
-          path: apps/flutter/build/distribution/*
-          if-no-files-found: error
-          retention-days: 14
 
   android-debug:
     name: Android debug (project certificate)
@@ -349,56 +269,5 @@ jobs:
         with:
           name: c001apk-android-release-checksums
           path: apps/flutter/build/distribution/SHA256SUMS.txt
-          if-no-files-found: error
-          retention-days: 14
-
-  ios:
-    name: iOS arm64 unsigned IPA
-    if: github.event_name == 'workflow_dispatch' && inputs.ios
-    needs: checks
-    runs-on: macos-14
-    timeout-minutes: 35
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - name: Sync build date
-        run: dart tool/update_build_date.dart ${{ needs.checks.outputs.build_date }}
-      - run: flutter pub get --enforce-lockfile
-      - name: Assemble official implementation
-        if: env.USE_PRIVATE_EXTENSIONS == 'true'
-        uses: ./.github/actions/private-extensions
-        with:
-          private-key: ${{ secrets.PRIVATE_EXTENSIONS_DEPLOY_KEY }}
-      - run: flutter build ios --release --no-codesign --no-pub
-      - name: Check arm64 binary
-        run: |
-          xcrun lipo build/ios/iphoneos/Runner.app/Runner -verify_arch arm64
-          plutil -extract CFBundleIdentifier raw build/ios/iphoneos/Runner.app/Info.plist
-          plutil -extract CFBundleShortVersionString raw build/ios/iphoneos/Runner.app/Info.plist
-          plutil -extract CFBundleVersion raw build/ios/iphoneos/Runner.app/Info.plist
-          test ! -f build/ios/iphoneos/Runner.app/embedded.mobileprovision
-      - name: Package unsigned IPA
-        run: |
-          version=$(sed -n 's/^version: //p' pubspec.yaml | tr -d '\r')
-          distribution="$PWD/build/distribution"
-          mkdir -p "$distribution/ios-staging/Payload"
-          ditto build/ios/iphoneos/Runner.app "$distribution/ios-staging/Payload/Runner.app"
-          archive="c001apk-$version-ios-arm64-unsigned.ipa"
-          (cd "$distribution/ios-staging" && ditto -c -k --keepParent Payload "../$archive")
-          unzip -t "$distribution/$archive"
-          (cd "$distribution" && shasum -a 256 "$archive" > SHA256SUMS.txt)
-          echo 'Unsigned arm64 IPA: sign it with your own Apple certificate and provisioning profile before installation. No iPhone runtime acceptance has been performed.' >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: c001apk-ios-arm64-unsigned
-          path: |
-            apps/flutter/build/distribution/*-ios-arm64-unsigned.ipa
-            apps/flutter/build/distribution/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14

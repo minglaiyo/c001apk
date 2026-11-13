@@ -9,7 +9,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-607D8B?style=flat-square)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-3.47.7-02569B?style=flat-square&logo=flutter&logoColor=white)](docs/DEVELOPMENT.md)
 [![Build](https://github.com/TG-Twilight/c001apk/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/TG-Twilight/c001apk/actions/workflows/build.yml)
-![Platforms](https://img.shields.io/badge/平台-Android%20%7C%20Windows-486B78?style=flat-square)
+![Platforms](https://img.shields.io/badge/平台-Android-486B78?style=flat-square)
 ![Status](https://img.shields.io/badge/状态-持续维护中-6E8B74?style=flat-square)
 
 [下载](https://github.com/TG-Twilight/c001apk/releases) · [反馈问题](https://github.com/TG-Twilight/c001apk/issues) · [参与开发](docs/DEVELOPMENT.md)
@@ -51,16 +51,6 @@
 </p>
 <p align="center"><sub>Android · 首页 / 图文详情 / 分类设置</sub></p>
 
-<p align="center">
-  <img src="docs/media/screenshots/windows-home-1.2.5.avif" width="96%" alt="Windows 桌面端首页：侧边导航与宽屏内容区域">
-</p>
-<p align="center"><sub>Windows · 桌面端首页</sub></p>
-
-<p align="center">
-  <img src="docs/media/screenshots/windows-settings-1.2.5.avif" width="96%" alt="Windows 分类设置：宽窗口下并排显示分类与外观选项">
-</p>
-<p align="center"><sub>Windows · 分类设置与宽窗口布局</sub></p>
-
 ## 下载安装
 
 正式安装包可从 [Releases](https://github.com/TG-Twilight/c001apk/releases) 获取，也可以参照 [开发指南](docs/DEVELOPMENT.md) 自行构建。
@@ -79,13 +69,12 @@
 - [x] 主导航与分类设置调整，新增 c001apk 自身更新检测。
 - [x] 修复评论完成验证后仍无法加载，更新检测改为每次冷启动检查一次。
 - [ ] 继续完善验证码放行与部分账号操作。
-- 继续维护现有 Flutter，优先 Android 与 Windows，见 [当前维护方向](docs/PROJECT_DIRECTION.md)。
-- [ ] 完善 Flutter 桌面端随窗口尺寸变化的自适应布局与图片保存。
+- 继续维护现有 Flutter，聚焦 Android，见 [当前维护方向](docs/PROJECT_DIRECTION.md)。
 
-当前重点维护 **Android 与 Windows**，代码仍为 Flutter。Android 包名为 `app.awavenue.c001apk`；Linux 已通过云端 release 构建，iOS `arm64` 未签名 IPA 已随 [1.2.6-release](https://github.com/TG-Twilight/c001apk/releases/tag/1.2.6-release) 提供，安装前需自行签名。Linux / iOS 运行体验仍待验收。新包与旧包独立安装，登录及本地数据不会自动迁移。
+当前聚焦 **Android**（自 2026-11 起项目为 Android-only，桌面与 iOS 平台代码已移除）。Android 包名为 `app.awavenue.c001apk`。新包与旧包独立安装，登录及本地数据不会自动迁移。
 
 > [!NOTE]
-> 部分内容仍受登录、验证码和服务端接口限制，验证码放行与部分账号操作仍需继续完善。Windows 暂不支持应用内直接保存图片，可在浏览器中打开后保存。
+> 部分内容仍受登录、验证码和服务端接口限制，验证码放行与部分账号操作仍需继续完善。
 
 ## 参与与致谢
 

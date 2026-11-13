@@ -107,3 +107,42 @@
    sliver_tools 各只有 1 个文件使用，替换有行为风险，暂保留。
 6. **Datum 上帝模型与 dynamic 泛化**：`LoadingState<dynamic>` 与
    `as List<Datum>` 强转遍布列表链路，长期应按实体类型细分。
+
+---
+
+# 2026-11-14：功能线合并 + Android-only
+
+## 功能移植
+
+`scroll-hide-floating-nav` 分支（102 提交，v1.6.0+20261030）已合并进主线：
+滚动隐藏悬浮导航（底部栏 ScrollHidingAction maintainSize 保几何 + 顶栏整高淡出末帧塌缩）、
+可拖动回顶键、首页“更新了 N 条动态”胶囊、可编辑主页标签与话题格子、
+完整产品详情页（关注/评分/讨论排序 pill/参数对话框与对比，移植自 AGPL-3.0 的 Costben 解析逻辑）、
+投票卡片、玻璃菜单与玻璃档位选择器、云端历史、收藏单管理、图文文章编辑器、
+动态编辑记录与跳楼层、动态离线快照、搜索热门与分类联想、剪贴板链接检测、
+设置内搜索、缓存自动清理、列表缩略图 CDN 预览（.m.jpg）、拦截器头部拆分与分页语义修正
+（Error 不再翻转 isEnd）。功能语义以功能线为准，落点适配主线结构：
+统一 MorePanel（新增收藏到发布单动作）、showBottomSheetPage/showConfirmDialog、
+design token、openLink 路由单源、CommonController mixin 分层、ScrollHideAnimator。
+
+新增测试 17 个文件约 75 用例；合并后全量 analyze 零告警、测试通过（629 通过 4 跳过，
+跳过项为需真机的设备标识用例）。
+
+## Android-only 裁剪
+
+- 删除平台目录 `apps/flutter/{windows,linux,ios,macos,web}` 与仓库根 stray `build.yml`。
+- 删除桌面专用文件：desktop_window.dart、web_runtime.dart、local_web_page.dart；
+  captcha/webview 页改为 `CookieManager.instance()` 直用（Android 路径完整）。
+- 清理 17 处平台分支（main.dart 桌面初始化、SystemNavigator 退出、分享/下载/导出/
+  滚动条/菜单的 Windows 分支、isSupportWebview 守卫等），依赖删除
+  window_manager、screen_retriever 与 launcher_icons 平台段。
+- CI 移除 desktop 与 ios job 及 ios dispatch input，仅保留
+  checks / android-debug / android-release（自有证书三 ABI）。
+- 签名证书切换为 fork 自有 JKS（alias release，指纹 12F2298C…BCC2），
+  workflow 指纹校验同步更新；上游证书 EA385AFC 不再使用。
+
+## 后续注意
+
+- `tool/assemble_private_extensions.dart` 白名单已裁掉 windows/runner 段；
+  若私有实现仓库仍下发 windows 文件，assemble 会拒绝（当前 fork 未启用私有装配）。
+- 新签名与上游历史签名互不覆盖：装有上游签名包的设备需先卸载再装本 fork 包。
