@@ -6,6 +6,7 @@ import '../logic/model/feed_article/feed_article.dart';
 import '../utils/content_export_service.dart';
 import '../utils/content_export.dart';
 import '../utils/global_data.dart';
+import 'expressive_loading_indicator.dart';
 
 class ContentExportButton extends StatefulWidget {
   const ContentExportButton(
@@ -112,6 +113,6 @@ class _ContentExportButtonState extends State<ContentExportButton> {
           ? const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2))
+              child: ExpressiveLoadingIndicator(size: 20))
           : const Icon(Icons.save_alt_outlined));
 }

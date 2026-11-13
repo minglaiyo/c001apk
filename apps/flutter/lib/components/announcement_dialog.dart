@@ -7,6 +7,7 @@ import '../logic/announcements/announcement.dart';
 import '../logic/announcements/announcement_service.dart';
 import '../utils/markdown_content.dart';
 import 'announcement_avatar.dart';
+import 'expressive_loading_indicator.dart';
 import 'markdown_body.dart';
 
 String announcementDate(DateTime date) {
@@ -264,7 +265,7 @@ class _AnnouncementDialogState extends State<AnnouncementDialog>
                                                   height: 120,
                                                   child: Center(
                                                       child:
-                                                          CircularProgressIndicator()))
+                                                          ExpressiveLoadingIndicator()))
                                             else
                                               MarkdownBody(
                                                   content:

@@ -163,82 +163,15 @@ class _C001APKAPPState extends State<C001APKAPP> {
       );
     }
 
-    final lightTheme = applyAppTypography(ThemeData(
-      colorScheme: lightColorScheme,
-      useMaterial3: true,
-      navigationBarTheme: NavigationBarThemeData(
-          surfaceTintColor: (lightDynamic != null && useMaterial)
-              ? lightColorScheme.surfaceTint
-              : lightColorScheme.surfaceContainer),
-      snackBarTheme: SnackBarThemeData(
-        actionTextColor: lightColorScheme.primary,
-        backgroundColor: lightColorScheme.secondaryContainer,
-        closeIconColor: lightColorScheme.secondary,
-        contentTextStyle: TextStyle(color: lightColorScheme.secondary),
-        elevation: 20,
-      ),
-      pageTransitionsTheme: const PageTransitionsTheme(
-        builders: <TargetPlatform, PageTransitionsBuilder>{
-          TargetPlatform.android: AppPredictiveBackPageTransitionsBuilder(),
-          TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
-          TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
-        },
-      ),
-      popupMenuTheme: PopupMenuThemeData(
-        surfaceTintColor: lightColorScheme.surfaceTint,
-      ),
-      cardTheme: CardThemeData(
-        surfaceTintColor: lightColorScheme.surfaceTint,
-        shadowColor: Colors.transparent,
-      ),
-      dialogTheme: DialogThemeData(
-        surfaceTintColor: lightColorScheme.surfaceTint,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        fillColor: lightColorScheme.onInverseSurface,
-      ),
-      progressIndicatorTheme: ProgressIndicatorThemeData(
-        refreshBackgroundColor: lightColorScheme.onSecondary,
-      ),
-    ));
-    final darkTheme = applyAppTypography(ThemeData(
-      colorScheme: darkColorScheme,
-      useMaterial3: true,
-      pageTransitionsTheme: const PageTransitionsTheme(
-        builders: <TargetPlatform, PageTransitionsBuilder>{
-          TargetPlatform.android: AppPredictiveBackPageTransitionsBuilder(),
-          TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
-          TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
-        },
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-          surfaceTintColor: (lightDynamic != null && useMaterial)
-              ? darkColorScheme.surfaceTint
-              : darkColorScheme.surfaceContainer),
-      snackBarTheme: SnackBarThemeData(
-        actionTextColor: darkColorScheme.primary,
-        backgroundColor: darkColorScheme.secondaryContainer,
-        closeIconColor: darkColorScheme.secondary,
-        contentTextStyle: TextStyle(color: darkColorScheme.secondary),
-        elevation: 20,
-      ),
-      popupMenuTheme: PopupMenuThemeData(
-        surfaceTintColor: darkColorScheme.surfaceTint,
-      ),
-      cardTheme: CardThemeData(
-        surfaceTintColor: darkColorScheme.surfaceTint,
-        shadowColor: Colors.transparent,
-      ),
-      dialogTheme: DialogThemeData(
-        surfaceTintColor: darkColorScheme.surfaceTint,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        fillColor: darkColorScheme.onInverseSurface,
-      ),
-      progressIndicatorTheme: ProgressIndicatorThemeData(
-        refreshBackgroundColor: darkColorScheme.onSecondary,
-      ),
-    ));
+    final dynamicSurfaceTint = lightDynamic != null && useMaterial;
+    final lightTheme = buildAppTheme(
+      lightColorScheme,
+      dynamicSurfaceTint: dynamicSurfaceTint,
+    );
+    final darkTheme = buildAppTheme(
+      darkColorScheme,
+      dynamicSurfaceTint: dynamicSurfaceTint,
+    );
     return GetMaterialApp(
       title: Constants.APP_NAME,
       locale: const Locale('zh', 'CN'),

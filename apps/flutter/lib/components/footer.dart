@@ -1,6 +1,7 @@
 import 'expressive_loading_indicator.dart';
 import 'package:flutter/material.dart';
 
+import '../constants/app_sizes.dart';
 import '../logic/state/loading_state.dart';
 
 Widget footerWidget(LoadingState footerState, Function() onReload) {
@@ -9,7 +10,7 @@ Widget footerWidget(LoadingState footerState, Function() onReload) {
       return Container(
         height: 80,
         alignment: Alignment.center,
-        padding: const EdgeInsets.all(10.0),
+        padding: AppSpacing.pageInsets,
         child: const Text('没有更多了'),
       );
     case Error():
@@ -18,7 +19,7 @@ Widget footerWidget(LoadingState footerState, Function() onReload) {
         child: Container(
           height: 80,
           alignment: Alignment.center,
-          padding: const EdgeInsets.all(10.0),
+          padding: AppSpacing.pageInsets,
           child: Text(footerState.errMsg),
         ),
       );
@@ -26,7 +27,7 @@ Widget footerWidget(LoadingState footerState, Function() onReload) {
       return Container(
         height: 80,
         alignment: Alignment.center,
-        padding: const EdgeInsets.all(10.0),
+        padding: AppSpacing.pageInsets,
         child: const ExpressiveLoadingIndicator(),
       );
   }

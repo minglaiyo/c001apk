@@ -1,3 +1,4 @@
+import '../../constants/app_sizes.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -29,7 +30,7 @@ class NotificationCard extends StatelessWidget {
     final isFollow = data.type == 'contacts_follow';
     return Material(
       color: Theme.of(context).colorScheme.onInverseSurface,
-      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      borderRadius: const BorderRadius.all(AppRadius.card),
       child: InkWell(
         onTap: () {
           if (isFollow) {
@@ -47,7 +48,7 @@ class NotificationCard extends StatelessWidget {
         },
         onLongPress: () =>
             Get.toNamed('/copy', parameters: {'text': data.note ?? ''}),
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        borderRadius: const BorderRadius.all(AppRadius.card),
         child: Stack(
           children: [
             Align(

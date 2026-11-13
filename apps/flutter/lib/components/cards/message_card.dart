@@ -1,3 +1,4 @@
+import '../../constants/app_sizes.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,6 +6,7 @@ import 'package:get/get.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../utils/date_util.dart';
 import '../../utils/utils.dart';
+import '../expressive_loading_indicator.dart';
 
 class MessageCard extends StatelessWidget {
   const MessageCard({
@@ -26,7 +28,7 @@ class MessageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final thisContext = context;
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: const BorderRadius.all(AppRadius.card),
       onLongPress: busy || (onPin == null && onDelete == null)
           ? null
           : () {
@@ -79,7 +81,7 @@ class MessageCard extends StatelessWidget {
       },
       child: Ink(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: const BorderRadius.all(AppRadius.card),
           color: Theme.of(context).colorScheme.onInverseSurface,
         ),
         padding: const EdgeInsets.all(10),
@@ -121,8 +123,7 @@ class MessageCard extends StatelessWidget {
                             child: SizedBox(
                                 width: 14,
                                 height: 14,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2))),
+                                child: ExpressiveLoadingIndicator(size: 14))),
                       const SizedBox(width: 10),
                       Text(
                         DateUtil.fromToday(data.dateline),

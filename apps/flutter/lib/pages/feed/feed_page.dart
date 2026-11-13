@@ -665,8 +665,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: ExpressiveLoadingIndicator(size: 20),
                               )
                             : const Icon(Icons.info_outline),
                       ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../components/footer.dart';
+import '../constants/app_sizes.dart';
 import 'adaptive_card_list.dart';
 import 'content_filter_gate.dart';
 import '../components/item_card.dart';
@@ -16,7 +17,7 @@ Widget _bodyState(String text, Function() onTap) {
     onTap: onTap,
     child: Container(
       alignment: Alignment.center,
-      padding: const EdgeInsets.all(10.0),
+      padding: AppSpacing.pageInsets,
       child: Text(text),
     ),
   );
@@ -112,12 +113,13 @@ Widget buildBody(
                 : const BouncingScrollPhysics(),
           ),
           padding: EdgeInsets.only(
-              left: isReply2Reply ? 0 : 10,
+              left: isReply2Reply ? 0 : AppSpacing.page,
               top: isReply2Reply
                   ? 0
-                  : 10 + MediaQuery.paddingOf(context ?? Get.context!).top,
-              right: isReply2Reply ? 0 : 10,
-              bottom: (isReply2Reply ? 0 : 10) +
+                  : AppSpacing.page +
+                      MediaQuery.paddingOf(context ?? Get.context!).top,
+              right: isReply2Reply ? 0 : AppSpacing.page,
+              bottom: (isReply2Reply ? 0 : AppSpacing.page) +
                   MediaQuery.paddingOf(context ?? Get.context!).bottom),
           itemCount: dataList.length + 1 + (leading == null ? 0 : 1),
           itemBuilder: (_, index) {
@@ -167,10 +169,11 @@ Widget buildBody(
       return AdaptiveCardList(
         controller: commonController.scrollController,
         padding: EdgeInsets.fromLTRB(
-            10,
-            10 + MediaQuery.paddingOf(context ?? Get.context!).top,
-            10,
-            10 + MediaQuery.paddingOf(context ?? Get.context!).bottom),
+            AppSpacing.page,
+            AppSpacing.page + MediaQuery.paddingOf(context ?? Get.context!).top,
+            AppSpacing.page,
+            AppSpacing.page +
+                MediaQuery.paddingOf(context ?? Get.context!).bottom),
         leading: leading,
         itemCount: dataList.length,
         isFullWidth: (index) => !const {

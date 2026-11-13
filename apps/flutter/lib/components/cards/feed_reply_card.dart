@@ -1,3 +1,4 @@
+import '../../constants/app_sizes.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -59,7 +60,7 @@ class FeedReplyCard extends StatelessWidget {
           ? Theme.of(context).colorScheme.onInverseSurface
           : Colors.transparent,
       borderRadius:
-          !isFeedReply ? const BorderRadius.all(Radius.circular(12)) : null,
+          !isFeedReply ? const BorderRadius.all(AppRadius.card) : null,
       child: InkWell(
         onTap: () {
           if (isFeedReply && onReply != null) {
@@ -78,7 +79,7 @@ class FeedReplyCard extends StatelessWidget {
           });
         },
         borderRadius:
-            !isFeedReply ? const BorderRadius.all(Radius.circular(12)) : null,
+            !isFeedReply ? const BorderRadius.all(AppRadius.card) : null,
         child: Stack(
           children: [
             Align(
@@ -227,10 +228,10 @@ class FeedReplyCard extends StatelessWidget {
   Widget _feedVisible(BuildContext context, Datum feed) {
     return Material(
       color: Theme.of(context).colorScheme.surface,
-      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      borderRadius: const BorderRadius.all(AppRadius.card),
       child: InkWell(
         onTap: () => Utils.onOpenLink(feed.url ?? ''),
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        borderRadius: const BorderRadius.all(AppRadius.card),
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Row(
@@ -280,7 +281,7 @@ class FeedReplyCard extends StatelessWidget {
     return Material(
       clipBehavior: Clip.hardEdge,
       color: Theme.of(context).colorScheme.onInverseSurface,
-      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      borderRadius: const BorderRadius.all(AppRadius.card),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -5,6 +5,7 @@ import 'dart:ui' show instantiateImageCodec;
 
 import 'package:c001apk_flutter/components/cards/message_card.dart';
 import 'package:c001apk_flutter/components/cards/chat_card.dart';
+import 'package:c001apk_flutter/components/expressive_loading_indicator.dart';
 import 'package:c001apk_flutter/logic/model/feed/datum.dart';
 import 'package:c001apk_flutter/logic/network/request.dart';
 import 'package:c001apk_flutter/pages/chat/chat_page.dart';
@@ -191,7 +192,7 @@ void main() {
     expect(find.byType(ChatCard), findsOneWidget);
     expect(
         find.byWidgetPredicate((w) =>
-            w is CircularProgressIndicator && w.semanticsLabel == '消息发送中'),
+            w is ExpressiveLoadingIndicator && w.label == '消息发送中'),
         findsOneWidget);
     expect(find.text('正在发送'), findsNothing);
     expect(

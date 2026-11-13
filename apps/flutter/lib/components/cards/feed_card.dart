@@ -1,3 +1,4 @@
+import '../../constants/app_sizes.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -57,7 +58,7 @@ class FeedCard extends StatelessWidget {
       shape:
           !isFeedContent && FeedNavigation.selectedOf(context) == '${data.id}'
               ? RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: const BorderRadius.all(AppRadius.card),
                   side: BorderSide(
                       color: Theme.of(context).colorScheme.primary, width: 2),
                 )
@@ -67,7 +68,7 @@ class FeedCard extends StatelessWidget {
       borderRadius:
           isFeedContent || FeedNavigation.selectedOf(context) == '${data.id}'
               ? null
-              : const BorderRadius.all(Radius.circular(12)),
+              : const BorderRadius.all(AppRadius.card),
       child: InkWell(
         highlightColor: isFeedContent ? Colors.transparent : null,
         splashColor: isFeedContent ? Colors.transparent : null,
@@ -75,7 +76,7 @@ class FeedCard extends StatelessWidget {
         onTap: isFeedContent ? null : () => _onViewFeed(context),
         onLongPress: () => Get.toNamed('/copy',
             parameters: {'text': ContentFilterProjection.displayMessage(data)}),
-        borderRadius: isFeedContent ? null : BorderRadius.circular(12),
+        borderRadius: isFeedContent ? null : const BorderRadius.all(AppRadius.card),
         child: Padding(
           padding: EdgeInsets.only(bottom: isFeedContent ? 12 : 10),
           child: Column(
@@ -157,7 +158,7 @@ class FeedCard extends StatelessWidget {
                               contentId: data.id?.toString(),
                               initialPage: i)),
                       child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: const BorderRadius.all(AppRadius.small),
                           child: mediaThumbnail(media[i],
                               width: double.infinity,
                               height: 72,
@@ -210,7 +211,7 @@ class FeedCard extends StatelessWidget {
         color: isFeedContent
             ? Theme.of(context).colorScheme.onInverseSurface
             : Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        borderRadius: const BorderRadius.all(AppRadius.card),
         child: InkWell(
           onTap: data.forwardSourceFeed != null
               ? () =>
@@ -222,7 +223,7 @@ class FeedCard extends StatelessWidget {
                         data.forwardSourceFeed!)
                   })
               : null,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: const BorderRadius.all(AppRadius.card),
           child: Padding(
             padding: const EdgeInsets.all(10),
             child: data.forwardSourceFeed == null
@@ -298,11 +299,11 @@ class FeedCard extends StatelessWidget {
         color: isFeedContent
             ? Theme.of(context).colorScheme.onInverseSurface
             : Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        borderRadius: const BorderRadius.all(AppRadius.card),
         child: InkWell(
           onTap: () => Utils.onOpenLink(
               data.extraUrl!, data.extraTitle ?? '', true, context),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: const BorderRadius.all(AppRadius.card),
           child: Padding(
             padding: const EdgeInsets.all(10),
             child: Row(
@@ -320,7 +321,7 @@ class FeedCard extends StatelessWidget {
                         height: 40,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: const BorderRadius.all(AppRadius.small),
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         child: Icon(
@@ -376,13 +377,13 @@ class FeedCard extends StatelessWidget {
       margin: const EdgeInsets.only(left: 10, top: 10, right: 10),
       child: Material(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        borderRadius: const BorderRadius.all(AppRadius.card),
         child: InkWell(
           onTap: () => _onViewFeed(context),
           onLongPress: () => Get.toNamed('/copy', parameters: {
             'text': ContentFilterProjection.displayMessage(reply)
           }),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: const BorderRadius.all(AppRadius.card),
           child: Padding(
             padding: const EdgeInsets.all(10),
             child: ContentFilterText(

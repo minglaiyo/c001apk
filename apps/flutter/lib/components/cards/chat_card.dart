@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../components/html_text.dart';
+import '../expressive_loading_indicator.dart';
 import '../../components/no_splash_factory.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../utils/extensions.dart';
@@ -60,8 +61,8 @@ class ChatCard extends StatelessWidget {
                     child: SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, semanticsLabel: '消息发送中'))),
+                        child: ExpressiveLoadingIndicator(
+                            size: 16, label: '消息发送中'))),
               if (!isLeft && failed)
                 IconButton(
                     tooltip: '发送失败，点击查看',

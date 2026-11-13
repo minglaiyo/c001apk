@@ -6,6 +6,7 @@ import '../../components/settings/item_title.dart';
 import '../../logic/content_filter/app_content_filter.dart';
 import '../../logic/content_filter/content_filter_rule.dart';
 import '../../logic/content_filter/content_filter_service.dart';
+import '../../components/expressive_loading_indicator.dart';
 
 class ContentFilterPage extends StatelessWidget {
   const ContentFilterPage({super.key, this.service});
@@ -276,8 +277,8 @@ class _FilterSettingsState extends State<_FilterSettings> {
                                     ? const SizedBox(
                                         width: 24,
                                         height: 24,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2))
+                                        child: ExpressiveLoadingIndicator(
+                                            size: 24))
                                     : null,
                                 onTap: service.updating
                                     ? null

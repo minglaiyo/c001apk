@@ -5,6 +5,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'expressive_loading_indicator.dart';
 
 import '../logic/app_update/update_preferences.dart';
 import '../logic/app_update/update_service.dart';
@@ -174,7 +175,7 @@ class _UpdateCheckTileState extends State<UpdateCheckTile> {
           ? const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2))
+              child: ExpressiveLoadingIndicator(size: 20))
           : null,
       enabled: !_checking,
       onTap: () async {

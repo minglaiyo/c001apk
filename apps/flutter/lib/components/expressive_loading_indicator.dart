@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 /// Lightweight M3 Expressive-inspired morphing indicator for unknown durations.
 /// Determinate transfers continue to use progress indicators with real values.
 class ExpressiveLoadingIndicator extends StatefulWidget {
-  const ExpressiveLoadingIndicator({super.key, this.size = 40});
+  const ExpressiveLoadingIndicator({super.key, this.size = 40, this.label});
 
   final double size;
+
+  /// 语义标签；为空时使用默认的“正在加载”。
+  final String? label;
 
   @override
   State<ExpressiveLoadingIndicator> createState() =>
@@ -40,7 +43,7 @@ class _ExpressiveLoadingIndicatorState extends State<ExpressiveLoadingIndicator>
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: '正在加载',
+        label: widget.label ?? '正在加载',
         child: RepaintBoundary(
           child: SizedBox.square(
             dimension: widget.size,
