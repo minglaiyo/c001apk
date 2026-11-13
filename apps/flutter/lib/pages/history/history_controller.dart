@@ -30,8 +30,8 @@ class HistoryController extends GetxController {
             .map((item) => Datum(
                   id: (item as FavHistoryItem).id,
                   uid: item.uid,
-                  userInfo: UserInfo(username: (item).username),
-                  userAvatar: (item).userAvatar,
+                  userInfo: UserInfo(username: item.username),
+                  userAvatar: item.userAvatar,
                   message: item.message,
                   deviceTitle: item.device,
                   dateline: item.dateline,

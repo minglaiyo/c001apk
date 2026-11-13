@@ -42,7 +42,9 @@ class ApiSessionStore {
         record['expiresAt'] <= DateTime.now().millisecondsSinceEpoch ||
         record['value'] is! String ||
         record['domain'] is! String ||
-        record['path'] is! String) return null;
+        record['path'] is! String){
+      return null;
+    }
     return record;
   }
 
@@ -52,9 +54,13 @@ class ApiSessionStore {
     if (record == null) return '';
     final domain = record['domain'] as String;
     final path = record['path'] as String;
-    if (domain != 'coolapk.com' && domain != uri.host) return '';
+    if (domain != 'coolapk.com' && domain != uri.host) {
+      return '';
+    }
     if (uri.path != path &&
-        !uri.path.startsWith(path.endsWith('/') ? path : '$path/')) return '';
+        !uri.path.startsWith(path.endsWith('/') ? path : '$path/')) {
+      return '';
+    }
     return 'SESSID=${record['value']}';
   }
 
@@ -82,7 +88,9 @@ class ApiSessionStore {
           (lastSlash <= 0 ? '/' : uri.path.substring(0, lastSlash));
       if ((domain != 'coolapk.com' && domain != uri.host) ||
           !path.startsWith('/') ||
-          path.length > 256) continue;
+          path.length > 256){
+        continue;
+      }
       final now = DateTime.now();
       var expires = now.add(_maxAge);
       if (cookie.maxAge != null) {
@@ -135,7 +143,9 @@ class ApiSessionStore {
             record['generation'] != GlobalData().sessionGeneration) ||
         record['expiresAt'] is! int ||
         record['expiresAt'] <= DateTime.now().millisecondsSinceEpoch ||
-        record['value'] is! String) return null;
+        record['value'] is! String){
+      return null;
+    }
     return record['value'] as String;
   }
 
@@ -143,7 +153,9 @@ class ApiSessionStore {
       {required String acceptedSession}) async {
     if (context.generation != GlobalData().sessionGeneration ||
         context.identity != _identity ||
-        acceptedSession != sessionHash) return;
+        acceptedSession != sessionHash){
+      return;
+    }
     await GStorage.settings.put(validationKey, {
       'identity': context.identity,
       'session': acceptedSession,

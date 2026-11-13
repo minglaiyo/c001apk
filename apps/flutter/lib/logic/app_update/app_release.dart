@@ -68,7 +68,9 @@ class AppRelease {
           asset['browser_download_url'] is! String ||
           asset['state'] != 'uploaded' ||
           asset['size'] is! num ||
-          (asset['size'] as num) <= 0) continue;
+          (asset['size'] as num) <= 0) {
+        continue;
+      }
       final uri = Uri.tryParse(asset['browser_download_url'] as String);
       if (uri != null &&
           _trusted(uri, 'download/') &&

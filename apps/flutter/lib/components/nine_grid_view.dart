@@ -145,7 +145,7 @@ class _NineGridViewState extends State<NineGridView> {
     } else {
       itemW = (width - space * 2) / 3;
     }
-    bool fourGrid = (itemCount == 4 && widget.type != NineGridType.normal);
+    bool fourGrid = itemCount == 4 && widget.type != NineGridType.normal;
     int column = fourGrid ? 2 : math.min(3, itemCount);
     int row = fourGrid ? 2 : (itemCount / 3).ceil();
     double realWidth =

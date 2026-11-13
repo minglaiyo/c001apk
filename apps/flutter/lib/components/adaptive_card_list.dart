@@ -43,6 +43,7 @@ class AdaptiveCardList extends StatefulWidget {
     this.padding = const EdgeInsets.all(10),
     this.leading,
     this.footer,
+    this.onLoadMore,
   }) : sliver = false;
 
   const AdaptiveCardList.sliver({
@@ -53,6 +54,7 @@ class AdaptiveCardList extends StatefulWidget {
     this.leading,
     this.footer,
     this.padding = const EdgeInsets.all(10),
+    this.onLoadMore,
   })  : sliver = true,
         controller = null,
         physics = const AlwaysScrollableScrollPhysics();
@@ -65,6 +67,12 @@ class AdaptiveCardList extends StatefulWidget {
   final EdgeInsets padding;
   final Widget? leading;
   final Widget? footer;
+
+  /// 滚动接近底部、或内容不足一屏时触发自动翻页。
+  ///
+  /// 取代在 footer 的 build 中发起请求的做法；调用方自行处理
+  /// isEnd/isLoading/automaticLoadPaused 守卫。
+  final VoidCallback? onLoadMore;
   final bool sliver;
 
   @override
@@ -90,6 +98,38 @@ class _AdaptiveCardListState extends State<AdaptiveCardList> {
           ? _scroll.position
           : null;
 
+  @override
+  void initState() {
+    super.initState();
+    _scheduleInitialLoadMoreCheck();
+  }
+
+  /// 滚动到接近底部时触发自动翻页；阈值放宽到约半屏，
+  /// 在 footer 进入视口前就发起请求以掩盖网络延迟。
+  bool _onScrollNotification(ScrollNotification notification) {
+    final onLoadMore = widget.onLoadMore;
+    if (onLoadMore == null) return false;
+    if (notification.metrics.pixels >=
+        notification.metrics.maxScrollExtent - 600) {
+      onLoadMore();
+    }
+    return false;
+  }
+
+  /// 内容不足一屏（无法滚动）时也要续载下一页。
+  void _scheduleInitialLoadMoreCheck() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.onLoadMore == null || widget.itemCount == 0) {
+        return;
+      }
+      final position = _position;
+      if (position != null &&
+          position.maxScrollExtent <= position.viewportDimension) {
+        widget.onLoadMore!();
+      }
+    });
+  }
+
   double? _top(GlobalKey key) {
     final box = key.currentContext?.findRenderObject();
     final viewport = widget.sliver
@@ -98,7 +138,9 @@ class _AdaptiveCardListState extends State<AdaptiveCardList> {
     if (box is! RenderBox ||
         !box.hasSize ||
         viewport is! RenderBox ||
-        !viewport.hasSize) return null;
+        !viewport.hasSize){
+      return null;
+    }
     return box.localToGlobal(Offset.zero).dy -
         viewport.localToGlobal(Offset.zero).dy;
   }
@@ -128,7 +170,9 @@ class _AdaptiveCardListState extends State<AdaptiveCardList> {
     if (!mounted ||
         generation != _anchorGeneration ||
         _anchorIndex == null ||
-        _position == null) return;
+        _position == null){
+      return;
+    }
     final target = _anchorIndex!;
     if (target >= widget.itemCount || _attempts++ >= 20) {
       _anchorIndex = null;
@@ -192,6 +236,10 @@ class _AdaptiveCardListState extends State<AdaptiveCardList> {
   void didUpdateWidget(covariant AdaptiveCardList oldWidget) {
     super.didUpdateWidget(oldWidget);
     _cachedCards = null;
+    if (widget.itemCount != oldWidget.itemCount ||
+        widget.onLoadMore != oldWidget.onLoadMore) {
+      _scheduleInitialLoadMoreCheck();
+    }
   }
 
   @override
@@ -322,11 +370,18 @@ class _AdaptiveCardListState extends State<AdaptiveCardList> {
   }
 
   Widget _wrapCards(Widget cards) => widget.sliver
-      ? cards
-      : CustomScrollView(
-          key: _viewportKey,
-          controller: _scroll,
-          physics: widget.physics,
-          semanticChildCount: widget.itemCount,
-          slivers: [cards]);
+      ? NotificationListener<ScrollNotification>(
+          onNotification: _onScrollNotification,
+          child: cards,
+        )
+      : NotificationListener<ScrollNotification>(
+          onNotification: _onScrollNotification,
+          child: CustomScrollView(
+            key: _viewportKey,
+            controller: _scroll,
+            physics: widget.physics,
+            semanticChildCount: widget.itemCount,
+            slivers: [cards],
+          ),
+        );
 }

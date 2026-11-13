@@ -44,7 +44,9 @@ class SavedAccount {
   static SavedAccount? _decode(dynamic value) {
     if (value is! Map ||
         value['uid'] is! String ||
-        !RegExp(r'^\d+$').hasMatch(value['uid'])) return null;
+        !RegExp(r'^\d+$').hasMatch(value['uid'])){
+      return null;
+    }
     return SavedAccount(
         uid: value['uid'],
         username: value['username'] is String ? value['username'] : '',

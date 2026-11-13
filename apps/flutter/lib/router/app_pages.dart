@@ -39,7 +39,9 @@ class AppPages {
     final path = Uri.tryParse(name)?.path;
     if (path == null ||
         const {'/login', '/chat', '/webview', '/accounts', '/onboarding'}
-            .contains(path)) return false;
+            .contains(path)){
+      return false;
+    }
     final parts = path.split('/');
     return getPages.any((page) {
       final pattern = page.name.split('/');

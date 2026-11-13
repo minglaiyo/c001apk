@@ -74,7 +74,7 @@ jobs:
         with:
           private-key: ${{ secrets.PRIVATE_EXTENSIONS_DEPLOY_KEY }}
       - name: Analyze (errors and warnings fail; existing info lints remain visible)
-        run: flutter analyze --no-pub --no-fatal-infos
+        run: flutter analyze --no-pub
       - name: Offline regression tests
         run: flutter test --no-pub
 

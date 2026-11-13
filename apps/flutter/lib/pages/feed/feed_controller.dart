@@ -114,7 +114,7 @@ class FeedController extends CommonController {
     LoadingState<dynamic> response =
         await NetworkRepo.getFeedDetail(id: id, verify: verify);
     if (response is Success) {
-      Datum data = (response.response as Datum);
+      Datum data = response.response as Datum;
       List<FeedArticle> nextArticles = [];
       List<String> nextImages = [];
       try {

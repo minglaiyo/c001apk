@@ -130,7 +130,9 @@ class _ImageViewPageState extends State<ImageViewPage> {
       if (controller?.scale == null ||
           imageSize == null ||
           box is! RenderBox ||
-          !box.hasSize) return;
+          !box.hasSize){
+        return;
+      }
       final minimum = math.min(
           box.size.width / imageSize.width, box.size.height / imageSize.height);
       final maximum = math.max(box.size.width / imageSize.width,

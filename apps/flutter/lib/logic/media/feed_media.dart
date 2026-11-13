@@ -66,8 +66,9 @@ List<String> _urls(Object? value, [int depth = 0]) {
         ? [text]
         : [];
   }
-  if (value is List)
+  if (value is List) {
     return [for (final item in value) ..._urls(item, depth + 1)];
+  }
   if (value is Map) {
     for (final key in [
       'url',

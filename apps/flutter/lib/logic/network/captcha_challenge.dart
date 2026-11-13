@@ -48,7 +48,9 @@ class CaptchaChallenge {
     if (validate is! String ||
         validate.isEmpty ||
         validate.length > 8192 ||
-        RegExp(r'[\s\x00-\x1f]').hasMatch(validate)) return null;
+        RegExp(r'[\s\x00-\x1f]').hasMatch(validate)){
+      return null;
+    }
     return 'NEC:${captchaId.substring(0, 8)}:$validate';
   }
 

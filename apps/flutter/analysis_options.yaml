@@ -3,7 +3,7 @@
 #
 # The issues identified by the analyzer are surfaced in the UI of Dart-enabled
 # IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
+# invoked from the command line using `flutter analyze`.
 
 # The following line activates a set of recommended lints for Flutter apps,
 # packages, and plugins designed to encourage good coding practices.
@@ -20,19 +20,16 @@ analyzer:
 include: package:flutter_lints/flutter.yaml
 
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
+  # 在 flutter_lints 之上追加的规则。2026-11 重构起 flutter analyze
+  # 保持零告警（CI 不再使用 --no-fatal-infos 宽容模式），新增规则前
+  # 先确认全库满足，避免重新积累历史提示。
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # 优先 const 构造（减少运行时开销，配合 prefer_const_constructors）。
+    - prefer_const_declarations
+    - unnecessary_late
+    - unnecessary_string_interpolations
+    - unnecessary_parenthesis
+    - sort_child_properties_last
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

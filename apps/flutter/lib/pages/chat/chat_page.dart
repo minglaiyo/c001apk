@@ -308,7 +308,9 @@ class _ChatPageState extends State<ChatPage> {
       final file = await ImagePicker().pickImage(source: ImageSource.gallery);
       if (file == null ||
           !mounted ||
-          generation != GlobalData().sessionGeneration) return;
+          generation != GlobalData().sessionGeneration){
+        return;
+      }
       _chatController.onSendMessage(_uid, image: file);
     } catch (_) {
       if (mounted) SmartDialog.showToast('无法打开图片，请检查相册权限或稍后重试');

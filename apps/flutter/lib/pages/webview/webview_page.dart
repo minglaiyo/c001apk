@@ -95,7 +95,9 @@ class _WebviewPageState extends State<WebviewPage> {
         url == null ||
         url.scheme != 'https' ||
         url.host != 'www.coolapk.com' ||
-        (url.path.isNotEmpty && url.path != '/')) return;
+        (url.path.isNotEmpty && url.path != '/')){
+      return;
+    }
     _savingLogin = true;
     try {
       final cookies = await WebRuntime.cookies

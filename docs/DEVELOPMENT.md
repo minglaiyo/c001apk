@@ -85,7 +85,7 @@ flutter analyze
 flutter test
 ```
 
-所有 Flutter 命令均在 `apps/flutter/` 下执行。现有静态分析仍有待处理的历史提示，提交修改时请留意是否引入新问题。
+所有 Flutter 命令均在 `apps/flutter/` 下执行。自 2026-11 重构起 `flutter analyze` 保持零告警（analysis_options 在 flutter_lints 之上追加了 prefer_const_declarations、unnecessary_late 等规则），新增规则前先确认全库满足，提交修改时不要重新引入历史提示。
 
 运行与调试构建：
 
