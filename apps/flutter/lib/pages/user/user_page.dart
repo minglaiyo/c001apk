@@ -149,14 +149,16 @@ class _UserPageState extends State<UserPage> {
           itemCount: dataList.length + 1,
           isFullWidth: (index) =>
               index == dataList.length || dataList[index].entityType != 'feed',
+          onLoadMore: () {
+            if (!_userController.isEnd &&
+                !_userController.isLoading &&
+                !_userController.automaticLoadPaused) {
+              _userController.setFooterState(LoadingState.loading());
+              _userController.onGetData(false);
+            }
+          },
           itemBuilder: (_, index) {
             if (index == dataList.length) {
-              if (!_userController.isEnd &&
-                  !_userController.isLoading &&
-                  !_userController.automaticLoadPaused) {
-                _userController.setFooterState(LoadingState.loading());
-                _userController.onGetData(false);
-              }
               return Obx(
                 () => footerWidget(
                   _userController.footerState.value,
@@ -257,7 +259,7 @@ class _UserPageState extends State<UserPage> {
           backgroundColor: Theme.of(context)
               .colorScheme
               .surface
-              .withOpacity(_userController.scrollRatio.value),
+              .withValues(alpha: _userController.scrollRatio.value),
           title: _userController.scrollRatio.value == 1 &&
                   _userController.username != null
               ? Text(_userController.username!)

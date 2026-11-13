@@ -114,7 +114,7 @@ Widget image(
   Widget buildItem(BuildContext context, int gridIndex) => Container(
         decoration: BoxDecoration(
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
             strokeAlign: BorderSide.strokeAlignOutside,
           ),
           borderRadius: const BorderRadius.all(AppRadius.card),
@@ -182,7 +182,7 @@ Widget _badge(BuildContext context, String title) {
         fontSize: fontSize,
         color: Theme.of(context).colorScheme.onPrimaryContainer,
       ),
-      strutStyle: StrutStyle(
+      strutStyle: const StrutStyle(
         height: 1,
         leading: 0,
         fontSize: fontSize,

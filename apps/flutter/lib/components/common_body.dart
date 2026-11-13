@@ -121,12 +121,6 @@ Widget buildBody(
               index--;
             }
             if (index == dataList.length) {
-              if (!commonController.isEnd &&
-                  !commonController.isLoading &&
-                  !commonController.automaticLoadPaused) {
-                commonController.setFooterState(LoadingState.loading());
-                commonController.onGetData(false);
-              }
               return Obx(
                   () => footerWidget(commonController.footerState.value, () {
                         commonController.isEnd = false;
@@ -169,6 +163,14 @@ Widget buildBody(
                 MediaQuery.paddingOf(context ?? Get.context!).bottom),
         leading: leading,
         itemCount: dataList.length,
+        onLoadMore: () {
+          if (!commonController.isEnd &&
+              !commonController.isLoading &&
+              !commonController.automaticLoadPaused) {
+            commonController.setFooterState(LoadingState.loading());
+            commonController.onGetData(false);
+          }
+        },
         isFullWidth: (index) => !const {
           'feed',
           'apk',
@@ -194,19 +196,11 @@ Widget buildBody(
             onPM: commonController.onPM,
           );
         },
-        footer: Builder(builder: (_) {
-          if (!commonController.isEnd &&
-              !commonController.isLoading &&
-              !commonController.automaticLoadPaused) {
-            commonController.setFooterState(LoadingState.loading());
-            commonController.onGetData(false);
-          }
-          return Obx(() => footerWidget(commonController.footerState.value, () {
-                commonController.isEnd = false;
-                commonController.setFooterState(LoadingState.loading());
-                commonController.onGetData(false);
-              }));
-        }),
+        footer: Obx(() => footerWidget(commonController.footerState.value, () {
+              commonController.isEnd = false;
+              commonController.setFooterState(LoadingState.loading());
+              commonController.onGetData(false);
+            })),
       );
   }
   return const LoadingStatusView();

@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 
 import '../../components/common_body.dart';
 import '../../components/cards/message_card.dart';
-import '../../pages/noitfication/notification_controller.dart';
+import '../../pages/notification/notification_controller.dart';
 import '../../components/announcement_entry.dart';
 import '../../utils/global_data.dart';
 

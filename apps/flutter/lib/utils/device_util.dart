@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import '../constants/constants.dart';
 
 class DeviceUtil {
   static bool isPreGetLoginParam = false;
@@ -13,11 +12,9 @@ class DeviceUtil {
   static int? atme;
   static int? atcommentme;
   static int? feedlike;
-  static int? contacts_follow;
   static int? message;
   static int notification = 0;
 
-  static String SESSID = Constants.EMPTY_STRING;
 
   static String randHexString(int length, [bool toUpperCase = true]) {
     const chars = '0123456789abcdef';

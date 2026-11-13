@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../pages/coolpic/coolpic_content.dart';
+import '../../pages/common/paged_list_content.dart';
+import '../../pages/coolpic/coolpic_controller.dart';
 import '../../pages/home/return_top_controller.dart';
 import '../../utils/device_util.dart';
 
@@ -59,10 +60,15 @@ class _CoolpicPageState extends State<CoolpicPage>
       body: TabBarView(
         controller: _tabController,
         children: ['recommend', 'hot', 'newest']
-            .map((type) => CoolpicContent(
-                  random: _random,
-                  type: type,
-                  title: _title,
+            .asMap()
+            .entries
+            .map((entry) => PagedListContent<CoolpicController>(
+                  key: ValueKey(entry.value),
+                  tag: entry.value + _title + _random,
+                  returnTopTag: _title + _random,
+                  tabIndex: entry.key,
+                  createController: () =>
+                      CoolpicController(type: entry.value, title: _title),
                 ))
             .toList(),
       ),

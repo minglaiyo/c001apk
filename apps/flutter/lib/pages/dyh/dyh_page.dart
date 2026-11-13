@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../pages/dyh/dyh_content.dart';
+import '../../pages/common/paged_list_content.dart';
+import '../../pages/dyh/dyh_controller.dart';
 import '../../pages/home/return_top_controller.dart';
 import '../../utils/device_util.dart';
 
@@ -59,11 +60,15 @@ class _DyhPageState extends State<DyhPage> with TickerProviderStateMixin {
       body: TabBarView(
         controller: _tabController,
         children: ['all', 'square']
-            .map((type) => DyhContent(
-                  random: _random,
-                  type: type,
-                  id: _id,
-                  title: _title,
+            .asMap()
+            .entries
+            .map((entry) => PagedListContent<DyhController>(
+                  key: ValueKey(entry.value),
+                  tag: entry.value + _id + _random,
+                  returnTopTag: _id + _title + _random,
+                  tabIndex: entry.key,
+                  createController: () =>
+                      DyhController(type: entry.value, id: _id),
                 ))
             .toList(),
       ),

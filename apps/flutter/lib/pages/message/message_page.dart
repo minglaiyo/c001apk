@@ -10,7 +10,7 @@ import '../../components/cards/message_third_card.dart';
 import '../../components/expressive_list_section.dart';
 import '../../components/liquid_top_bar.dart';
 import '../../pages/message/message_controller.dart';
-import '../../pages/noitfication/notification_page.dart';
+import '../../pages/notification/notification_page.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
 import '../../logic/announcements/app_announcements.dart';

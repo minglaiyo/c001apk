@@ -16,19 +16,13 @@ import 'package:mime/mime.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../components/no_splash_factory.dart';
-import '../../../logic/model/feed/data_model.dart';
 import '../../../logic/reply/reply_publisher.dart';
-import '../../../logic/model/login/login_response.dart';
-import '../../../logic/model/oss_upload/datum.dart';
 import '../../../logic/model/oss_upload/oss_upload_model.dart';
 import '../../../logic/network/network_repo.dart';
 import '../../../pages/feed/reply/emoji_panel.dart';
 import '../../../pages/feed/reply/reply_dialog.dart' show ReplyType;
 import '../../../pages/feed/reply/toolbar_icon_button.dart';
 import '../../../utils/extensions.dart';
-import '../../../utils/oss/aliyunoss_client.dart';
-import '../../../utils/oss/aliyunoss_config.dart';
-import '../../../utils/oss_util.dart';
 import '../../../utils/utils.dart';
 
 enum PanelType { none, keyboard, emoji }
@@ -314,7 +308,7 @@ class _ReplyPageState extends State<ReplyPage>
           ),
           Divider(
             height: 1,
-            color: Theme.of(context).dividerColor.withOpacity(0.1),
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
           ),
           Container(
             height: 52,

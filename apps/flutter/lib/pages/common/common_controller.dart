@@ -1,27 +1,20 @@
-import 'dart:async';
-
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart' hide Response, FormData;
 
 import '../../logic/model/feed/datum.dart';
-import '../../logic/model/feed/user_action.dart';
-import '../../logic/model/login/login_response.dart';
-import '../../logic/network/network_repo.dart';
-import '../../logic/network/api_failure.dart';
 import '../../logic/state/loading_state.dart';
 import '../../pages/home/return_top_controller.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
-import '../../utils/storage_util.dart';
-import '../../logic/content_filter/app_content_filter.dart';
-import '../../logic/content_filter/content_filter_projection.dart';
-import '../../logic/content_filter/content_filter_rule.dart';
-import '../../logic/content_filter/content_filter_service.dart';
-import 'package:hive/hive.dart';
+import 'content_filter_list_mixin.dart';
+import 'feed_write_actions_mixin.dart';
 
-abstract class CommonController extends GetxController {
+/// 通用分页列表引擎：游标翻页、重试循环与“整批被过滤”续载。
+///
+/// 内容过滤见 [ContentFilterListMixin]，删除/点赞/关注等写操作见
+/// [FeedWriteActionsMixin]；两者以 mixin 组合，子类 API 保持不变。
+abstract class CommonController extends GetxController
+    with ContentFilterListMixin, FeedWriteActionsMixin {
   int page = 1;
   String? firstItem;
   String? lastItem;
@@ -29,104 +22,27 @@ abstract class CommonController extends GetxController {
   bool isEnd = false;
   bool automaticLoadPaused = false;
 
+  @override
   Rx<LoadingState> loadingState = LoadingState.loading().obs;
   Rx<LoadingState> footerState = LoadingState.empty().obs;
   GlobalKey<RefreshIndicatorState>? refreshKey;
   ScrollController? scrollController;
   ReturnTopController? returnTopController;
-  List<Datum> rawItems = [];
-  final filteredItems = <Datum>[].obs;
-  final revealedContentKeys = <String>{};
-  final revealedAuthorUids = <String>{};
-  ContentFilterService? _filterService;
-  StreamSubscription? _legacyFilterSubscription;
-  bool get supportsContentFilter => true;
 
   @override
   void onInit() {
     super.onInit();
-    _listenToFilters();
-  }
-
-  void _listenToFilters() {
-    if (!supportsContentFilter) return;
-    if (_filterService != AppContentFilter.service) {
-      _filterService?.removeListener(reapplyFilters);
-      _filterService = AppContentFilter.service;
-      _filterService?.addListener(reapplyFilters);
-    }
-    if (_legacyFilterSubscription == null && Hive.isBoxOpen('blackList')) {
-      _legacyFilterSubscription =
-          GStorage.blackList.watch().listen((_) => reapplyFilters());
-    }
-  }
-
-  FilterMatch? filterMatch(Datum item) {
-    if (!supportsContentFilter) return null;
-    if (revealedContentKeys.contains(ContentFilterProjection.keyOf(item))) {
-      return null;
-    }
-    final match = ContentFilterProjection.match(item);
-    if (match?.kind == FilterRuleKind.author &&
-        revealedAuthorUids.contains('${item.uid}')) {
-      return null;
-    }
-    return match;
-  }
-
-  void revealItem(Datum item) {
-    revealedContentKeys.add(ContentFilterProjection.keyOf(item));
-    reapplyFilters();
-  }
-
-  void revealAuthorForPage(String uid) {
-    revealedAuthorUids.add(uid);
-    reapplyFilters();
-  }
-
-  void publishItems(List<Datum> items, {bool append = false}) {
-    _listenToFilters();
-    final previous = !supportsContentFilter && loadingState.value is Success
-        ? List<Datum>.from((loadingState.value as Success).response)
-        : rawItems;
-    final combined = append ? [...previous, ...items] : items;
-    rawItems = handleUnique(combined) ?? combined;
-    reapplyFilters();
-  }
-
-  void reapplyFilters() {
-    if (isClosed) return;
-    final hidden = <Datum>[];
-    final visible = <Datum>[];
-    for (final item in rawItems) {
-      if (filterMatch(item) != null) {
-        hidden.add(item);
-        // Keep comment relationships; each comment card renders a placeholder.
-        if (item.entityType == 'feed_reply') visible.add(item);
-      } else {
-        visible.add(item);
-      }
-    }
-    filteredItems.assignAll(hidden);
-    if (rawItems.isNotEmpty || loadingState.value is Success) {
-      loadingState.value = LoadingState.success(visible);
-    }
+    initContentFiltering();
   }
 
   @override
   void onClose() {
-    _filterService?.removeListener(reapplyFilters);
-    _legacyFilterSubscription?.cancel();
+    disposeContentFiltering();
     super.onClose();
   }
 
   List<Datum>? handleResponse(List<Datum> dataList) {
     return null;
-  }
-
-  List<Datum>? handleUnique(List<Datum> dataList) {
-    return dataList.unique((data) =>
-        '${data.entityType}:${data.entityId ?? data.id ?? identityHashCode(data)}');
   }
 
   LoadingState? handleExtraResponse() {
@@ -137,7 +53,7 @@ abstract class CommonController extends GetxController {
 
   Future<void> onGetData([bool isRefresh = true]) async {
     if (!isLoading) {
-      _listenToFilters();
+      initContentFiltering();
       final generation = GlobalData().sessionGeneration;
       isLoading = true;
       automaticLoadPaused = false;
@@ -231,139 +147,5 @@ abstract class CommonController extends GetxController {
 
   void onBlock(dynamic uid) {
     reapplyFilters();
-  }
-
-  Future<void> postLikeDeleteFollow(
-    dynamic id,
-    dynamic fid, {
-    bool isFollow = false,
-    bool isFeed = false,
-    bool isReply = false,
-    bool isNoti = false,
-    bool isProduct = false,
-  }) async {
-    String url = isFeed
-        ? '/v6/feed/deleteFeed'
-        : isReply
-            ? '/v6/feed/deleteReply'
-            : isNoti
-                ? '/v6/notification/delete'
-                : '/v6/product/changeFollowStatus';
-    try {
-      Response response = await NetworkRepo.postLikeDeleteFollow(
-        url,
-        id: isProduct ? null : id,
-        data: isProduct
-            ? FormData.fromMap({'id': id, 'status': isFollow ? 0 : 1})
-            : null,
-      );
-      readApiObject(response);
-      LoginResponse data = LoginResponse.fromJson(response.data);
-      if (!data.message.isNullOrEmpty) {
-        SmartDialog.showToast(data.message!);
-        if (isProduct) {
-          handleGetFollow();
-        }
-      } else if (data.data != null) {
-        List<Datum> dataList = rawItems;
-        if (fid != null) {
-          dataList = dataList.map((data) {
-            if (data.id == fid) {
-              return data
-                ..replyRows =
-                    data.replyRows!.where((data) => data.id != id).toList();
-            } else {
-              return data;
-            }
-          }).toList();
-        } else {
-          dataList = dataList.where((data) => data.id != id).toList();
-        }
-        publishItems(dataList);
-        SmartDialog.showToast(data.data!);
-      }
-    } catch (e) {
-      SmartDialog.showToast(ApiFailure.fromError(e).message);
-    }
-  }
-
-  bool handleLike(dynamic like, dynamic likenum) {
-    return false;
-  }
-
-  Future<void> onLike(
-    dynamic id,
-    dynamic like, {
-    bool isFeed = false,
-    bool isReply = false,
-  }) async {
-    try {
-      String isLike = isFeed
-          ? (like == 1 ? 'unlike' : 'like')
-          : (like == 1 ? 'unLikeReply' : 'likeReply');
-      Response response =
-          await NetworkRepo.postLikeDeleteFollow('/v6/feed/$isLike', id: id);
-      readApiObject(response);
-      LoginResponse datum = LoginResponse.fromJson(response.data);
-      if (!datum.message.isNullOrEmpty) {
-        SmartDialog.showToast(datum.message!);
-      } else {
-        if (isFeed && handleLike(like, datum.data['count'])) {
-          return;
-        }
-        List<Datum> dataList = (loadingState.value as Success).response;
-        dataList = dataList.map((data) {
-          if (data.id == id) {
-            return data
-              ..likenum = isFeed ? datum.data['count'] : datum.data
-              ..userAction = UserAction(like: like == 1 ? 0 : 1);
-          } else {
-            return data;
-          }
-        }).toList();
-        loadingState.value = LoadingState.success(dataList);
-      }
-    } catch (e) {
-      SmartDialog.showToast(ApiFailure.fromError(e).message);
-    }
-  }
-
-  void handleGetFollow() {}
-
-  Future<void> onGetFollow(
-    bool isFollow,
-    String url, {
-    dynamic tag,
-    dynamic id,
-  }) async {
-    try {
-      Response response = await NetworkRepo.getFollow(url, tag: tag, id: id);
-      final body =
-          readApiObject(response, allowSuccessWithoutData: tag != null);
-      LoginResponse data = LoginResponse.fromJson(body);
-      if (!data.message.isNullOrEmpty) {
-        SmartDialog.showToast(data.message!);
-        if (tag != null) {
-          handleGetFollow();
-        }
-      } else if (data.data != null) {
-        SmartDialog.showToast(isFollow ? '取消关注成功' : '关注成功');
-        handleGetFollow();
-      }
-    } catch (e) {
-      SmartDialog.showToast(ApiFailure.fromError(e).message);
-    }
-  }
-
-  void onPM(dynamic id) {
-    List<Datum> dataList = (loadingState.value as Success).response;
-    dataList = dataList.map((data) {
-      if (data.id == id) {
-        return data..unreadNum = null;
-      } else {
-        return data;
-      }
-    }).toList();
-    loadingState.value = LoadingState.success(dataList);
   }
 }

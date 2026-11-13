@@ -200,7 +200,7 @@ class ChatCard extends StatelessWidget {
       return Container(
         decoration: BoxDecoration(
           border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5)),
           borderRadius: BorderRadius.circular(12),
         ),
         width: width,
@@ -224,7 +224,7 @@ class ChatCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           color: Theme.of(context).colorScheme.onInverseSurface,
           border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5)),
         ),
         child: IconButton(
             tooltip: '加载图片',

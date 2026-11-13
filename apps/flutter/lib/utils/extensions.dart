@@ -192,11 +192,15 @@ extension HexColor on Color {
   }
 
   /// Prefixes a hash sign if [leadingHashSign] is set to `true` (default is `true`).
-  String toHex({bool leadingHashSign = true}) => '${leadingHashSign ? '#' : ''}'
-      '${alpha.toRadixString(16).padLeft(2, '0')}'
-      '${red.toRadixString(16).padLeft(2, '0')}'
-      '${green.toRadixString(16).padLeft(2, '0')}'
-      '${blue.toRadixString(16).padLeft(2, '0')}';
+  String toHex({bool leadingHashSign = true}) {
+    int channel(double component) =>
+        (component * 255.0).round().clamp(0, 255);
+    return '${leadingHashSign ? '#' : ''}'
+        '${channel(a).toRadixString(16).padLeft(2, '0')}'
+        '${channel(r).toRadixString(16).padLeft(2, '0')}'
+        '${channel(g).toRadixString(16).padLeft(2, '0')}'
+        '${channel(b).toRadixString(16).padLeft(2, '0')}';
+  }
 }
 
 const SystemUiOverlayStyle lightSystemUiOverlayStyle = SystemUiOverlayStyle(
