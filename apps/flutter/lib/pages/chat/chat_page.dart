@@ -18,6 +18,7 @@ import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/utils.dart';
+import '../../components/confirm_dialog.dart';
 import 'chat_controller.dart';
 import 'chat_feed_picker.dart';
 
@@ -196,24 +197,14 @@ class _ChatPageState extends State<ChatPage> {
                                 child: const Text('删除'),
                                 onPressed: () async {
                                   Navigator.pop(context);
-                                  final confirmed = await showDialog<bool>(
-                                      context: this.context,
-                                      builder: (context) => AlertDialog(
-                                              title: const Text('删除消息？'),
-                                              content: const Text('删除后无法恢复。'),
-                                              actions: [
-                                                TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                            context, false),
-                                                    child: const Text('取消')),
-                                                TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                            context, true),
-                                                    child: const Text('删除')),
-                                              ]));
-                                  if (confirmed == true && mounted) {
+                                  final confirmed = await showConfirmDialog(
+                                    context: this.context,
+                                    title: '删除消息？',
+                                    content: '删除后无法恢复。',
+                                    confirmLabel: '删除',
+                                    danger: true,
+                                  );
+                                  if (confirmed && mounted) {
                                     _chatController.onDeleteMsg(data.id);
                                   }
                                 }),

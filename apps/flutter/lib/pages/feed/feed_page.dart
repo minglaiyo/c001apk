@@ -5,10 +5,11 @@ import '../../components/expressive_loading_indicator.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:get/get_navigation/src/dialog/dialog_route.dart';
+import '../../components/app_sheet.dart';
+import '../../components/scroll_hide_animator.dart';
+import '../../components/confirm_dialog.dart';
 
 import '../../components/cards/feed_reply_card.dart';
 import '../../components/content_filter_gate.dart';
@@ -18,6 +19,7 @@ import '../../logic/content_filter/content_filter_rule.dart';
 import '../../logic/model/feed_article/feed_article.dart';
 import '../../components/feed_article_body.dart';
 import '../../components/footer.dart';
+import '../../components/status_views.dart';
 import '../../components/sliver_pinned_box_adapter.dart';
 import '../../components/cards/feed_card.dart';
 import '../../logic/model/feed/datum.dart';
@@ -65,11 +67,9 @@ class FeedPage extends StatefulWidget {
   State<FeedPage> createState() => _FeedPageState();
 }
 
-class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
+class _FeedPageState extends State<FeedPage> {
   late final String _id = widget.id ?? Get.parameters['id'].orEmpty;
   final _refreshKey = GlobalKey<RefreshIndicatorState>();
-  AnimationController? _fabAnimationCtr;
-  late bool _isFabVisible = true;
   late final _scrollController = ScrollController();
   final _titleVisible = ValueNotifier<bool>(false);
   bool _showSource = false;
@@ -87,41 +87,12 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    if (GlobalData().isLogin) {
-      _fabAnimationCtr = AnimationController(
-          vsync: this, duration: const Duration(milliseconds: 300));
-      _fabAnimationCtr?.forward();
-      _scrollController.addListener(() {
-        final ScrollDirection direction =
-            _scrollController.position.userScrollDirection;
-        if (direction == ScrollDirection.forward) {
-          _showFab();
-        } else if (direction == ScrollDirection.reverse) {
-          _hideFab();
-        }
-      });
-    }
-  }
-
-  void _showFab() {
-    if (!_isFabVisible) {
-      _isFabVisible = true;
-      _fabAnimationCtr?.forward();
-    }
-  }
-
-  void _hideFab() {
-    if (_isFabVisible) {
-      _isFabVisible = false;
-      _fabAnimationCtr?.reverse();
-    }
   }
 
   @override
   void dispose() {
     _titleVisible.dispose();
     _scrollController.dispose();
-    _fabAnimationCtr?.dispose();
     Get.delete<FeedController>(tag: _id + _random);
     super.dispose();
   }
@@ -275,24 +246,14 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
   }
 
   Future<void> _showAccountDetailStatus() async {
-    final retry = await showDialog<bool>(
+    final retry = await showConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('账号信息暂不可用'),
-        content: Text(_feedController.accountDetailNotice.value),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('关闭'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('重试账号详情'),
-          ),
-        ],
-      ),
+      title: '账号信息暂不可用',
+      content: _feedController.accountDetailNotice.value,
+      confirmLabel: '重试账号详情',
+      cancelLabel: '关闭',
     );
-    if (retry != true || !mounted) return;
+    if (!retry || !mounted) return;
     await _feedController.getFeedData(verify: true);
     if (!mounted) return;
     final notice = _feedController.accountDetailNotice.value;
@@ -379,33 +340,14 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
     dynamic uname,
     dynamic fid,
   ) async {
-    Navigator.of(context)
-        .push(
-      GetDialogRoute(
-        pageBuilder: (buildContext, animation, secondaryAnimation) {
-          return ReplyPage(
-            type: type,
-            username: uname,
-            id: id,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 500),
-        transitionBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(0.0, 1.0);
-          const end = Offset.zero;
-          const curve = Curves.linear;
-
-          var tween =
-              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-
-          return SlideTransition(
-            position: animation.drive(tween),
-            child: child,
-          );
-        },
+    showBottomSheetPage(
+      context: context,
+      page: ReplyPage(
+        type: type,
+        username: uname,
+        id: id,
       ),
-    )
-        .then(
+    ).then(
       (result) {
         if (result != null && result['data'] != null) {
           _feedController.updateReply(
@@ -417,24 +359,6 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
         }
       },
     );
-
-    // dynamic result = await showModalBottomSheet<dynamic>(
-    //   context: context,
-    //   isScrollControlled: true,
-    //   builder: (context) => ReplyDialog(
-    //     type: type,
-    //     username: uname,
-    //     id: id,
-    //   ),
-    // );
-    // if (result != null && result['data'] != null) {
-    //   _feedController.updateReply(
-    //     type == ReplyType.reply,
-    //     result['data'] as Datum,
-    //     id,
-    //     fid,
-    //   );
-    // }
   }
 
   Widget _buildDeferredReplyPrompt(LoadingState replyState,
@@ -474,14 +398,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
     }
     switch (replyState) {
       case Empty():
-        return SliverToBoxAdapter(
-          child: Container(
-            height: 80,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.all(10.0),
-            child: const Text('暂无内容'),
-          ),
-        );
+        return const SliverToBoxAdapter(child: EmptyStatusView());
       case Error():
         return SliverToBoxAdapter(
           child: Padding(
@@ -553,14 +470,7 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
           ),
         );
     }
-    return SliverToBoxAdapter(
-      child: Container(
-        height: 80,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(10.0),
-        child: const ExpressiveLoadingIndicator(),
-      ),
-    );
+    return const SliverToBoxAdapter(child: LoadingStatusView());
   }
 
   @override
@@ -587,26 +497,29 @@ class _FeedPageState extends State<FeedPage> with TickerProviderStateMixin {
     return Scaffold(
       floatingActionButton: Obx(
         () => _feedController.feedState.value is Success && GlobalData().isLogin
-            ? SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 2),
-                  end: const Offset(0, 0),
-                ).animate(CurvedAnimation(
-                  parent: _fabAnimationCtr!,
-                  curve: Curves.easeInOut,
-                )),
-                child: FloatingActionButton(
-                  heroTag: null,
-                  tooltip: '回复',
-                  onPressed: () {
-                    _onReply(
-                      ReplyType.feed,
-                      _feedController.id,
-                      _feedController.feedUsername,
-                      null,
-                    );
-                  },
-                  child: const Icon(Icons.reply),
+            ? ScrollHideAnimator(
+                scrollController: _scrollController,
+                builder: (context, animation) => SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 2),
+                    end: const Offset(0, 0),
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeInOut,
+                  )),
+                  child: FloatingActionButton(
+                    heroTag: null,
+                    tooltip: '回复',
+                    onPressed: () {
+                      _onReply(
+                        ReplyType.feed,
+                        _feedController.id,
+                        _feedController.feedUsername,
+                        null,
+                      );
+                    },
+                    child: const Icon(Icons.reply),
+                  ),
                 ),
               )
             : const SizedBox(),

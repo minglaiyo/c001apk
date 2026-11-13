@@ -1,4 +1,5 @@
 import '../../constants/app_sizes.dart';
+import '../more_panel.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -594,19 +595,36 @@ Widget header(
         ),
       if (!isFeedContent)
         IconButton(
-          onPressed: () => showModalBottomSheet(
+          onPressed: () => showMorePanel(
             context: context,
-            useRootNavigator: true,
-            isScrollControlled: true,
-            builder: (context) {
-              return _MorePanel(
-                id: data.id,
-                uid: data.uid,
-                isHistory: isHistory,
-                onDelete: onDelete,
-                onBlock: onBlock,
-              );
-            },
+            actions: [
+              MorePanelAction(
+                icon: Icons.copy_outlined,
+                label: '复制',
+                onSelected: () =>
+                    Utils.copyText('https://www.coolapk.com/feed/${data.id}'),
+              ),
+              MorePanelAction(
+                icon: Icons.block,
+                label: '屏蔽',
+                onSelected: () {
+                  GStorage.onBlock(data.uid);
+                  onBlock?.call();
+                },
+              ),
+              if (Utils.isSupportWebview())
+                MorePanelAction(
+                  icon: Icons.error_outline,
+                  label: '举报',
+                  onSelected: () => Utils.report(data.id, ReportType.Feed),
+                ),
+              if (isHistory || data.uid.toString() == GlobalData().uid)
+                MorePanelAction(
+                  icon: Icons.delete_outline,
+                  label: '删除',
+                  onSelected: () => onDelete?.call(data.id),
+                ),
+            ],
           ),
           icon: const Icon(Icons.keyboard_arrow_down),
           color: Theme.of(context).colorScheme.outline,
@@ -673,105 +691,3 @@ Widget bottomInfo(
   );
 }
 
-enum PanelAction { copy, block, report, delete }
-
-class _MorePanel extends StatelessWidget {
-  const _MorePanel({
-    required this.id,
-    required this.uid,
-    required this.isHistory,
-    required this.onDelete,
-    required this.onBlock,
-  });
-
-  final dynamic id;
-  final dynamic uid;
-  final bool isHistory;
-  final Function(dynamic id)? onDelete;
-  final Function()? onBlock;
-
-  Future<dynamic> menuActionHandler(PanelAction type) async {
-    switch (type) {
-      case PanelAction.copy:
-        Utils.copyText('https://www.coolapk.com/feed/$id');
-        Get.back();
-        break;
-      case PanelAction.block:
-        Get.back();
-        GStorage.onBlock(uid);
-        if (onBlock != null) {
-          onBlock!();
-        }
-        break;
-      case PanelAction.report:
-        Get.back();
-        Utils.report(id, ReportType.Feed);
-        break;
-      case PanelAction.delete:
-        Get.back();
-        if (onDelete != null) {
-          onDelete!(id);
-        }
-        break;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          InkWell(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
-            ),
-            onTap: () => Get.back(),
-            child: Container(
-              alignment: Alignment.center,
-              height: 35,
-              child: Container(
-                width: 32,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outline,
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(3),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          ListTile(
-            onTap: () async => await menuActionHandler(PanelAction.copy),
-            minLeadingWidth: 0,
-            leading: const Icon(Icons.copy_outlined, size: 19),
-            title: Text('复制', style: Theme.of(context).textTheme.titleSmall),
-          ),
-          ListTile(
-            onTap: () async => await menuActionHandler(PanelAction.block),
-            minLeadingWidth: 0,
-            leading: const Icon(Icons.block, size: 19),
-            title: Text('屏蔽', style: Theme.of(context).textTheme.titleSmall),
-          ),
-          if (Utils.isSupportWebview())
-            ListTile(
-              onTap: () async => await menuActionHandler(PanelAction.report),
-              minLeadingWidth: 0,
-              leading: const Icon(Icons.error_outline, size: 19),
-              title: Text('举报', style: Theme.of(context).textTheme.titleSmall),
-            ),
-          if (isHistory || uid.toString() == GlobalData().uid)
-            ListTile(
-              onTap: () async => await menuActionHandler(PanelAction.delete),
-              minLeadingWidth: 0,
-              leading: const Icon(Icons.delete_outline, size: 19),
-              title: Text('删除', style: Theme.of(context).textTheme.titleSmall),
-            ),
-        ],
-      ),
-    );
-  }
-}

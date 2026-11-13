@@ -14,6 +14,7 @@ import '../../components/cards/user_info_card.dart';
 import '../../components/content_filter_gate.dart';
 import '../../logic/content_filter/content_filter_rule.dart';
 import '../../components/footer.dart';
+import '../../components/status_views.dart';
 import '../../components/item_card.dart';
 import '../../components/adaptive_card_list.dart';
 import '../../logic/model/feed/datum.dart';
@@ -117,34 +118,23 @@ class _UserPageState extends State<UserPage> {
     switch (loadingState) {
       case Empty():
         return SliverToBoxAdapter(
-          child: GestureDetector(
+          child: EmptyStatusView(
             onTap: () {
               _userController.setLoadingState(LoadingState.loading());
               _userController.onGetData();
             },
-            child: Container(
-              height: 80,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(10.0),
-              child: const Text('暂无内容'),
-            ),
           ),
         );
       case Error():
         return SliverToBoxAdapter(
-          child: GestureDetector(
+          child: ErrorStatusView(
+            message: loadingState.errMsg,
             onTap: _userController.isBlocked
                 ? null
                 : () {
                     _userController.setLoadingState(LoadingState.loading());
                     _userController.onGetData();
                   },
-            child: Container(
-              height: 80,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(10.0),
-              child: Text(loadingState.errMsg),
-            ),
           ),
         );
       case Success():
@@ -185,14 +175,7 @@ class _UserPageState extends State<UserPage> {
           },
         );
     }
-    return SliverToBoxAdapter(
-      child: Container(
-        height: 80,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(10.0),
-        child: const ExpressiveLoadingIndicator(),
-      ),
-    );
+    return const SliverToBoxAdapter(child: LoadingStatusView());
   }
 
   @override

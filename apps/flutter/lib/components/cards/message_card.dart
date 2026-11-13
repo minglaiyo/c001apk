@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../utils/date_util.dart';
 import '../../utils/utils.dart';
+import '../confirm_dialog.dart';
 import '../expressive_loading_indicator.dart';
 
 class MessageCard extends StatelessWidget {
@@ -49,23 +50,14 @@ class MessageCard extends StatelessWidget {
                             title: const Text('删除会话'),
                             onTap: () async {
                               Navigator.pop(context);
-                              final confirmed = await showDialog<bool>(
-                                  context: thisContext,
-                                  builder: (context) => AlertDialog(
-                                          title: const Text('删除此会话？'),
-                                          content: const Text(
-                                              '会话将从私信列表中删除，此操作无法撤销。'),
-                                          actions: [
-                                            TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    context, false),
-                                                child: const Text('取消')),
-                                            TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    context, true),
-                                                child: const Text('删除'))
-                                          ]));
-                              if (confirmed == true) onDelete?.call();
+                              final confirmed = await showConfirmDialog(
+                                context: thisContext,
+                                title: '删除此会话？',
+                                content: '会话将从私信列表中删除，此操作无法撤销。',
+                                confirmLabel: '删除',
+                                danger: true,
+                              );
+                              if (confirmed) onDelete?.call();
                             }),
                       ])));
             },

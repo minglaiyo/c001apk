@@ -1,6 +1,7 @@
 import '../../components/expressive_loading_indicator.dart';
 import 'package:flutter/material.dart';
 
+import '../../components/confirm_dialog.dart';
 import '../../logic/model/fav_history/fav_history.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/network/network_repo.dart';
@@ -39,20 +40,13 @@ class _ChatFeedPickerState extends State<ChatFeedPicker> {
   }
 
   void _choose(String id) async {
-    final yes = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-                title: const Text('发送动态？'),
-                content: Text('https://www.coolapk.com/feed/$id'),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('取消')),
-                  FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('发送'))
-                ]));
-    if (yes == true && mounted) {
+    final yes = await showConfirmDialog(
+      context: context,
+      title: '发送动态？',
+      content: 'https://www.coolapk.com/feed/$id',
+      confirmLabel: '发送',
+    );
+    if (yes && mounted) {
       Navigator.pop(context, 'https://www.coolapk.com/feed/$id');
     }
   }

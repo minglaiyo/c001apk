@@ -4,6 +4,7 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import '../logic/model/feed/datum.dart';
 import '../logic/model/feed_article/feed_article.dart';
 import '../utils/content_export_service.dart';
+import '../components/confirm_dialog.dart';
 import '../utils/content_export.dart';
 import '../utils/global_data.dart';
 import 'expressive_loading_indicator.dart';
@@ -69,21 +70,13 @@ class _ContentExportButtonState extends State<ContentExportButton> {
       if (!mounted || !_active(generation)) return;
       setState(() => _preparing = false);
       if (prepared.warnings.isNotEmpty) {
-        final proceed = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-                    title: const Text('部分内容未能保存'),
-                    content: Text(
-                        '${prepared.warnings.join('\n\n')}\n\n继续保存已取得的内容？'),
-                    actions: [
-                      TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('取消')),
-                      FilledButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('继续保存'))
-                    ]));
-        if (proceed != true || !_active(generation)) return;
+        final proceed = await showConfirmDialog(
+          context: context,
+          title: '部分内容未能保存',
+          content: '${prepared.warnings.join('\n\n')}\n\n继续保存已取得的内容？',
+          confirmLabel: '继续保存',
+        );
+        if (!proceed || !_active(generation)) return;
       }
       final saved = await service.save(prepared);
       if (saved && _active(generation)) SmartDialog.showToast('内容已保存');

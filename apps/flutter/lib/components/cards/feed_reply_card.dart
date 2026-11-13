@@ -1,4 +1,5 @@
 import '../../constants/app_sizes.dart';
+import '../more_panel.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -85,23 +86,45 @@ class FeedReplyCard extends StatelessWidget {
             Align(
               alignment: Alignment.topRight,
               child: IconButton(
-                  onPressed: () => showModalBottomSheet(
+                  onPressed: () => showMorePanel(
                         context: context,
-                        useRootNavigator: true,
-                        isScrollControlled: true,
-                        builder: (context) {
-                          return _MorePanel(
-                            id: data.id,
-                            uid: data.uid,
-                            reply: data..fetchType = 'feed_reply',
-                            onBlock: onBlock != null
-                                ? () => onBlock!(data.uid, null)
-                                : null,
-                            onDelete: onDelete != null
-                                ? () => onDelete!(data.id, null)
-                                : null,
-                          );
-                        },
+                        actions: [
+                          MorePanelAction(
+                            icon: Icons.block,
+                            label: '屏蔽',
+                            onSelected: () {
+                              GStorage.onBlock(data.uid);
+                              onBlock?.call(data.uid, null);
+                            },
+                          ),
+                          if (data.uid.toString() == GlobalData().uid)
+                            MorePanelAction(
+                              icon: Icons.delete_outline,
+                              label: '删除',
+                              onSelected: () => onDelete?.call(data.id, null),
+                            ),
+                          if (Utils.isSupportWebview())
+                            MorePanelAction(
+                              icon: Icons.error_outline,
+                              label: '举报',
+                              onSelected: () =>
+                                  Utils.report(data.id, ReportType.Reply),
+                            ),
+                          MorePanelAction(
+                            icon: Icons.message_outlined,
+                            label: '查看回复',
+                            onSelected: () {
+                              data.fetchType = 'feed_reply';
+                              showBottomSheetPage(
+                                context: context,
+                                page: Reply2ReplyPage(
+                                    id: data.id.toString(),
+                                    replynum: data.replynum,
+                                    originReply: data),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                   icon: Icon(
                     Icons.keyboard_arrow_down,
@@ -336,23 +359,47 @@ class FeedReplyCard extends StatelessWidget {
         }
       },
       onLongPress: () {
-        showModalBottomSheet(
+        showMorePanel(
           context: context,
-          useRootNavigator: true,
-          isScrollControlled: true,
-          builder: (context) {
-            return _MorePanel(
-              id: reply.id,
-              uid: reply.uid,
-              message: ContentFilterProjection.displayMessage(reply),
-              fid: data.id,
-              reply: reply,
-              onBlock:
-                  onBlock != null ? () => onBlock!(reply.uid, data.id) : null,
-              onDelete:
-                  onDelete != null ? () => onDelete!(reply.id, data.id) : null,
-            );
-          },
+          actions: [
+            MorePanelAction(
+              icon: Icons.copy,
+              label: '复制',
+              onSelected: () =>
+                  Utils.copyText(ContentFilterProjection.displayMessage(reply)),
+            ),
+            MorePanelAction(
+              icon: Icons.block,
+              label: '屏蔽',
+              onSelected: () {
+                GStorage.onBlock(reply.uid);
+                onBlock?.call(reply.uid, data.id);
+              },
+            ),
+            if (reply.uid.toString() == GlobalData().uid)
+              MorePanelAction(
+                icon: Icons.delete_outline,
+                label: '删除',
+                onSelected: () => onDelete?.call(reply.id, data.id),
+              ),
+            if (Utils.isSupportWebview())
+              MorePanelAction(
+                icon: Icons.error_outline,
+                label: '举报',
+                onSelected: () => Utils.report(reply.id, ReportType.Reply),
+              ),
+            MorePanelAction(
+              icon: Icons.message_outlined,
+              label: '查看回复',
+              onSelected: () => showBottomSheetPage(
+                context: context,
+                page: Reply2ReplyPage(
+                    id: reply.id.toString(),
+                    replynum: reply.replynum,
+                    originReply: reply),
+              ),
+            ),
+          ],
         );
       },
       child: Container(
@@ -435,128 +482,3 @@ class FeedReplyCard extends StatelessWidget {
   }
 }
 
-enum PanelAction { copy, block, delete, report, showReply }
-
-class _MorePanel extends StatelessWidget {
-  const _MorePanel({
-    required this.id,
-    required this.uid,
-    this.message,
-    this.fid,
-    this.reply,
-    this.onBlock,
-    this.onDelete,
-  });
-
-  final dynamic id;
-  final dynamic uid;
-  final String? message;
-  final dynamic fid;
-  final Datum? reply;
-  final Function()? onBlock;
-  final Function()? onDelete;
-
-  Future<dynamic> menuActionHandler(PanelAction type,
-      {BuildContext? context, dynamic rid, dynamic frid}) async {
-    switch (type) {
-      case PanelAction.copy:
-        Get.back();
-        Get.toNamed('/copy', parameters: {'text': message.toString()});
-        break;
-      case PanelAction.block:
-        Get.back();
-        GStorage.onBlock(uid);
-        if (onBlock != null) {
-          onBlock!();
-        }
-        break;
-      case PanelAction.delete:
-        Get.back();
-        if (onDelete != null) {
-          onDelete!();
-        }
-        break;
-      case PanelAction.report:
-        Get.back();
-        Utils.report(id, ReportType.Reply);
-        break;
-      case PanelAction.showReply:
-        Get.back();
-        showBottomSheetPage(
-          context: context!,
-          page: Reply2ReplyPage(
-              id: id.toString(),
-              replynum: reply!.replynum,
-              originReply: reply!),
-        );
-        break;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          InkWell(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
-            ),
-            onTap: () => Get.back(),
-            child: Container(
-              alignment: Alignment.center,
-              height: 35,
-              child: Container(
-                width: 32,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outline,
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(3),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (message != null)
-            ListTile(
-              onTap: () async => await menuActionHandler(PanelAction.copy),
-              minLeadingWidth: 0,
-              leading: const Icon(Icons.copy, size: 19),
-              title: Text('复制', style: Theme.of(context).textTheme.titleSmall),
-            ),
-          ListTile(
-            onTap: () async => await menuActionHandler(PanelAction.block),
-            minLeadingWidth: 0,
-            leading: const Icon(Icons.block, size: 19),
-            title: Text('屏蔽', style: Theme.of(context).textTheme.titleSmall),
-          ),
-          if (uid.toString() == GlobalData().uid)
-            ListTile(
-              onTap: () async => await menuActionHandler(PanelAction.delete),
-              minLeadingWidth: 0,
-              leading: const Icon(Icons.delete_outline, size: 19),
-              title: Text('删除', style: Theme.of(context).textTheme.titleSmall),
-            ),
-          if (Utils.isSupportWebview())
-            ListTile(
-              onTap: () async => await menuActionHandler(PanelAction.report),
-              minLeadingWidth: 0,
-              leading: const Icon(Icons.error_outline, size: 19),
-              title: Text('举报', style: Theme.of(context).textTheme.titleSmall),
-            ),
-          ListTile(
-            onTap: () async => await menuActionHandler(PanelAction.showReply,
-                context: context, rid: id, frid: fid),
-            minLeadingWidth: 0,
-            leading: const Icon(Icons.message_outlined, size: 19),
-            title: Text('查看回复', style: Theme.of(context).textTheme.titleSmall),
-          ),
-        ],
-      ),
-    );
-  }
-}

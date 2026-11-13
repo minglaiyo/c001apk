@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 
 import '../../../components/expressive_loading_indicator.dart';
 import '../../../components/expressive_refresh_indicator.dart';
+import '../../../components/scroll_hide_animator.dart';
 import '../../../components/scroll_hiding_action.dart';
 import '../../../pages/home/app/app_list_controller.dart';
 import '../../../pages/home/return_top_controller.dart';
@@ -20,7 +20,7 @@ class AppListPage extends StatefulWidget {
 }
 
 class _AppListPageState extends State<AppListPage>
-    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -31,8 +31,6 @@ class _AppListPageState extends State<AppListPage>
   StreamSubscription<int>? _returnTopSubscription;
 
   late final bool _checkUpdate = GStorage.checkUpdate;
-  AnimationController? _fabAnimationCtr;
-  late bool _isFabVisible = true;
 
   @override
   void initState() {
@@ -43,35 +41,6 @@ class _AppListPageState extends State<AppListPage>
         _animateToTop();
       }
     });
-
-    if (_checkUpdate) {
-      _fabAnimationCtr = AnimationController(
-          vsync: this, duration: const Duration(milliseconds: 300));
-      _fabAnimationCtr?.forward();
-      _scrollController.addListener(() {
-        final ScrollDirection direction =
-            _scrollController.position.userScrollDirection;
-        if (direction == ScrollDirection.forward) {
-          _showFab();
-        } else if (direction == ScrollDirection.reverse) {
-          _hideFab();
-        }
-      });
-    }
-  }
-
-  void _showFab() {
-    if (!_isFabVisible) {
-      _isFabVisible = true;
-      _fabAnimationCtr?.forward();
-    }
-  }
-
-  void _hideFab() {
-    if (_isFabVisible) {
-      _isFabVisible = false;
-      _fabAnimationCtr?.reverse();
-    }
   }
 
   void _animateToTop() async {
@@ -84,7 +53,6 @@ class _AppListPageState extends State<AppListPage>
   void dispose() {
     _returnTopSubscription?.cancel();
     _scrollController.dispose();
-    _fabAnimationCtr?.dispose();
     Get.delete<AppListController>();
     super.dispose();
   }
@@ -100,13 +68,16 @@ class _AppListPageState extends State<AppListPage>
         },
         child: Scaffold(
           floatingActionButton: _checkUpdate
-              ? ScrollHidingAction(
-                  animation: _fabAnimationCtr!,
-                  child: FloatingActionButton(
-                    heroTag: null,
-                    onPressed: () => Get.toNamed('/appUpdate'),
-                    tooltip: '更新',
-                    child: const Icon(Icons.update),
+              ? ScrollHideAnimator(
+                  scrollController: _scrollController,
+                  builder: (_, animation) => ScrollHidingAction(
+                    animation: animation,
+                    child: FloatingActionButton(
+                      heroTag: null,
+                      onPressed: () => Get.toNamed('/appUpdate'),
+                      tooltip: '更新',
+                      child: const Icon(Icons.update),
+                    ),
                   ),
                 )
               : null,

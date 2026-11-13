@@ -1,5 +1,4 @@
 import 'expressive_refresh_indicator.dart';
-import 'expressive_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -11,16 +10,10 @@ import '../components/item_card.dart';
 import '../logic/model/feed/datum.dart';
 import '../logic/state/loading_state.dart';
 import '../pages/common/common_controller.dart';
+import 'status_views.dart';
 
 Widget _bodyState(String text, Function() onTap) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      alignment: Alignment.center,
-      padding: AppSpacing.pageInsets,
-      child: Text(text),
-    ),
-  );
+  return StatusTile(text: text, onTap: onTap);
 }
 
 Widget commonBody(
@@ -216,10 +209,5 @@ Widget buildBody(
         }),
       );
   }
-  return Container(
-    height: 80,
-    alignment: Alignment.center,
-    padding: const EdgeInsets.all(10.0),
-    child: const ExpressiveLoadingIndicator(),
-  );
+  return const LoadingStatusView();
 }

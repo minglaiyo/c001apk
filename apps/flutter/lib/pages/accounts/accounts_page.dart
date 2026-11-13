@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../components/confirm_dialog.dart';
 import '../../components/network_image.dart';
 import '../../logic/accounts/account_store.dart';
 import '../../utils/storage_util.dart';
@@ -33,22 +34,16 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 
   Future<void> _remove(SavedAccount account) async {
-    final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-              title: const Text('移除本机登录？'),
-              content: Text('将移除“${account.displayName}”在本机保存的登录。再次使用需要重新登录。'
-                  '${GStorage.uid == account.uid ? '\n当前账号将切换为游客。' : ''}'),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text('取消')),
-                TextButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text('移除')),
-              ],
-            ));
-    if (confirmed == true && mounted) {
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: '移除本机登录？',
+      content:
+          '将移除“${account.displayName}”在本机保存的登录。再次使用需要重新登录。'
+          '${GStorage.uid == account.uid ? '\n当前账号将切换为游客。' : ''}',
+      confirmLabel: '移除',
+      danger: true,
+    );
+    if (confirmed && mounted) {
       await _run(() => _store.remove(account.uid));
     }
   }

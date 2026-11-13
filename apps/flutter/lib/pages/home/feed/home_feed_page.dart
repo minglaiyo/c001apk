@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 
 import '../../../components/common_body.dart';
+import '../../../components/scroll_hide_animator.dart';
 import '../../../components/scroll_hiding_action.dart';
 import '../../../components/home_publish_action.dart';
 import '../../../pages/home/feed/home_feed_controller.dart';
@@ -33,14 +33,12 @@ class HomeFeedPage extends StatefulWidget {
 }
 
 class _HomeFeedPageState extends State<HomeFeedPage>
-    with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
   late final bool isLogin = GlobalData().isLogin;
-  AnimationController? _fabAnimationCtr;
   StreamSubscription<int>? _returnTopSubscription;
-  late bool _isFabVisible = true;
 
   late final followType = widget.followType ?? GStorage.followType;
   late final _tag = widget.tabType == TabType.FOLLOW
@@ -70,9 +68,7 @@ class _HomeFeedPageState extends State<HomeFeedPage>
   @override
   void dispose() {
     _returnTopSubscription?.cancel();
-    _homeFeedController.scrollController?.removeListener(() {});
     _homeFeedController.scrollController?.dispose();
-    _fabAnimationCtr?.dispose();
     Get.delete<HomeFeedController>(
       tag: _tag,
     );
@@ -94,37 +90,6 @@ class _HomeFeedPageState extends State<HomeFeedPage>
         _homeFeedController.animateToTop();
       }
     });
-
-    if (isLogin) {
-      _fabAnimationCtr = AnimationController(
-          vsync: this, duration: const Duration(milliseconds: 300));
-      _fabAnimationCtr?.forward();
-      _homeFeedController.scrollController?.addListener(() {
-        final ScrollDirection? direction =
-            _homeFeedController.scrollController?.position.userScrollDirection;
-        if (direction == ScrollDirection.forward) {
-          _showFab();
-        } else if (direction == ScrollDirection.reverse) {
-          _hideFab();
-        }
-      });
-    }
-  }
-
-  void _showFab() {
-    if (!_isFabVisible) {
-      _isFabVisible = true;
-      _fabAnimationCtr?.forward();
-      widget.onPublishVisibilityChanged?.call(true);
-    }
-  }
-
-  void _hideFab() {
-    if (_isFabVisible) {
-      _isFabVisible = false;
-      _fabAnimationCtr?.reverse();
-      widget.onPublishVisibilityChanged?.call(false);
-    }
   }
 
   @override
@@ -132,11 +97,18 @@ class _HomeFeedPageState extends State<HomeFeedPage>
     super.build(context);
     return Scaffold(
       floatingActionButton: GlobalData().isLogin &&
-              widget.tabType == TabType.FEED &&
-              !widget.useRail
-          ? ScrollHidingAction(
-              animation: _fabAnimationCtr!,
-              child: const HomePublishAction(),
+              widget.tabType == TabType.FEED
+          ? ScrollHideAnimator(
+              scrollController: _homeFeedController.scrollController,
+              onVisibilityChanged: widget.onPublishVisibilityChanged,
+              builder: (_, animation) => widget.useRail
+                  // 侧栏布局由 main 外壳消费显隐状态渲染发布入口，
+                  // 这里不重复渲染悬浮按钮。
+                  ? const SizedBox.shrink()
+                  : ScrollHidingAction(
+                      animation: animation,
+                      child: const HomePublishAction(),
+                    ),
             )
           : null,
       body: commonBody(_homeFeedController),

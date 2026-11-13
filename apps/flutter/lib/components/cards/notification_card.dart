@@ -1,4 +1,5 @@
 import '../../constants/app_sizes.dart';
+import '../more_panel.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -54,25 +55,30 @@ class NotificationCard extends StatelessWidget {
             Align(
               alignment: Alignment.topRight,
               child: IconButton(
-                  onPressed: () => showModalBottomSheet(
+                  onPressed: () => showMorePanel(
                         context: context,
-                        useRootNavigator: true,
-                        isScrollControlled: true,
-                        builder: (context) {
-                          return _MorePanel(
-                            id: data.id.toString(),
-                            uid: data.fromuid.toString(),
-                            note: data.note ?? '',
-                            onBlock: onBlock != null
-                                ? () => onBlock!(data.uid)
-                                : null,
-                            onDelete: () {
-                              if (onDelete != null) {
-                                onDelete!(data.id);
-                              }
+                        actions: [
+                          MorePanelAction(
+                            icon: Icons.delete_outline,
+                            label: '删除',
+                            onSelected: () => onDelete?.call(data.id),
+                          ),
+                          MorePanelAction(
+                            icon: Icons.block,
+                            label: '屏蔽',
+                            onSelected: () {
+                              GStorage.onBlock(data.fromuid);
+                              onBlock?.call(data.uid);
                             },
-                          );
-                        },
+                          ),
+                          if (Utils.isSupportWebview())
+                            MorePanelAction(
+                              icon: Icons.error_outline,
+                              label: '举报',
+                              onSelected: () =>
+                                  Utils.report(data.fromuid, ReportType.User),
+                            ),
+                        ],
                       ),
                   icon: Icon(
                     Icons.keyboard_arrow_down,
@@ -148,95 +154,3 @@ class NotificationCard extends StatelessWidget {
   }
 }
 
-enum PanelAction { delete, block, report }
-
-class _MorePanel extends StatelessWidget {
-  const _MorePanel({
-    required this.id,
-    required this.uid,
-    required this.note,
-    required this.onBlock,
-    required this.onDelete,
-  });
-
-  final String id;
-  final String uid;
-  final String note;
-  final Function()? onBlock;
-  final Function()? onDelete;
-
-  Future<dynamic> menuActionHandler(PanelAction type,
-      {BuildContext? context, String? rid, String? frid}) async {
-    switch (type) {
-      case PanelAction.delete:
-        Get.back();
-        if (onDelete != null) {
-          onDelete!();
-        }
-        break;
-      case PanelAction.block:
-        Get.back();
-        GStorage.onBlock(uid);
-        if (onBlock != null) {
-          onBlock!();
-        }
-        break;
-      case PanelAction.report:
-        Get.back();
-        Utils.report(uid, ReportType.User);
-        break;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          InkWell(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
-            ),
-            onTap: () => Get.back(),
-            child: Container(
-              alignment: Alignment.center,
-              height: 35,
-              child: Container(
-                width: 32,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outline,
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(3),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          ListTile(
-            onTap: () async => await menuActionHandler(PanelAction.delete),
-            minLeadingWidth: 0,
-            leading: const Icon(Icons.delete_outline, size: 19),
-            title: Text('删除', style: Theme.of(context).textTheme.titleSmall),
-          ),
-          ListTile(
-            onTap: () async => await menuActionHandler(PanelAction.block),
-            minLeadingWidth: 0,
-            leading: const Icon(Icons.block, size: 19),
-            title: Text('屏蔽', style: Theme.of(context).textTheme.titleSmall),
-          ),
-          if (Utils.isSupportWebview())
-            ListTile(
-              onTap: () async => await menuActionHandler(PanelAction.report),
-              minLeadingWidth: 0,
-              leading: const Icon(Icons.error_outline, size: 19),
-              title: Text('举报', style: Theme.of(context).textTheme.titleSmall),
-            ),
-        ],
-      ),
-    );
-  }
-}

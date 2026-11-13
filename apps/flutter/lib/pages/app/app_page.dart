@@ -6,7 +6,7 @@ import 'dart:math';
 import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide Response;
-import 'package:get/get_navigation/src/dialog/dialog_route.dart';
+import '../../components/app_sheet.dart';
 
 import '../../components/cards/app_info_card.dart';
 import '../../components/sticky_sliver_to_box_adapter.dart';
@@ -140,44 +140,15 @@ class _AppPageState extends State<AppPage> with TickerProviderStateMixin {
               ? FloatingActionButton(
                   heroTag: null,
                   onPressed: () {
-                    Navigator.of(context).push(
-                      GetDialogRoute(
-                        pageBuilder:
-                            (buildContext, animation, secondaryAnimation) {
-                          return ReplyPage(
-                            title: controller.appName,
-                            targetType: 'apk',
-                            targetId:
-                                '${1000000000 + int.parse(controller.id ?? '4599')}',
-                          );
-                        },
-                        transitionDuration: const Duration(milliseconds: 500),
-                        transitionBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                          const begin = Offset(0.0, 1.0);
-                          const end = Offset.zero;
-                          const curve = Curves.linear;
-
-                          var tween = Tween(begin: begin, end: end)
-                              .chain(CurveTween(curve: curve));
-
-                          return SlideTransition(
-                            position: animation.drive(tween),
-                            child: child,
-                          );
-                        },
+                    showBottomSheetPage(
+                      context: context,
+                      page: ReplyPage(
+                        title: controller.appName,
+                        targetType: 'apk',
+                        targetId:
+                            '${1000000000 + int.parse(controller.id ?? '4599')}',
                       ),
                     );
-                    // showModalBottomSheet<dynamic>(
-                    //   context: context,
-                    //   isScrollControlled: true,
-                    //   builder: (context) => ReplyDialog(
-                    //     title: controller.appName,
-                    //     targetType: 'apk',
-                    //     targetId:
-                    //         '${1000000000 + int.parse(controller.id ?? '4599')}',
-                    //   ),
-                    // );
                   },
                   tooltip: '发布动态',
                   child: const Icon(Icons.add),
