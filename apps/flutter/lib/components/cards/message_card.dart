@@ -1,3 +1,4 @@
+import '../../utils/html_text_util.dart';
 import '../../constants/app_sizes.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
@@ -5,7 +6,6 @@ import 'package:get/get.dart';
 
 import '../../logic/model/feed/datum.dart';
 import '../../utils/date_util.dart';
-import '../../utils/utils.dart';
 import '../confirm_dialog.dart';
 import '../expressive_loading_indicator.dart';
 
@@ -131,7 +131,7 @@ class MessageCard extends StatelessWidget {
                       Expanded(
                         flex: 1,
                         child: Text(
-                          Utils.parseHtmlString(data.message ?? ''),
+                          parseHtmlString(data.message ?? ''),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

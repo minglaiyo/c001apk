@@ -14,6 +14,9 @@ abstract final class AppDurations {
   /// 滚动显隐（FAB、发布按钮）。
   static const scrollHide = Duration(milliseconds: 300);
 
+  /// 主页 Tab 切换与导航栏形变。
+  static const viewSwitch = Duration(milliseconds: 400);
+
   /// 快速反馈（刷新悬浮指示器、对话框内容切换）。
   static const fast = Duration(milliseconds: 150);
 
@@ -29,6 +32,6 @@ abstract final class AppCurves {
   /// 底部弹层进入。
   static const sheetEnter = Curves.easeOutCubic;
 
-  /// 滚动显隐。
-  static const scrollHide = Curves.easeOutCubic;
+  /// 滚动显隐（正向显示、反向隐藏共用）。
+  static const scrollHide = Curves.easeInOut;
 }

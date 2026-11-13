@@ -1,7 +1,7 @@
+import 'package:c001apk_flutter/router/link_resolver.dart';
 import 'dart:async';
 
 import 'package:c001apk_flutter/utils/android_links.dart';
-import 'package:c001apk_flutter/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,7 +41,7 @@ void main() {
   testWidgets('a malformed external link cannot discard the next valid link',
       (tester) async {
     pending = ['https://www.coolapk.com/t/%FF', 'coolmarket://feed/123'];
-    final links = AndroidLinks(onOpen: Utils.onOpenLink)..listen();
+    final links = AndroidLinks(onOpen: openLink)..listen();
     await tester.pumpWidget(GetMaterialApp(
         initialRoute: '/',
         builder: FlutterSmartDialog.init(),
@@ -69,7 +69,7 @@ void main() {
   testWidgets(
       'cold link waits for root, warm links navigate and remain repeatable',
       (tester) async {
-    final links = AndroidLinks(onOpen: Utils.onOpenLink)..listen();
+    final links = AndroidLinks(onOpen: openLink)..listen();
     // Notifications before the navigator exists must retain the cold link.
     await notify(tester);
     expect(pending, hasLength(1));

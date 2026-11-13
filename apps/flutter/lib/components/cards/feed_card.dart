@@ -1,3 +1,6 @@
+import '../../router/link_resolver.dart';
+import '../../utils/share_util.dart';
+import '../../utils/html_text_util.dart';
 import '../../constants/app_sizes.dart';
 import '../more_panel.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
@@ -131,7 +134,7 @@ class FeedCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (!data.messageTitle.isNullOrEmpty)
-          Text(Utils.parseHtmlString(data.messageTitle!),
+          Text(parseHtmlString(data.messageTitle!),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -139,7 +142,7 @@ class FeedCard extends StatelessWidget {
             key: ValueKey('feed-summary:${data.id}'),
             source: data.message ?? '',
             builder: (message) => Text(
-                Utils.parseHtmlString(MarkdownContent.parse(message).preview),
+                parseHtmlString(MarkdownContent.parse(message).preview),
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 14, height: 1.5))),
@@ -302,7 +305,7 @@ class FeedCard extends StatelessWidget {
             : Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.all(AppRadius.card),
         child: InkWell(
-          onTap: () => Utils.onOpenLink(
+          onTap: () => openLink(
               data.extraUrl!, data.extraTitle ?? '', true, context),
           borderRadius: const BorderRadius.all(AppRadius.card),
           child: Padding(
@@ -540,7 +543,7 @@ Widget header(
                           Text(
                             isFeedContent
                                 ? DateUtil.fromToday(data.dateline)
-                                : Utils.parseHtmlString(data.infoHtml.orEmpty),
+                                : parseHtmlString(data.infoHtml.orEmpty),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -555,7 +558,7 @@ Widget header(
                             flex: 1,
                             child: IconText(
                               icon: Icons.smartphone,
-                              text: Utils.parseHtmlString(
+                              text: parseHtmlString(
                                   data.deviceTitle.orEmpty),
                             ),
                           ),
@@ -616,7 +619,7 @@ Widget header(
                 MorePanelAction(
                   icon: Icons.error_outline,
                   label: '举报',
-                  onSelected: () => Utils.report(data.id, ReportType.Feed),
+                  onSelected: () => report(data.id, ReportType.Feed),
                 ),
               if (isHistory || data.uid.toString() == GlobalData().uid)
                 MorePanelAction(

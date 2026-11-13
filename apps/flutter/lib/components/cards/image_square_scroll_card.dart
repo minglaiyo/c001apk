@@ -1,9 +1,9 @@
+import '../../router/link_resolver.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../components/self_sized_horizontal_list.dart';
 import '../../logic/model/feed/entity.dart';
-import '../../utils/utils.dart';
 
 class ImageSquareScrollCard extends StatelessWidget {
   const ImageSquareScrollCard({super.key, required this.dataList});
@@ -34,7 +34,7 @@ class ImageSquareScrollCard extends StatelessWidget {
       height: width,
       child: GestureDetector(
         onTap: () =>
-            Utils.onOpenLink(data.url.toString(), data.title, true, context),
+            openLink(data.url.toString(), data.title, true, context),
         child: Stack(
           children: [
             clipNetworkImage(

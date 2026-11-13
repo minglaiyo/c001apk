@@ -1,3 +1,5 @@
+import '../../router/link_resolver.dart';
+import '../../utils/share_util.dart';
 import '../../constants/app_sizes.dart';
 import '../more_panel.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
@@ -35,7 +37,7 @@ class NotificationCard extends StatelessWidget {
       child: InkWell(
         onTap: () {
           if (isFollow) {
-            Utils.onOpenLink(data.url ?? '');
+            openLink(data.url ?? '');
           } else {
             dom.Document document = parse(data.note);
             String? link = document
@@ -43,7 +45,7 @@ class NotificationCard extends StatelessWidget {
                 .firstOrNull
                 ?.attributes['href'];
             if (link != null) {
-              Utils.onOpenLink(link);
+              openLink(link);
             }
           }
         },
@@ -76,7 +78,7 @@ class NotificationCard extends StatelessWidget {
                               icon: Icons.error_outline,
                               label: '举报',
                               onSelected: () =>
-                                  Utils.report(data.fromuid, ReportType.User),
+                                  report(data.fromuid, ReportType.User),
                             ),
                         ],
                       ),

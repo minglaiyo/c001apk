@@ -1,3 +1,4 @@
+import '../../utils/share_util.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -9,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
+import '../../constants/app_motion.dart';
 import '../../utils/download_util.dart';
 import '../../utils/utils.dart';
 
@@ -30,6 +32,9 @@ class _ImageViewPageState extends State<ImageViewPage> {
   final _imageSizes = <int, Size>{};
   final _imageListeners = <int, (ImageStream, ImageStreamListener)>{};
   bool _menuOpen = false;
+
+  /// 来源卡片的 Hero 前缀（如 ninegrid:{feedId}）；为空时不与列表页联动。
+  late final String? _heroPrefix = Get.arguments['heroPrefix'] as String?;
 
   @override
   void initState() {
@@ -85,7 +90,7 @@ class _ImageViewPageState extends State<ImageViewPage> {
     final next = (current + delta).clamp(0, _imgList.length - 1);
     if (next == current) return;
     unawaited(_pageController.animateToPage(next,
-        duration: const Duration(milliseconds: 255), curve: Curves.ease));
+        duration: AppDurations.imageViewer, curve: Curves.ease));
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
@@ -181,7 +186,7 @@ class _ImageViewPageState extends State<ImageViewPage> {
               ListTile(
                 title: const Text('分享', style: TextStyle(fontSize: 14)),
                 onTap: () {
-                  Utils.onShareImg(imageUrl);
+                  onShareImg(imageUrl);
                   Get.back();
                 },
               ),
@@ -245,8 +250,11 @@ class _ImageViewPageState extends State<ImageViewPage> {
                             initialScale: PhotoViewComputedScale.contained,
                             minScale: PhotoViewComputedScale.contained,
                             maxScale: PhotoViewComputedScale.covered * 8,
-                            heroAttributes:
-                                PhotoViewHeroAttributes(tag: _imgList[index]),
+                            heroAttributes: PhotoViewHeroAttributes(
+                              tag: _heroPrefix == null
+                                  ? _imgList[index]
+                                  : '$_heroPrefix:$index',
+                            ),
                           ),
                           itemCount: _imgList.length,
                           loadingBuilder: (context, event) => Center(

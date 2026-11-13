@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../constants/app_motion.dart';
 import 'expressive_loading_indicator.dart';
 
 /// Preserve RefreshIndicatorState.show() and the existing refresh lifecycle.
@@ -54,7 +55,7 @@ class _ExpressiveRefreshIndicatorState
             child: AnimatedSwitcher(
               duration: MediaQuery.disableAnimationsOf(context)
                   ? Duration.zero
-                  : const Duration(milliseconds: 150),
+                  : AppDurations.fast,
               child: visible
                   ? Material(
                       key: const ValueKey('refreshing'),

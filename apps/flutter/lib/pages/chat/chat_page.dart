@@ -1,3 +1,5 @@
+import '../../utils/share_util.dart';
+import '../../utils/html_text_util.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
@@ -75,7 +77,7 @@ class _ChatPageState extends State<ChatPage> {
                   GStorage.onBlock(_uid);
                 case ChatMenuType.report:
                   if (Utils.isSupportWebview()) {
-                    Utils.report(_uid, ReportType.User);
+                    report(_uid, ReportType.User);
                   } else {
                     SmartDialog.showToast('当前平台暂不支持此功能');
                   }
@@ -191,7 +193,7 @@ class _ChatPageState extends State<ChatPage> {
                                   onPressed: () {
                                     Navigator.pop(context);
                                     Utils.copyText(
-                                        Utils.parseHtmlString(data.message!));
+                                        parseHtmlString(data.message!));
                                   }),
                             SimpleDialogOption(
                                 child: const Text('删除'),

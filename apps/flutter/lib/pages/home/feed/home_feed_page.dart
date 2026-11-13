@@ -1,3 +1,4 @@
+import '../../../pages/home/follow_tabs.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -12,7 +13,6 @@ import '../../../pages/home/home_page.dart' show TabType;
 import '../../../pages/home/return_top_controller.dart';
 import '../../../utils/global_data.dart';
 import '../../../utils/storage_util.dart';
-import '../../../utils/utils.dart';
 
 class HomeFeedPage extends StatefulWidget {
   const HomeFeedPage({
@@ -50,13 +50,13 @@ class _HomeFeedPageState extends State<HomeFeedPage>
       tabType: widget.tabType,
       installTime: GStorage.installTime,
       url: switch (widget.tabType) {
-        TabType.FOLLOW => Utils.getFollowUrl(followType),
+        TabType.FOLLOW => getFollowUrl(followType),
         TabType.HOT => '/page?url=V9_HOME_TAB_RANKING',
         TabType.COOLPIC => '/page?url=V11_FIND_COOLPIC',
         _ => null,
       },
       title: switch (widget.tabType) {
-        TabType.FOLLOW => Utils.getFollowTitle(followType),
+        TabType.FOLLOW => getFollowTitle(followType),
         TabType.HOT => '热榜',
         TabType.COOLPIC => '酷图',
         _ => null,

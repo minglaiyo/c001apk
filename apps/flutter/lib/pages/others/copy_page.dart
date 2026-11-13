@@ -1,10 +1,10 @@
+import '../../utils/html_text_util.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../utils/extensions.dart';
-import '../../utils/utils.dart';
 
 extension StringExtensions on String {
   String get getAllLinkAndText {
@@ -32,7 +32,7 @@ class CopyPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SelectableText(
                 scrollPhysics: const BouncingScrollPhysics(),
-                Utils.parseHtmlString(
+                parseHtmlString(
                     '\n$text\n'.getAllLinkAndText.replaceAll("\n", "<br/>")),
                 style: const TextStyle(
                   fontSize: 22,

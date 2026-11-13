@@ -1,11 +1,13 @@
+import '../../router/link_resolver.dart';
 import 'dart:async';
 
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../constants/app_motion.dart';
+
 import '../../logic/model/feed/entity.dart';
 import '../../utils/extensions.dart';
-import '../../utils/utils.dart';
 import '../mouse_drag_scroll.dart';
 
 class CarouselCard extends StatefulWidget {
@@ -90,7 +92,7 @@ class _CarouselCardState extends State<CarouselCard> {
                         },
                         itemBuilder: (context, page) {
                           return GestureDetector(
-                            onTap: () => Utils.onOpenLink(
+                            onTap: () => openLink(
                               _filterList[page].url.orEmpty,
                               _filterList[page].title,
                               true,
@@ -118,7 +120,7 @@ class _CarouselCardState extends State<CarouselCard> {
                               onTap: () {
                                 _controller.animateToPage(
                                   index + 1,
-                                  duration: const Duration(milliseconds: 255),
+                                  duration: AppDurations.imageViewer,
                                   curve: Curves.ease,
                                 );
                               },

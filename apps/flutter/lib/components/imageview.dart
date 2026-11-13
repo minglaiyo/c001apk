@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../components/nine_grid_view.dart';
+import '../constants/app_sizes.dart';
 import '../constants/constants.dart';
 import '../utils/utils.dart';
 import '../logic/media/feed_media.dart';
@@ -105,6 +106,32 @@ Widget image(
                 : imageWidth;
     imageHeight = imageWidth * min(ratioHW, maxRatio);
   }
+  // 网格单元的媒体下标：文章封面取 articleImg 在 picArr 中的位置。
+  int itemIndex(int gridIndex) => isFeedArticle
+      ? picArr.indexOf(articleImg!).clamp(0, items.length - 1)
+      : gridIndex;
+
+  Widget buildItem(BuildContext context, int gridIndex) => Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+            strokeAlign: BorderSide.strokeAlignOutside,
+          ),
+          borderRadius: const BorderRadius.all(AppRadius.card),
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.all(AppRadius.card),
+          child: mediaThumbnail(
+            items[itemIndex(gridIndex)],
+            width: imageWidth,
+            height: imageHeight,
+            fit: isFeedArticle || picArr.length == 1
+                ? BoxFit.fill
+                : BoxFit.cover,
+          ),
+        ),
+      );
+
   return NineGridView(
     bigImageWidth: imageWidth,
     bigImageHeight: imageHeight,
@@ -118,31 +145,19 @@ Widget image(
             mediaItems: items,
             contentId: contentId,
             contentType: contentType,
-            initialPage: isFeedArticle ? picArr.indexOf(articleImg!) : index);
+            initialPage: isFeedArticle ? itemIndex(index) : index);
+        if (contentId != null) {
+          // 与图片查看器配对的 Hero 标记：contentId 保证同一路由内唯一。
+          arguments['heroPrefix'] = 'ninegrid:$contentId';
+        }
         Get.toNamed('/imageview', arguments: arguments);
       },
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
-            strokeAlign: BorderSide.strokeAlignOutside,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: mediaThumbnail(
-            items[isFeedArticle
-                ? picArr.indexOf(articleImg!).clamp(0, items.length - 1)
-                : index],
-            width: imageWidth,
-            height: imageHeight,
-            fit: isFeedArticle || picArr.length == 1
-                ? BoxFit.fill
-                : BoxFit.cover,
-          ),
-        ),
-      ),
+      child: contentId == null
+          ? buildItem(context, index)
+          : Hero(
+              tag: 'ninegrid:$contentId:$index',
+              child: buildItem(context, index),
+            ),
     ),
   );
 }

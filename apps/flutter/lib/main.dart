@@ -1,3 +1,4 @@
+import 'router/link_resolver.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -25,12 +26,12 @@ import 'logic/network/request.dart';
 import 'logic/onboarding/onboarding_state.dart';
 import 'pages/webview/captcha_page.dart';
 import 'router/app_pages.dart';
+import 'constants/app_motion.dart';
 import 'router/page_transitions.dart';
 import 'utils/storage_util.dart';
 import 'utils/app_theme.dart';
 import 'utils/desktop_window.dart';
 import 'utils/android_links.dart';
-import 'utils/utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -87,7 +88,7 @@ void main() async {
 
   Request().captchaVerifier = verifyCaptcha;
   final links = Platform.isAndroid
-      ? (AndroidLinks(onOpen: Utils.onOpenLink, onboarding: onboarding)
+      ? (AndroidLinks(onOpen: openLink, onboarding: onboarding)
         ..listen())
       : null;
   runApp(AnnouncementMonitor(
@@ -183,7 +184,7 @@ class _C001APKAPPState extends State<C001APKAPP> {
       getPages: AppPages.getPages,
       navigatorObservers: [_navigationHistory, _promptNavigation],
       customTransition: AppPageTransition(),
-      transitionDuration: const Duration(milliseconds: 450),
+      transitionDuration: AppDurations.pageTransition,
       initialRoute: '/',
       builder: (BuildContext context, Widget? child) {
         final brightness = switch (GStorage.getThemeMode()) {

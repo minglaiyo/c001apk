@@ -1,3 +1,6 @@
+import '../../router/link_resolver.dart';
+import '../../utils/share_util.dart';
+import '../../utils/html_text_util.dart';
 import '../../constants/app_sizes.dart';
 import '../more_panel.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
@@ -71,7 +74,7 @@ class FeedReplyCard extends StatelessWidget {
               null,
             );
           } else {
-            Utils.onOpenLink(data.url ?? '');
+            openLink(data.url ?? '');
           }
         },
         onLongPress: () {
@@ -108,7 +111,7 @@ class FeedReplyCard extends StatelessWidget {
                               icon: Icons.error_outline,
                               label: '举报',
                               onSelected: () =>
-                                  Utils.report(data.id, ReportType.Reply),
+                                  report(data.id, ReportType.Reply),
                             ),
                           MorePanelAction(
                             icon: Icons.message_outlined,
@@ -253,7 +256,7 @@ class FeedReplyCard extends StatelessWidget {
       color: Theme.of(context).colorScheme.surface,
       borderRadius: const BorderRadius.all(AppRadius.card),
       child: InkWell(
-        onTap: () => Utils.onOpenLink(feed.url ?? ''),
+        onTap: () => openLink(feed.url ?? ''),
         borderRadius: const BorderRadius.all(AppRadius.card),
         child: Padding(
           padding: const EdgeInsets.all(10),
@@ -283,7 +286,7 @@ class FeedReplyCard extends StatelessWidget {
                     ContentFilterText(
                         source: feed.message ?? '',
                         builder: (message) => Text(
-                              Utils.parseHtmlString(message),
+                              parseHtmlString(message),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -386,7 +389,7 @@ class FeedReplyCard extends StatelessWidget {
               MorePanelAction(
                 icon: Icons.error_outline,
                 label: '举报',
-                onSelected: () => Utils.report(reply.id, ReportType.Reply),
+                onSelected: () => report(reply.id, ReportType.Reply),
               ),
             MorePanelAction(
               icon: Icons.message_outlined,

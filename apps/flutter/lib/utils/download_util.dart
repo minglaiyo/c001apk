@@ -1,12 +1,18 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:saver_gallery/saver_gallery.dart';
+
+import '../logic/network/api_failure.dart';
+import '../logic/network/network_repo.dart';
+import '../utils/extensions.dart';
+import '../utils/utils.dart';
 
 /// From Pilipala
 class DownloadUtils {
@@ -113,5 +119,57 @@ class DownloadUtils {
       SmartDialog.dismiss();
       SmartDialog.showToast('图片保存失败，请检查网络或存储权限');
     }
+  }
+}
+
+/// 获取应用安装包下载地址并交给原生/浏览器下载。
+Future<String?> onGetDownloadUrl(
+  String appName,
+  String packageName,
+  int id,
+  String versionName,
+  int versionCode,
+) async {
+  try {
+    await NetworkRepo.getAppDownloadUrl(
+      packageName: packageName,
+      id: id,
+      versionCode: versionCode,
+    );
+  } on DioException catch (e) {
+    if (e.response?.statusCode == 302) {
+      String? url = e.response?.headers['Location']?.firstOrNull;
+      if (!url.isNullOrEmpty) {
+        onDownloadFile(
+          url!,
+          '$appName-$versionName-$versionCode.apk',
+        );
+        return url;
+      } else {
+        SmartDialog.showToast('无法获取下载链接，请稍后重试');
+      }
+    } else {
+      SmartDialog.showToast(ApiFailure.fromError(e).message);
+    }
+  }
+  return null;
+}
+
+/// 复制下载地址后交给系统处理；Android 走原生下载通道。
+void onDownloadFile(String url, String name) async {
+  Clipboard.setData(ClipboardData(text: url));
+  if (Platform.isAndroid) {
+    if (!await const MethodChannel('samples.flutter.dev/channel')
+        .invokeMethod(
+      'downloadApk',
+      {
+        'url': url,
+        'name': name,
+      },
+    )) {
+      Utils.launchURL(url);
+    }
+  } else {
+    launchUrl(Uri.parse(url));
   }
 }

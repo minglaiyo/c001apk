@@ -1,3 +1,4 @@
+import 'package:c001apk_flutter/router/link_resolver.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
@@ -24,7 +25,6 @@ import 'package:c001apk_flutter/pages/feed/reply/reply_page.dart';
 import 'package:c001apk_flutter/logic/model/feed/datum.dart';
 import 'package:c001apk_flutter/utils/global_data.dart';
 import 'package:c001apk_flutter/utils/storage_util.dart';
-import 'package:c001apk_flutter/utils/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:dynamic_color/samples.dart';
 import 'package:dynamic_color/test_utils.dart';
@@ -1209,7 +1209,7 @@ void main() {
       'coolmarket://feed/123?s=synthetic#reply',
     ]) {
       adapter.detailIds.clear();
-      Utils.onOpenLink(url);
+      openLink(url);
       await tester.pumpAndSettle();
       expect(Get.parameters['id'], '123', reason: url);
       expect(adapter.detailIds, ['123'], reason: url);

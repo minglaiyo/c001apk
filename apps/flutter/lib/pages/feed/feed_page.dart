@@ -1,3 +1,4 @@
+import '../../utils/share_util.dart';
 import '../../components/expressive_refresh_indicator.dart';
 import '../../components/expressive_loading_indicator.dart';
 // ignore_for_file: constant_identifier_names
@@ -8,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import '../../components/app_sheet.dart';
+import '../../constants/app_motion.dart';
 import '../../components/scroll_hide_animator.dart';
 import '../../components/confirm_dialog.dart';
 
@@ -505,7 +507,7 @@ class _FeedPageState extends State<FeedPage> {
                     end: const Offset(0, 0),
                   ).animate(CurvedAnimation(
                     parent: animation,
-                    curve: Curves.easeInOut,
+                    curve: AppCurves.scrollHide,
                   )),
                   child: FloatingActionButton(
                     heroTag: null,
@@ -592,13 +594,13 @@ class _FeedPageState extends State<FeedPage> {
                         switch (item) {
                           case FeedMenuItem.Copy:
                             Utils.copyText(
-                                Utils.getShareUrl(_id, ShareType.feed));
+                                getShareUrl(_id, ShareType.feed));
                             break;
                           case FeedMenuItem.Share:
                             final data =
                                 (_feedController.feedState.value as Success)
                                     .response as Datum;
-                            Utils.shareContent(_id, ShareType.feed,
+                            shareContent(_id, ShareType.feed,
                                 title:
                                     data.messageTitle?.trim().isNotEmpty == true
                                         ? data.messageTitle
@@ -625,7 +627,7 @@ class _FeedPageState extends State<FeedPage> {
                             break;
                           case FeedMenuItem.Report:
                             if (Utils.isSupportWebview()) {
-                              Utils.report(_id, ReportType.Feed);
+                              report(_id, ReportType.Feed);
                             } else {
                               SmartDialog.showToast('当前平台暂不支持此功能');
                             }

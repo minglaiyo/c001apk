@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../constants/app_motion.dart';
 import '../../pages/home/return_top_controller.dart';
 import '../../pages/home/home_page.dart';
 import '../../pages/main/main_controller.dart';
@@ -28,7 +29,7 @@ class _MainPageState extends State<MainPage>
     with SingleTickerProviderStateMixin {
   bool _homeFeedSelected = true;
   late final _publishAnimation = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 300), value: 1);
+      vsync: this, duration: AppDurations.scrollHide, value: 1);
   final ReturnTopController _pageScrollController =
       Get.put(ReturnTopController(), tag: 'home');
   int _selectedIndex = 0;
@@ -136,8 +137,8 @@ class _MainPageState extends State<MainPage>
     } else {
       _contrller.animateToPage(
         index,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOutCubicEmphasized,
+        duration: AppDurations.viewSwitch,
+        curve: AppCurves.emphasized,
       );
     }
     _selectedIndex = index;

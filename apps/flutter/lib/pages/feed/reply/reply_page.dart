@@ -17,6 +17,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../components/no_splash_factory.dart';
 import '../../../logic/model/feed/data_model.dart';
+import '../../../logic/reply/reply_publisher.dart';
 import '../../../logic/model/login/login_response.dart';
 import '../../../logic/model/oss_upload/datum.dart';
 import '../../../logic/model/oss_upload/oss_upload_model.dart';
@@ -72,7 +73,10 @@ class _ReplyPageState extends State<ReplyPage>
 
   final _checkBoxStream = StreamController<bool>();
   bool _checkBoxValue = false;
-  final TextEditingController _captchaController = TextEditingController();
+  late final _publisher = ReplyPublisher(
+    isMounted: () => mounted,
+    context: () => context,
+  );
 
   late final _imagePicker = ImagePicker();
   late final _pathStream = StreamController<List<String>>();
@@ -102,7 +106,7 @@ class _ReplyPageState extends State<ReplyPage>
     _checkBoxStream.close();
     _pathStream.close();
     _replyContentController.dispose();
-    _captchaController.dispose();
+    _publisher.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -542,188 +546,47 @@ class _ReplyPageState extends State<ReplyPage>
     _publishing = true;
     try {
       if (_pathList.isNotEmpty) {
-        OssDatum? data = await OssUtil.onPostOSSUploadPrepare(
-          'image',
-          'feed',
-          _modelList,
+        final pic = await _publisher.uploadFeedImages(
+          filePaths: _pathList,
+          modelList: _modelList,
         );
-        if (data != null) {
-          _pic = data.fileInfo!
-              .map((item) =>
-                  '${data.uploadPrepareInfo!.uploadImagePrefix}/${item.uploadFileName}')
-              .toList()
-              .join(',');
-          AliyunOssClient client = AliyunOssClient(
-            accessKeyId: data.uploadPrepareInfo!.accessKeyId!,
-            accessKeySecret: data.uploadPrepareInfo!.accessKeySecret!,
-            securityToken: data.uploadPrepareInfo!.securityToken!,
-          );
-          AliyunOssConfig config = AliyunOssConfig(
-            endpoint: data.uploadPrepareInfo!.endPoint!,
-            bucket: data.uploadPrepareInfo!.bucket!,
-            directory: "feed",
-          );
-          for (int i = 0; i < data.fileInfo!.length; i++) {
-            SmartDialog.showLoading(msg: '正在上传图片 $i/${data.fileInfo!.length}');
-            AliyunOssResult result = await client.upload(
-              id: i.toString(),
-              config: config,
-              ossFileName:
-                  data.fileInfo![i].uploadFileName!.replaceFirst('feed', ''),
-              filePath: _pathList[i],
-            );
-            if (result.state == AliyunOssResultState.fail) {
-              SmartDialog.dismiss();
-              SmartDialog.showToast('第 $i 张图片上传失败，请稍后重试');
-              return;
-            }
-          }
-        }
+        if (pic == null) return;
+        _pic = pic;
       }
-      SmartDialog.showLoading(msg: '正在发布');
-      if (widget.id == null) {
-        Response response = await NetworkRepo.postCreateFeed(
-          FormData.fromMap(
-            {
-              'type': 'feed',
-              if (widget.targetType != null) 'targetType': widget.targetType,
-              if (widget.targetType == 'apk') 'type': 'comment',
-              if (widget.targetId != null) 'targetId': widget.targetId,
-              'message': _replyContentController.text,
-              'status': _checkBoxValue ? -1 : 1,
-              'pic': _pic,
-            },
-          ),
-        );
-        if (response.data is! Map ||
-            response.data['messageStatus'] != 'err_request_captcha') {
-          readApiObject(response);
-        }
-        LoginResponse data = LoginResponse.fromJson(response.data);
-        if (!data.message.isNullOrEmpty) {
-          SmartDialog.dismiss();
-          SmartDialog.showToast(data.message!);
-          if (data.messageStatus == 'err_request_captcha') {
-            _onGetCaptcha();
-          }
-        } else if (data.data != null) {
-          SmartDialog.dismiss();
-          SmartDialog.showToast('发布成功');
-          Get.back();
-        }
-      } else {
-        Response response = await NetworkRepo.postReply(
-          FormData.fromMap({
-            'message': _replyContentController.text,
-            'replyAndForward': _checkBoxValue ? 1 : 0,
-            'pic': _pic,
-          }),
-          widget.id,
-          widget.type!.name,
-        );
-        if (response.data is! Map ||
-            response.data['messageStatus'] != 'err_request_captcha') {
-          readApiObject(response);
-        }
-        DataModel data = DataModel.fromJson(response.data);
-        if (!data.message.isNullOrEmpty) {
-          SmartDialog.dismiss();
-          SmartDialog.showToast(data.message!);
-          if (data.messageStatus == 'err_request_captcha') {
-            _onGetCaptcha();
-          }
-        } else if (data.data != null) {
-          SmartDialog.dismiss();
-          SmartDialog.showToast('回复成功');
-          Get.back(result: {'data': data.data});
-        }
-      }
+      await _publisher.publish(
+        widget.id == null
+            ? () => NetworkRepo.postCreateFeed(
+                  FormData.fromMap(
+                    {
+                      'type': 'feed',
+                      if (widget.targetType != null)
+                        'targetType': widget.targetType,
+                      if (widget.targetType == 'apk') 'type': 'comment',
+                      if (widget.targetId != null) 'targetId': widget.targetId,
+                      'message': _replyContentController.text,
+                      'status': _checkBoxValue ? -1 : 1,
+                      'pic': _pic,
+                    },
+                  ),
+                )
+            : () => NetworkRepo.postReply(
+                  FormData.fromMap({
+                    'message': _replyContentController.text,
+                    'replyAndForward': _checkBoxValue ? 1 : 0,
+                    'pic': _pic,
+                  }),
+                  widget.id,
+                  widget.type!.name,
+                ),
+        successMessage: widget.id == null ? '发布成功' : '回复成功',
+        withResult: widget.id != null,
+      );
     } catch (e) {
       SmartDialog.dismiss();
       SmartDialog.showToast(ApiFailure.fromError(e).message);
     } finally {
       _publishing = false;
       SmartDialog.dismiss(status: SmartStatus.loading);
-    }
-  }
-
-  Future<void> _onGetCaptcha() async {
-    try {
-      Response response = await NetworkRepo.getValidateCaptcha();
-      if (mounted) {
-        _captchaController.clear();
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('验证码'),
-            content: IntrinsicHeight(
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Image.memory(response.data),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: TextField(
-                      controller: _captchaController,
-                      autofocus: true,
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(4),
-                        FilteringTextInputFormatter.allow(
-                            RegExp("[0-9a-zA-Z]")),
-                      ],
-                      decoration: const InputDecoration(
-                        border: UnderlineInputBorder(),
-                        filled: true,
-                        labelText: '验证码',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(),
-                child: const Text('取消'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Get.back();
-                  _postRequestValidate();
-                },
-                child: const Text('验证并继续'),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      SmartDialog.showToast('无法获取验证码：${ApiFailure.fromError(e).message}');
-      debugPrint(e.toString());
-    }
-  }
-
-  Future<void> _postRequestValidate() async {
-    try {
-      Response response = await NetworkRepo.postRequestValidate(
-        FormData.fromMap({
-          'type': 'err_request_captcha',
-          'code': _captchaController.text,
-        }),
-      );
-      LoginResponse data = LoginResponse.fromJson(response.data);
-      if (data.data == '验证通过') {
-        _onPublish();
-      } else if (!data.message.isNullOrEmpty) {
-        SmartDialog.showToast(data.message!);
-        if (data.message == "请输入正确的图形验证码") {
-          _onGetCaptcha();
-        }
-      }
-    } catch (e) {
-      debugPrint(e.toString());
     }
   }
 

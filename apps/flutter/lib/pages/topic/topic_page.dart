@@ -1,3 +1,4 @@
+import '../../utils/share_util.dart';
 import '../../components/expressive_loading_indicator.dart';
 // ignore_for_file: constant_identifier_names
 
@@ -201,7 +202,7 @@ class _TopicPageState extends State<TopicPage> with TickerProviderStateMixin {
                     onSelected: (TopicMenuItem item) {
                       switch (item) {
                         case TopicMenuItem.Copy:
-                          Utils.copyText(Utils.getShareUrl(
+                          Utils.copyText(getShareUrl(
                             _topicController.entityType == 'topic'
                                 ? _topicController.title!
                                 : _topicController.id!,
@@ -211,7 +212,7 @@ class _TopicPageState extends State<TopicPage> with TickerProviderStateMixin {
                           ));
                           break;
                         case TopicMenuItem.Share:
-                          Utils.shareContent(
+                          shareContent(
                             _topicController.entityType == 'topic'
                                 ? _topicController.title!
                                 : _topicController.id!,

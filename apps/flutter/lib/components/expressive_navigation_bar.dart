@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../constants/app_motion.dart';
+
 /// Keeps Material navigation semantics, focus and touch targets while adding
 /// a compact tonal surface and a small spring response to selection.
 class ExpressiveNavigationBar extends StatelessWidget {
@@ -48,7 +50,7 @@ class ExpressiveNavigationBar extends StatelessWidget {
         selectedIndex: selectedIndex,
         onDestinationSelected: onDestinationSelected,
         animationDuration:
-            reduced ? Duration.zero : const Duration(milliseconds: 400),
+            reduced ? Duration.zero : AppDurations.viewSwitch,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
           for (var i = 0; i < labels.length; i++)
@@ -57,7 +59,7 @@ class ExpressiveNavigationBar extends StatelessWidget {
               icon: AnimatedScale(
                 scale: selectedIndex == i ? 1.12 : 1,
                 duration:
-                    reduced ? Duration.zero : const Duration(milliseconds: 400),
+                    reduced ? Duration.zero : AppDurations.viewSwitch,
                 curve: Curves.easeOutBack,
                 child: Icon(selectedIndex == i ? selectedIcons[i] : icons[i]),
               ),

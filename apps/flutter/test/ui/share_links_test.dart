@@ -1,6 +1,7 @@
+import 'package:c001apk_flutter/router/link_resolver.dart';
+import 'package:c001apk_flutter/utils/share_util.dart';
 import 'dart:io';
 
-import 'package:c001apk_flutter/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -12,20 +13,20 @@ void main() {
   tearDown(Get.reset);
 
   test('article share has a one-line title and both encoded links', () {
-    expect(Utils.getShareText('123', ShareType.feed, title: '文章\n标题'),
+    expect(getShareText('123', ShareType.feed, title: '文章\n标题'),
         '文章 标题\nhttps://www.coolapk1s.com/feed/123\nhttps://www.coolapk.com/feed/123\n分享自c001apk');
-    expect(Utils.getShareText('摄影 & 日常', ShareType.t, title: '摄影话题'),
+    expect(getShareText('摄影 & 日常', ShareType.t, title: '摄影话题'),
         '摄影话题\nhttps://www.coolapk1s.com/t/%E6%91%84%E5%BD%B1%20%26%20%E6%97%A5%E5%B8%B8\nhttps://www.coolapk.com/t/%E6%91%84%E5%BD%B1%20%26%20%E6%97%A5%E5%B8%B8\n分享自c001apk');
   });
 
   test('untitled feeds use plain text with a safe empty fallback', () {
     expect(
-        Utils.getShareText('123', ShareType.feed,
+        getShareText('123', ShareType.feed,
                 message: '<p>第一行<br>第二行 &amp; 内容</p>')
             .split('\n')
             .first,
         '第一行 第二行 & 内容');
-    expect(Utils.getShareText('123', ShareType.feed).split('\n').first, '动态');
+    expect(getShareText('123', ShareType.feed).split('\n').first, '动态');
   });
 
   testWidgets('Windows share copies the complete payload without system share',
@@ -55,7 +56,7 @@ void main() {
         home: Builder(
             builder: (context) => Scaffold(
                 body: TextButton(
-                    onPressed: () => Utils.shareContent('123', ShareType.feed,
+                    onPressed: () => shareContent('123', ShareType.feed,
                         title: '合成文章', context: context),
                     child: const Text('分享'))))));
     await tester.tap(find.text('分享'));
@@ -83,7 +84,7 @@ void main() {
             page: () => Scaffold(body: Text('动态 ${Get.parameters['id']}'))),
       ]));
       await tester.pumpAndSettle();
-      Utils.onOpenLink(link);
+      openLink(link);
       await tester.pumpAndSettle();
       expect(find.text('动态 123'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -117,7 +118,7 @@ void main() {
             page: () => Scaffold(body: Text('目标 ${Get.parameters['value']}'))),
       ]));
       await tester.pumpAndSettle();
-      Utils.onOpenLink(example.$1);
+      openLink(example.$1);
       await tester.pumpAndSettle();
       expect(find.text('目标 ${example.$3}'), findsOneWidget);
       expect(tester.takeException(), isNull);

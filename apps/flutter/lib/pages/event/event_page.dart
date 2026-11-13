@@ -1,3 +1,4 @@
+import '../../router/link_resolver.dart';
 import '../../components/expressive_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
@@ -6,7 +7,6 @@ import 'package:get/get.dart';
 import '../../components/network_image.dart';
 import '../../logic/network/network_repo.dart';
 import '../../logic/state/loading_state.dart';
-import '../../utils/utils.dart';
 
 class EventPage extends StatefulWidget {
   const EventPage({super.key});
@@ -69,7 +69,7 @@ class _EventPageState extends State<EventPage> {
                 if (content.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   HtmlWidget(content, onTapUrl: (url) {
-                    Utils.onOpenLink(url);
+                    openLink(url);
                     return true;
                   }),
                 ],
@@ -78,7 +78,7 @@ class _EventPageState extends State<EventPage> {
                     actionUri.host.isNotEmpty) ...[
                   const SizedBox(height: 24),
                   FilledButton(
-                    onPressed: () => Utils.onOpenLink(action),
+                    onPressed: () => openLink(action),
                     child: const Text('查看报名页面'),
                   ),
                 ],

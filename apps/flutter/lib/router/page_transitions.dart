@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:get/get.dart';
 
+import '../constants/app_motion.dart';
+
 /// GetX's native transition uses a fixed PageTransitionsTheme. Delegate to our
 /// Android builder explicitly, using the route's uncurved animations so the
 /// SDK owns predictive back geometry and its cancel/commit phases.
@@ -58,7 +60,7 @@ class AppPredictiveBackPageTransitionsBuilder extends PageTransitionsBuilder {
   }
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 450);
+  Duration get transitionDuration => AppDurations.pageTransition;
 }
 
 class _AppPredictiveBack extends StatefulWidget {

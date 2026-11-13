@@ -1,3 +1,4 @@
+import '../../utils/html_text_util.dart';
 import '../../components/expressive_loading_indicator.dart';
 import 'package:flutter/material.dart';
 
@@ -8,7 +9,6 @@ import '../../logic/network/network_repo.dart';
 import '../../logic/state/loading_state.dart';
 import '../../utils/global_data.dart';
 import '../../utils/storage_util.dart';
-import '../../utils/utils.dart';
 
 /// Shares a canonical feed URL through the existing text-message protocol.
 /// Both official and third-party clients can open it without private card fields.
@@ -53,7 +53,7 @@ class _ChatFeedPickerState extends State<ChatFeedPicker> {
 
   Widget _tile(String id, String text) => ListTile(
       leading: const Icon(Icons.feed_outlined),
-      title: Text(Utils.parseHtmlString(text),
+      title: Text(parseHtmlString(text),
           maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: Text('动态 $id'),
       onTap: () => _choose(id));

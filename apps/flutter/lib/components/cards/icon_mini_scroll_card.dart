@@ -1,10 +1,10 @@
+import '../../router/link_resolver.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../components/self_sized_horizontal_list.dart';
 import '../../logic/model/feed/entity.dart';
 import '../../utils/extensions.dart';
-import '../../utils/utils.dart';
 
 class IconMiniScrollCard extends StatelessWidget {
   const IconMiniScrollCard({super.key, required this.dataList});
@@ -49,7 +49,7 @@ Widget miniCardItem(
             : Theme.of(context).colorScheme.onInverseSurface,
     borderRadius: BorderRadius.circular(radius),
     child: InkWell(
-      onTap: () => Utils.onOpenLink(url, title, true, context),
+      onTap: () => openLink(url, title, true, context),
       borderRadius: BorderRadius.circular(radius),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: 4),

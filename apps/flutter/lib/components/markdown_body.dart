@@ -1,3 +1,4 @@
+import '../router/link_resolver.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -7,7 +8,6 @@ import 'package:html/dom.dart' as dom;
 
 import '../utils/markdown_content.dart';
 import '../utils/storage_util.dart';
-import '../utils/utils.dart';
 import 'html_text.dart';
 import 'imageview.dart';
 import '../logic/media/feed_media.dart';
@@ -150,7 +150,7 @@ class MarkdownBody extends StatelessWidget {
         return true;
       }
       final resolved = baseUrl?.resolve(url).toString() ?? url;
-      Utils.onOpenLink(resolved, null, true, context);
+      openLink(resolved, null, true, context);
       return true;
     }
 

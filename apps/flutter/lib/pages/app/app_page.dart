@@ -1,3 +1,5 @@
+import '../../utils/share_util.dart';
+import '../../utils/download_util.dart';
 import '../../components/expressive_loading_indicator.dart';
 // ignore_for_file: constant_identifier_names
 
@@ -100,12 +102,12 @@ class _AppPageState extends State<AppPage> with TickerProviderStateMixin {
           onDownloadApk: controller.entityType == 'apk'
               ? (id, versionName, versionCode) async {
                   if (!_url.isNullOrEmpty) {
-                    Utils.onDownloadFile(
+                    onDownloadFile(
                       _url!,
                       '${controller.appName}-$versionName-$versionCode.apk',
                     );
                   } else {
-                    _url = await Utils.onGetDownloadUrl(
+                    _url = await onGetDownloadUrl(
                       controller.appName!,
                       _packageName,
                       id,
@@ -181,11 +183,11 @@ class _AppPageState extends State<AppPage> with TickerProviderStateMixin {
                         onSelected: (AppMenuItem item) {
                           switch (item) {
                             case AppMenuItem.Copy:
-                              Utils.copyText(Utils.getShareUrl(
+                              Utils.copyText(getShareUrl(
                                   controller.id!, ShareType.apk));
                               break;
                             case AppMenuItem.Share:
-                              Utils.shareContent(_packageName, ShareType.apk,
+                              shareContent(_packageName, ShareType.apk,
                                   title: controller.appName, context: context);
                               break;
                             case AppMenuItem.Follow:

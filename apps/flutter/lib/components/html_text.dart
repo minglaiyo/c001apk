@@ -1,3 +1,4 @@
+import '../router/link_resolver.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
@@ -6,7 +7,6 @@ import 'package:get/get.dart';
 import '../utils/emoji_util.dart';
 import '../utils/extensions.dart';
 import '../utils/storage_util.dart';
-import '../utils/utils.dart';
 import '../logic/media/feed_media.dart';
 import 'imageview.dart';
 
@@ -65,7 +65,7 @@ Widget htmlText(
                   onViewFan();
                 }
               } else {
-                Utils.onOpenLink(url, null, true, context);
+                openLink(url, null, true, context);
               }
               return true;
             },

@@ -1,3 +1,4 @@
+import '../../utils/download_util.dart';
 import '../../components/expressive_loading_indicator.dart';
 // ignore_for_file: constant_identifier_names
 
@@ -312,7 +313,7 @@ class _WebviewPageState extends State<WebviewPage> {
                           TextButton(
                               onPressed: () async {
                                 Get.back();
-                                Utils.onDownloadFile(
+                                onDownloadFile(
                                   request.url.toString(),
                                   suggestedFilename,
                                 );

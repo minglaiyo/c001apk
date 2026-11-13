@@ -1,3 +1,4 @@
+import '../../utils/download_util.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,7 +6,6 @@ import 'package:get/get.dart';
 import '../../logic/model/check_update/datum.dart';
 import '../../utils/date_util.dart';
 import '../../utils/extensions.dart';
-import '../../utils/utils.dart';
 
 class AppUpdateCard extends StatefulWidget {
   const AppUpdateCard({
@@ -110,9 +110,9 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
                           FilledButton.tonal(
                             onPressed: () async {
                               if (!_url.isNullOrEmpty) {
-                                Utils.onDownloadFile(_url!, _name);
+                                onDownloadFile(_url!, _name);
                               } else {
-                                _url = await Utils.onGetDownloadUrl(
+                                _url = await onGetDownloadUrl(
                                   widget.data.title!,
                                   widget.data.packageName!,
                                   widget.data.id!,

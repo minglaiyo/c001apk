@@ -1,10 +1,12 @@
+import '../../router/link_resolver.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:expandable_page_view/expandable_page_view.dart';
 import 'package:flutter/material.dart';
 
+import '../../constants/app_motion.dart';
+
 import '../../logic/model/feed/entity.dart';
 import '../../utils/extensions.dart';
-import '../../utils/utils.dart';
 import '../mouse_drag_scroll.dart';
 
 class IconLinkGridCard extends StatefulWidget {
@@ -73,7 +75,7 @@ class _IconLinkGridCardState extends State<IconLinkGridCard> {
                     onTap: () {
                       _controller.animateToPage(
                         index,
-                        duration: const Duration(milliseconds: 255),
+                        duration: AppDurations.imageViewer,
                         curve: Curves.ease,
                       );
                     },
@@ -106,7 +108,7 @@ class _IconLinkGridCardState extends State<IconLinkGridCard> {
     return Expanded(
       flex: 1,
       child: InkWell(
-        onTap: () => Utils.onOpenLink(data.url.orEmpty, data.title, true, context),
+        onTap: () => openLink(data.url.orEmpty, data.title, true, context),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 5),
           child: Column(

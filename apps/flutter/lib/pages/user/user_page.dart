@@ -1,3 +1,4 @@
+import '../../utils/share_util.dart';
 import '../../components/expressive_refresh_indicator.dart';
 import '../../components/expressive_loading_indicator.dart';
 // ignore_for_file: constant_identifier_names
@@ -278,11 +279,11 @@ class _UserPageState extends State<UserPage> {
                     onSelected: (UserMenuItem item) {
                       switch (item) {
                         case UserMenuItem.Copy:
-                          Utils.copyText(Utils.getShareUrl(
+                          Utils.copyText(getShareUrl(
                               _userController.uid, ShareType.u));
                           break;
                         case UserMenuItem.Share:
-                          Utils.shareContent(_userController.uid, ShareType.u,
+                          shareContent(_userController.uid, ShareType.u,
                               title: _userController.username,
                               context: context);
                           break;
@@ -299,7 +300,7 @@ class _UserPageState extends State<UserPage> {
                           break;
                         case UserMenuItem.Report:
                           if (Utils.isSupportWebview()) {
-                            Utils.report(_userController.uid, ReportType.User);
+                            report(_userController.uid, ReportType.User);
                           } else {
                             SmartDialog.showToast('当前平台暂不支持此功能');
                           }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:get/get_navigation/src/dialog/dialog_route.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../pages/feed/reply/reply_page.dart';
 import '../utils/storage_util.dart';
+import 'app_sheet.dart';
 import 'liquid_top_bar.dart';
 
 /// The floating and rail entry points open the same existing composer route.
@@ -12,15 +12,10 @@ class HomePublishAction extends StatelessWidget {
 
   final bool extended;
 
-  void _open(BuildContext context) => Navigator.of(context).push(GetDialogRoute(
-        pageBuilder: (_, __, ___) => const ReplyPage(),
-        transitionDuration: const Duration(milliseconds: 500),
-        transitionBuilder: (_, animation, __, child) => SlideTransition(
-          position: Tween(begin: const Offset(0, 1), end: Offset.zero)
-              .animate(animation),
-          child: child,
-        ),
-      ));
+  void _open(BuildContext context) => showBottomSheetPage(
+        context: context,
+        page: const ReplyPage(),
+      );
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder(

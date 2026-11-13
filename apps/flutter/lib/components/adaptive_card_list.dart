@@ -3,6 +3,32 @@ import 'package:c001apk_flutter/components/masonry_section.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 
+import '../constants/app_motion.dart';
+
+/// 首次进入视口时的轻量淡入。
+///
+/// 只做透明度不做位移：本组件的锚点恢复依赖 localToGlobal 的
+/// paint 变换测量卡片位置，平移会污染测量；淡入对布局与测量无影响。
+/// 不影响挂载后的布局与滚动锚定。
+class _EntranceFade extends StatelessWidget {
+  const _EntranceFade({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.disableAnimationsOf(context)) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: AppDurations.fast,
+      curve: Curves.easeOut,
+      builder: (_, opacity, child) =>
+          Opacity(opacity: opacity, child: child),
+      child: child,
+    );
+  }
+}
+
 /// Lazy masonry cards use the shortest column without truncating content.
 /// Structural cards separate masonry sections and span the available width.
 class AdaptiveCardList extends StatefulWidget {
@@ -187,7 +213,8 @@ class _AdaptiveCardListState extends State<AdaptiveCardList> {
         key: _itemKeys.putIfAbsent(index, () => GlobalKey()),
         padding: const EdgeInsets.only(bottom: 10),
         child: IndexedSemantics(
-            index: index, child: widget.itemBuilder(context, index)),
+            index: index,
+            child: _EntranceFade(child: widget.itemBuilder(context, index))),
       );
 
   // Separate slivers must not build pagination footers just to estimate their

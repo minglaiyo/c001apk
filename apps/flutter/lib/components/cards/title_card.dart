@@ -1,6 +1,6 @@
+import '../../router/link_resolver.dart';
 import 'package:flutter/material.dart';
 
-import '../../utils/utils.dart';
 
 class TitleCard extends StatelessWidget {
   const TitleCard({
@@ -21,7 +21,7 @@ class TitleCard extends StatelessWidget {
       child: GestureDetector(
         onTap: () {
           if (url.isNotEmpty) {
-            Utils.onOpenLink(url, title, true, context);
+            openLink(url, title, true, context);
           }
         },
         child: Row(

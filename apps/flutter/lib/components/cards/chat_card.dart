@@ -1,3 +1,5 @@
+import '../../router/link_resolver.dart';
+import '../../utils/html_text_util.dart';
 import 'dart:io';
 
 import 'package:c001apk_flutter/components/network_image.dart';
@@ -40,7 +42,7 @@ class ChatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       double maxWidth = (constraints.maxWidth - 176).clamp(80, 520);
-      final plainText = Utils.parseHtmlString(data.message ?? '').trim();
+      final plainText = parseHtmlString(data.message ?? '').trim();
       final feedLink = RegExp(r'^https://www\.coolapk\.com/feed/([0-9]+)$')
           .firstMatch(plainText);
       return InkWell(
@@ -118,7 +120,7 @@ class ChatCard extends StatelessWidget {
                               child: feedLink == null
                                   ? htmlText(data.message!)
                                   : InkWell(
-                                      onTap: () => Utils.onOpenLink(plainText),
+                                      onTap: () => openLink(plainText),
                                       child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
@@ -154,7 +156,7 @@ class ChatCard extends StatelessWidget {
                         if (!data.extraUrl.isNullOrEmpty)
                           Card(
                               child: InkWell(
-                                  onTap: () => Utils.onOpenLink(data.extraUrl!),
+                                  onTap: () => openLink(data.extraUrl!),
                                   child: Padding(
                                       padding: const EdgeInsets.all(10),
                                       child: Column(

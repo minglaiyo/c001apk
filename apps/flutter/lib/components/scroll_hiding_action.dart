@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../constants/app_motion.dart';
+
 /// Fade within the space above navigation, then remove paint, focus and hits.
 /// A full 2x-height slide can leave a raised FAB visible underneath a floating bar.
 class ScrollHidingAction extends StatelessWidget {
@@ -11,7 +13,7 @@ class ScrollHidingAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final curved = animation.drive(CurveTween(curve: Curves.easeInOut));
+    final curved = animation.drive(CurveTween(curve: AppCurves.scrollHide));
     return AnimatedBuilder(
       animation: animation,
       child: FadeTransition(

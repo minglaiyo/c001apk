@@ -1,3 +1,4 @@
+import 'package:c001apk_flutter/router/link_resolver.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,7 +7,6 @@ import 'package:c001apk_flutter/logic/model/feed/datum.dart';
 import 'package:c001apk_flutter/logic/network/request.dart';
 import 'package:c001apk_flutter/router/app_pages.dart';
 import 'package:c001apk_flutter/utils/storage_util.dart';
-import 'package:c001apk_flutter/utils/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -137,7 +137,7 @@ void main() {
       'coolmarket://event/1086?from=share#details',
       'https://www.coolapk.com/event/1086?from=share#details',
     ]) {
-      Utils.onOpenLink(url);
+      openLink(url);
       await tester.pumpAndSettle();
       expect(find.textContaining('产品数量：8'), findsOneWidget, reason: url);
       expect(adapter.requests.last.queryParameters, {'id': '1086'},
@@ -166,7 +166,7 @@ void main() {
   testWidgets('lookalike Coolapk domains remain external websites',
       (tester) async {
     await showCard(tester);
-    Utils.onOpenLink('https://notcoolapk.example/feed/123');
+    openLink('https://notcoolapk.example/feed/123');
     await tester.pumpAndSettle();
     expect(opened, ['https://notcoolapk.example/feed/123']);
     expect(adapter.requests, isEmpty);

@@ -1,3 +1,4 @@
+import '../router/link_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -7,7 +8,6 @@ import 'markdown_body.dart';
 import '../components/imageview.dart';
 import '../logic/model/feed_article/feed_article.dart';
 import '../utils/extensions.dart';
-import '../utils/utils.dart';
 import '../logic/media/feed_media.dart';
 
 Widget feedArticleBody(
@@ -87,7 +87,7 @@ Widget feedArticleBody(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: InkWell(
                   onTap: () =>
-                      Utils.onOpenLink(data.url.orEmpty, null, true, context),
+                      openLink(data.url.orEmpty, null, true, context),
                   borderRadius: const BorderRadius.all(Radius.circular(12)),
                   child: Ink(
                     width: double.infinity,

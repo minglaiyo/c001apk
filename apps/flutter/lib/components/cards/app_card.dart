@@ -1,3 +1,4 @@
+import '../../router/link_resolver.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,7 +6,6 @@ import 'package:get/get.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../utils/date_util.dart';
 import '../../utils/extensions.dart';
-import '../../utils/utils.dart';
 
 // ignore: constant_identifier_names
 enum AppCardType { APP, PRODUCT, TOPIC, USER, CONTACTS, RECENT }
@@ -35,7 +35,7 @@ class AppCard extends StatelessWidget {
             Get.toNamed(
                 '/u/${data.userInfo?.uid != null ? data.userInfo!.uid.toString() : data.fUserInfo?.uid != null ? data.fUserInfo!.uid.toString() : ''}');
           } else {
-            Utils.onOpenLink(data.url.orEmpty, data.title, true, context);
+            openLink(data.url.orEmpty, data.title, true, context);
           }
         },
         borderRadius: const BorderRadius.all(Radius.circular(12)),

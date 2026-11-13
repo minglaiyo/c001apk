@@ -1,3 +1,4 @@
+import '../../router/link_resolver.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -6,7 +7,6 @@ import '../../components/self_sized_horizontal_list.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/model/feed/entity.dart';
 import '../../utils/extensions.dart';
-import '../../utils/utils.dart';
 
 class ImageTextScrollCard extends StatelessWidget {
   const ImageTextScrollCard({super.key, required this.data});
@@ -47,7 +47,7 @@ class ImageTextScrollCard extends StatelessWidget {
         child: InkWell(
           borderRadius: const BorderRadius.all(Radius.circular(12)),
           onTap: () =>
-              Utils.onOpenLink(data.url.orEmpty, data.title, true, context),
+              openLink(data.url.orEmpty, data.title, true, context),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

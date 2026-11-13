@@ -1,8 +1,8 @@
+import 'package:c001apk_flutter/router/link_resolver.dart';
 import 'package:c001apk_flutter/components/adaptive_card_list.dart';
 import 'package:c001apk_flutter/components/adaptive_reading_pane.dart';
 import 'package:c001apk_flutter/components/feed_navigation.dart';
 import 'package:c001apk_flutter/components/app_keyboard_navigation.dart';
-import 'package:c001apk_flutter/utils/utils.dart';
 import 'package:c001apk_flutter/components/cards/carousel_card.dart';
 import 'package:c001apk_flutter/logic/model/feed/entity.dart';
 import 'package:flutter/material.dart';
@@ -416,7 +416,7 @@ void main() {
                           const Text('信息流说明'),
                           if (shareLink != null)
                             TextButton(
-                                onPressed: () => Utils.onOpenLink(
+                                onPressed: () => openLink(
                                     shareLink, null, false, context),
                                 child: const Text('分享动态')),
                           for (var i = 0; i < 50; i++)
