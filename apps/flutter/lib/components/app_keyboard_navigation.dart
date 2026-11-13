@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
-import 'package:window_manager/window_manager.dart';
 import 'keyboard_scroll_region.dart';
 import 'app_navigation_history.dart';
 
@@ -57,11 +55,7 @@ class _AppKeyboardNavigationState extends State<AppKeyboardNavigation> {
         ),
       );
       if (exit == true && mounted) {
-        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-          await windowManager.close();
-        } else {
-          await SystemNavigator.pop();
-        }
+        await SystemNavigator.pop();
       }
     } finally {
       _exitPromptOpen = false;

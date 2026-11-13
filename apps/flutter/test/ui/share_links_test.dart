@@ -1,10 +1,7 @@
 import 'package:c001apk_flutter/router/link_resolver.dart';
 import 'package:c001apk_flutter/utils/share_util.dart';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
@@ -29,45 +26,6 @@ void main() {
     expect(getShareText('123', ShareType.feed).split('\n').first, '动态');
   });
 
-  testWidgets('Windows share copies the complete payload without system share',
-      (tester) async {
-    if (!Platform.isWindows) return;
-    String? clipboard;
-    final shares = <MethodCall>[];
-    final messenger = tester.binding.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      if (call.method == 'Clipboard.setData') {
-        clipboard = call.arguments['text'];
-      }
-      return null;
-    });
-    messenger.setMockMethodCallHandler(
-        const MethodChannel('dev.fluttercommunity.plus/share'), (call) async {
-      shares.add(call);
-      return null;
-    });
-    addTearDown(() {
-      messenger.setMockMethodCallHandler(SystemChannels.platform, null);
-      messenger.setMockMethodCallHandler(
-          const MethodChannel('dev.fluttercommunity.plus/share'), null);
-    });
-    await tester.pumpWidget(MaterialApp(
-        builder: FlutterSmartDialog.init(),
-        home: Builder(
-            builder: (context) => Scaffold(
-                body: TextButton(
-                    onPressed: () => shareContent('123', ShareType.feed,
-                        title: '合成文章', context: context),
-                    child: const Text('分享'))))));
-    await tester.tap(find.text('分享'));
-    await tester.pumpAndSettle();
-    expect(clipboard,
-        '合成文章\nhttps://www.coolapk1s.com/feed/123\nhttps://www.coolapk.com/feed/123\n分享自c001apk');
-    expect(shares, isEmpty);
-    expect(find.text('已复制'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
 
   for (final link in [
     'coolmarket://www.coolapk.com/feed/123?s=x#reply',

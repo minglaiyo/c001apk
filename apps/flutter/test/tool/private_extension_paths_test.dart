@@ -8,8 +8,7 @@ void main() {
       'apps/flutter/lib/components/liquid_glass_surface.dart',
       'apps/flutter/lib/logic/media/motion_photo.dart',
       'apps/flutter/android/app/src/main/kotlin/app/awavenue/c001apk/MediaBridge.kt',
-      'apps/flutter/windows/runner/media_viewer.cpp',
-      'apps/flutter/test/ui/imageview_hd_test.dart',
+            'apps/flutter/test/ui/imageview_hd_test.dart',
     ]) {
       expect(assembly.allowed(path), isTrue, reason: path);
     }

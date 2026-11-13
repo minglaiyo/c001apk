@@ -179,7 +179,7 @@ bool allowed(String path) {
     return true;
   }
   return RegExp(
-          r'^apps/flutter/(lib/(components/(liquid_[a-z_]+\.dart|media_[a-z_]+\.dart|imageview\.dart)|constants/(liquid_glass_level|implementation_variant)\.dart|logic/media/[a-z_]+\.dart|pages/others/imageview_page\.dart|utils/download_util\.dart)|shaders/[a-z_]+\.frag|third_party/(liquid_navigation|native_media)/[A-Za-z0-9_./-]+|android/app/src/(main/(AndroidManifest\.xml|kotlin/app/awavenue/c001apk/(Media[A-Za-z]+|MainActivity)\.kt)|test/[A-Za-z0-9_./-]+)|windows/(runner/(media_[a-z_]+\.(cpp|h)|flutter_window\.(cpp|h)|CMakeLists\.txt|tests/[A-Za-z0-9_./-]+)|cmake/media_dependencies\.cmake)|test/(media/[A-Za-z0-9_./-]+|ui/(liquid_[a-z_]+|imageview[a-z_]*|media_[a-z_]+|body_media_owner_test|profile_glass_test)\.dart))$')
+          r'^apps/flutter/(lib/(components/(liquid_[a-z_]+\.dart|media_[a-z_]+\.dart|imageview\.dart)|constants/(liquid_glass_level|implementation_variant)\.dart|logic/media/[a-z_]+\.dart|pages/others/imageview_page\.dart|utils/download_util\.dart)|shaders/[a-z_]+\.frag|third_party/(liquid_navigation|native_media)/[A-Za-z0-9_./-]+|android/app/src/(main/(AndroidManifest\.xml|kotlin/app/awavenue/c001apk/(Media[A-Za-z]+|MainActivity)\.kt)|test/[A-Za-z0-9_./-]+)|test/(media/[A-Za-z0-9_./-]+|ui/(liquid_[a-z_]+|imageview[a-z_]*|media_[a-z_]+|body_media_owner_test|profile_glass_test)\.dart))$')
       .hasMatch(path);
 }
 

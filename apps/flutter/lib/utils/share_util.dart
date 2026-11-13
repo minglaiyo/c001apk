@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -51,18 +50,13 @@ Future<void> shareContent(String id, ShareType type,
     {String? title, String? message, required BuildContext context}) async {
   final text = getShareText(id, type, title: title, message: message);
   try {
-    if (Platform.isWindows) {
-      await Clipboard.setData(ClipboardData(text: text));
-      SmartDialog.showToast('已复制');
-    } else {
-      final box = context.findRenderObject();
-      await Share.share(text,
-          sharePositionOrigin: box is RenderBox && box.hasSize
-              ? box.localToGlobal(Offset.zero) & box.size
-              : null);
-    }
+    final box = context.findRenderObject();
+    await Share.share(text,
+        sharePositionOrigin: box is RenderBox && box.hasSize
+            ? box.localToGlobal(Offset.zero) & box.size
+            : null);
   } catch (_) {
-    SmartDialog.showToast(Platform.isWindows ? '复制失败，请重试' : '分享失败，请重试');
+    SmartDialog.showToast('分享失败，请重试');
   }
 }
 

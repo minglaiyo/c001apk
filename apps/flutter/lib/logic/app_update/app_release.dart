@@ -98,8 +98,6 @@ class AppRelease {
           .where(['arm64-v8a', 'armeabi-v7a', 'x86_64'].contains)
           .map((abi) => 'android-$abi.apk')
           .toList(),
-      'windows' => ['windows-x86_64.zip'],
-      'linux' => ['linux-x86_64.tar.gz'],
       _ => <String>[],
     };
     for (final suffix in suffixes) {

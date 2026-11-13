@@ -106,8 +106,7 @@ class FeedReplyCard extends StatelessWidget {
                               label: '删除',
                               onSelected: () => onDelete?.call(data.id, null),
                             ),
-                          if (Utils.isSupportWebview())
-                            MorePanelAction(
+                          MorePanelAction(
                               icon: Icons.error_outline,
                               label: '举报',
                               onSelected: () =>
@@ -385,8 +384,7 @@ class FeedReplyCard extends StatelessWidget {
                 label: '删除',
                 onSelected: () => onDelete?.call(reply.id, data.id),
               ),
-            if (Utils.isSupportWebview())
-              MorePanelAction(
+            MorePanelAction(
                 icon: Icons.error_outline,
                 label: '举报',
                 onSelected: () => report(reply.id, ReportType.Reply),

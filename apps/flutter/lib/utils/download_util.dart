@@ -77,10 +77,6 @@ class DownloadUtils {
   }
 
   static Future<void> downloadImg(List<String> urlList) async {
-    if (Platform.isWindows || Platform.isLinux) {
-      SmartDialog.showToast('当前平台暂不支持直接保存图片，请在浏览器中保存');
-      return;
-    }
     try {
       if (Platform.isAndroid &&
           (await DeviceInfoPlugin().androidInfo).version.sdkInt <= 32) {

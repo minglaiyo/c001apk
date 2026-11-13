@@ -1,5 +1,3 @@
-import '../../components/expressive_loading_indicator.dart';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -9,15 +7,9 @@ import 'package:get/get.dart';
 import '../../logic/network/captcha_challenge.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/utils.dart';
-import '../../utils/web_runtime.dart';
-import '../../utils/local_web_page.dart';
 import '../../utils/official_device_identity.dart';
 
 Future<String?> verifyCaptcha(CaptchaChallenge challenge) async {
-  if (!Utils.isSupportWebview()) {
-    SmartDialog.showToast('当前平台暂不支持应用内人机验证，请在手机端完成');
-    return null;
-  }
   if (Get.context == null) return null;
   // Verification must remain visible while a publish/loading overlay is active.
   await SmartDialog.dismiss(status: SmartStatus.loading);
@@ -35,26 +27,6 @@ class CaptchaPage extends StatefulWidget {
 class _CaptchaPageState extends State<CaptchaPage> {
   InAppWebViewController? _controller;
   bool _finished = false;
-  late Future<void> _ready = _prepare();
-  LocalWebPage? _localPage;
-
-  Future<void> _prepare() async {
-    await WebRuntime.ensureReady();
-    if (Platform.isWindows && _localPage == null) {
-      final page = await LocalWebPage.open(_html);
-      if (!mounted) {
-        await page.close();
-        return;
-      }
-      _localPage = page;
-    }
-  }
-
-  @override
-  void dispose() {
-    _localPage?.close();
-    super.dispose();
-  }
 
   // SDK callbacks yield the validate proof to Dart; the proof never enters
   // storage, logs, navigation parameters or an external browser URL.
@@ -116,71 +88,41 @@ window.addEventListener('flutterInAppWebViewPlatformReady',startCaptcha);
           IconButton(
               tooltip: '重新加载',
               icon: const Icon(Icons.refresh),
-              onPressed: () => Platform.isWindows
-                  ? _controller?.reload()
-                  : _controller?.loadData(
-                      data: _html,
-                      baseUrl: WebUri('https://captcha.c001apk.invalid/'))),
+              onPressed: () => _controller?.loadData(
+                    data: _html,
+                    baseUrl: WebUri('https://captcha.c001apk.invalid/'),
+                  )),
         ]),
-        body: FutureBuilder<void>(
-          future: _ready,
-          builder: (_, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: ExpressiveLoadingIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(
-                  child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(WebRuntime.errorMessage(snapshot.error)),
-                  FilledButton(
-                      onPressed: () => setState(() {
-                            _ready = _prepare();
-                          }),
-                      child: const Text('重新加载')),
-                ]),
-              ));
-            }
-            return InAppWebView(
-              webViewEnvironment: WebRuntime.environment,
-              initialSettings: InAppWebViewSettings(
-                userAgent: GStorage.userAgent,
-                useShouldOverrideUrlLoading: true,
-                javaScriptCanOpenWindowsAutomatically: false,
-              ),
-              initialUrlRequest: _localPage == null
-                  ? null
-                  : URLRequest(url: WebUri.uri(_localPage!.url)),
-              initialData: _localPage != null
-                  ? null
-                  : InAppWebViewInitialData(
-                      data: _html,
-                      baseUrl: WebUri('https://captcha.c001apk.invalid/')),
-              onWebViewCreated: (controller) {
-                _controller = controller;
-                controller.addJavaScriptHandler(
-                    handlerName: 'captchaVerified',
-                    callback: (args) {
-                      if (!mounted || _finished || args.length != 1) {
-                        return null;
-                      }
-                      final proof = widget.challenge.proof(args.single);
-                      if (proof != null) {
-                        _finished = true;
-                        Get.back(result: proof);
-                      }
-                      return null;
-                    });
-              },
-              shouldOverrideUrlLoading: (_, action) async =>
-                  action.isForMainFrame == true &&
-                          action.request.url?.toString() !=
-                              _localPage?.url.toString()
-                      ? NavigationActionPolicy.CANCEL
-                      : NavigationActionPolicy.ALLOW,
-            );
+        body: InAppWebView(
+          initialSettings: InAppWebViewSettings(
+            userAgent: GStorage.userAgent,
+            useShouldOverrideUrlLoading: true,
+            javaScriptCanOpenWindowsAutomatically: false,
+          ),
+          initialData: InAppWebViewInitialData(
+            data: _html,
+            baseUrl: WebUri('https://captcha.c001apk.invalid/'),
+          ),
+          onWebViewCreated: (controller) {
+            _controller = controller;
+            controller.addJavaScriptHandler(
+                handlerName: 'captchaVerified',
+                callback: (args) {
+                  if (!mounted || _finished || args.length != 1) {
+                    return null;
+                  }
+                  final proof = widget.challenge.proof(args.single);
+                  if (proof != null) {
+                    _finished = true;
+                    Get.back(result: proof);
+                  }
+                  return null;
+                });
           },
+          shouldOverrideUrlLoading: (_, action) async =>
+              action.isForMainFrame == true
+                  ? NavigationActionPolicy.CANCEL
+                  : NavigationActionPolicy.ALLOW,
         ),
       );
 }

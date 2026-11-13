@@ -16,7 +16,6 @@ import '../../logic/network/network_repo.dart';
 import '../../logic/network/api_failure.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
-import '../../utils/utils.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -119,9 +118,8 @@ class _LoginPageState extends State<LoginPage> {
         if (['图形验证码不能为空', '图形验证码错误'].contains(loginResponse.message) ||
             (_showCaptcha && loginResponse.message == '密码错误')) {
           await _onGetCaptcha();
-        } else if (Utils.isSupportWebview() &&
-            (loginResponse.message?.contains('人机') == true ||
-                loginResponse.messageStatus == 'err_request_captcha_v2')) {
+        } else if (loginResponse.message?.contains('人机') == true ||
+                loginResponse.messageStatus == 'err_request_captcha_v2') {
           await _openWebLogin();
         }
       }
@@ -209,8 +207,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Divider(height: 1),
         ),
         actions: [
-          if (Utils.isSupportWebview())
-            TextButton(
+          TextButton(
               onPressed: _submitting ? null : _openWebLogin,
               child: const Text('网页登录'),
             ),
@@ -221,8 +218,7 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (Utils.isSupportWebview())
-              const Padding(
+            const Padding(
                 padding: EdgeInsets.only(bottom: 16),
                 child: Text('遇到人机验证或无法直接登录时，请使用右上角的“网页登录”，在酷安网页中完成验证与登录。'),
               ),

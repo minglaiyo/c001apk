@@ -3,7 +3,6 @@ import '../../components/expressive_refresh_indicator.dart';
 import '../../components/expressive_loading_indicator.dart';
 // ignore_for_file: constant_identifier_names
 
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -792,9 +791,7 @@ class _FeedPageState extends State<FeedPage> {
                       ),
                       Success() => Text(
                         _feedController.feedTypeName!,
-                        textAlign: Platform.isIOS
-                            ? TextAlign.center
-                            : TextAlign.start,
+                        textAlign: TextAlign.start,
                       ),
                       _ => null,
                     },
@@ -857,11 +854,7 @@ class _FeedPageState extends State<FeedPage> {
                                 !_feedController.isBlocked;
                             break;
                           case FeedMenuItem.Report:
-                            if (Utils.isSupportWebview()) {
-                              report(_id, ReportType.Feed);
-                            } else {
-                              SmartDialog.showToast('当前平台暂不支持此功能');
-                            }
+                            report(_id, ReportType.Feed);
                             break;
                           case FeedMenuItem.Source:
                             setState(() => _showSource = !_showSource);

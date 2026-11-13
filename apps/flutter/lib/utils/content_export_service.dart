@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -258,13 +257,8 @@ class ContentExportService {
         type: FileType.custom,
         allowedExtensions: [ext],
         bytes: bytes,
-        lockParentWindow: Platform.isWindows);
+);
     if (path == null) return false;
-    // file_picker 8.1.1 writes mobile bytes itself; its desktop saver only
-    // returns the chosen path. Keep this aligned with the locked dependency.
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      await File(path).writeAsBytes(bytes, flush: true);
-    }
     return true;
   }
 }

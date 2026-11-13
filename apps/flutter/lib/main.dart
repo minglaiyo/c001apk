@@ -9,8 +9,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:screen_retriever/screen_retriever.dart';
-import 'package:window_manager/window_manager.dart';
 
 import 'components/custom_toast.dart';
 import 'components/app_keyboard_navigation.dart';
@@ -34,7 +32,6 @@ import 'router/page_transitions.dart';
 import 'utils/cache_util.dart';
 import 'utils/storage_util.dart';
 import 'utils/app_theme.dart';
-import 'utils/desktop_window.dart';
 import 'utils/android_links.dart';
 
 void main() async {
@@ -53,28 +50,6 @@ void main() async {
     DeviceOrientation.landscapeRight,
   ]);
 
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    await windowManager.ensureInitialized();
-    // The native runner starts on the primary display. Keep sizing and
-    // positioning there so mixed-DPI monitors do not mix logical coordinates.
-    final display = await screenRetriever.getPrimaryDisplay();
-    final bounds = desktopStartupBounds(
-        (display.visiblePosition ?? Offset.zero) &
-            (display.visibleSize ?? display.size));
-    WindowOptions windowOptions = WindowOptions(
-      minimumSize: Size(bounds.width.clamp(0, 400).toDouble(),
-          bounds.height.clamp(0, 540).toDouble()),
-      size: bounds.size,
-      skipTaskbar: false,
-      titleBarStyle:
-          Platform.isMacOS ? TitleBarStyle.hidden : TitleBarStyle.normal,
-    );
-    await windowManager.waitUntilReadyToShow(windowOptions);
-    await windowManager.setPosition(bounds.topLeft);
-    await windowManager.show();
-    await windowManager.focus();
-  }
-
   await GStorage.init();
   MediaLoadPolicy.current = MediaLoadPolicy(GStorage.settings)..start();
   await AppContentFilter.init();
@@ -83,7 +58,7 @@ void main() async {
   await AppAnnouncements.initialize();
   HttpOverrides.global = CustomHttpOverrides();
 
-  if (Platform.isAndroid || Platform.isIOS) {
+  if (Platform.isAndroid) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -97,16 +72,13 @@ void main() async {
   }
 
   Request().captchaVerifier = verifyCaptcha;
-  final links = Platform.isAndroid
-      ? (AndroidLinks(onOpen: openLink, onboarding: onboarding)
-        ..listen())
-      : null;
+  final links = AndroidLinks(onOpen: openLink, onboarding: onboarding)..listen();
   runApp(AnnouncementMonitor(
       service: AppAnnouncements.service!,
       onboarding: onboarding,
       child: const C001APKAPP()));
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (links != null) unawaited(links.ready());
+    unawaited(links.ready());
   });
   // Automatic cache cleanup, on launch only and never blocking startup:
   // a failed cleanup simply retries on the next launch (see

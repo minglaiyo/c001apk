@@ -148,7 +148,7 @@ void _resolve(
       openLink(url, title, true, context);
     } else {
       if (url.startsWith(Constants.PREFIX_HTTP)) {
-        if (Utils.isSupportWebview() && !GStorage.openInBrowser) {
+        if (!GStorage.openInBrowser) {
           Get.toNamed('/webview', parameters: {'url': url});
         } else {
           Utils.launchURL(url);

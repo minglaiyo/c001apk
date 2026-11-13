@@ -119,8 +119,9 @@ void main() {
         throwsFormatException);
     expect(GStorage.szlmId, 'DUautoIdent0000000000000000000000001');
   });
-  test('reset keeps imported identity and uses a consistent desktop profile',
-      () async {
+  // Android-only 后设备 profile 由原生通道读取，仅真机/模拟器可跑本用例。
+    test('reset keeps imported identity',
+      skip: !Platform.isAndroid, () async {
     await GStorage.importOfficialDeviceIdentity(
         'ShuzlmID: synthetic_official_identity_0123456789');
     await GStorage.regenerateParams();

@@ -1,5 +1,4 @@
 import '../../utils/html_text_util.dart';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -26,7 +25,7 @@ class CopyPage extends StatelessWidget {
       child: SafeArea(
         child: Stack(
           children: [
-            if (!Platform.isAndroid && !Platform.isIOS) const BackButton(),
+            
             Container(
               alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(horizontal: 20),

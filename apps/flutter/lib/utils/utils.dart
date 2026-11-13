@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -7,16 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 class Utils {
   static const platform = MethodChannel('samples.flutter.dev/channel');
-
-  static bool isDesktop =
-      Platform.isMacOS || Platform.isLinux || Platform.isWindows;
-
-  static bool isSupportWebview() {
-    return Platform.isAndroid ||
-        Platform.isIOS ||
-        Platform.isMacOS ||
-        Platform.isWindows;
-  }
 
   static void copyText(String text) {
     Clipboard.setData(ClipboardData(text: text));

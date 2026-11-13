@@ -3,11 +3,9 @@ import '../../components/expressive_refresh_indicator.dart';
 import '../../components/expressive_loading_indicator.dart';
 // ignore_for_file: constant_identifier_names
 
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
@@ -261,7 +259,7 @@ class _UserPageState extends State<UserPage> {
                   _userController.username != null
               ? Text(_userController.username!)
               : null,
-          centerTitle: Platform.isIOS,
+          
           actions: _userController.userState.value is Success
               ? [
                   if (!_userController.isBlocked)
@@ -298,11 +296,7 @@ class _UserPageState extends State<UserPage> {
                               !_userController.isBlocked;
                           break;
                         case UserMenuItem.Report:
-                          if (Utils.isSupportWebview()) {
-                            report(_userController.uid, ReportType.User);
-                          } else {
-                            SmartDialog.showToast('当前平台暂不支持此功能');
-                          }
+                          report(_userController.uid, ReportType.User);
                           break;
                         case UserMenuItem.UserInfo:
                           showDialog<void>(

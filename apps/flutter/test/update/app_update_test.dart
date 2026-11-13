@@ -22,8 +22,6 @@ Map<String, dynamic> releaseJson({String tag = '1.2.0-release'}) => {
           'android-arm64-v8a.apk',
           'android-armeabi-v7a.apk',
           'android-x86_64.apk',
-          'windows-x86_64.zip',
-          'linux-x86_64.tar.gz',
         ])
           {
             'name': 'c001apk-1.2.0+20261015-$name',
@@ -122,8 +120,6 @@ void main() {
     expect(
         release.downloadFor('android', abis: ['unknown', 'armeabi-v7a']).path,
         endsWith('android-armeabi-v7a.apk'));
-    expect(release.downloadFor('windows').path, endsWith('windows-x86_64.zip'));
-    expect(release.downloadFor('linux').path, endsWith('linux-x86_64.tar.gz'));
     expect(release.downloadFor('ios'), release.page);
     expect(release.downloadFor('android', abis: ['mips']), release.page);
   });
@@ -134,7 +130,7 @@ void main() {
     expect(
         release.downloadFor('android', abis: ['unknown', 'armeabi-v7a']).path,
         endsWith('app-armeabi-v7a-release.apk'));
-    expect(release.downloadFor('windows'), release.page);
+    expect(release.downloadFor('unknown-platform'), release.page);
     expect(release.downloadFor('android', abis: ['mips']), release.page);
   });
   test('drafts, prereleases and malformed payloads are rejected', () {
@@ -156,7 +152,7 @@ void main() {
     final release = AppRelease.fromJson(payload);
     expect(release.downloadFor('android', abis: ['arm64-v8a']), release.page);
     final noAssets = AppRelease.fromJson({...payload, 'assets': []});
-    expect(noAssets.downloadFor('windows'), noAssets.page);
+    expect(noAssets.downloadFor('unknown-platform'), noAssets.page);
   });
   test('disabling automatic checks does not alter the installed-app preference',
       () async {

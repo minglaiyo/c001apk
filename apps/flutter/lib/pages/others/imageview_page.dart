@@ -199,14 +199,6 @@ class _ImageViewPageState extends State<ImageViewPage> {
                   Get.back();
                 },
               ),
-              if (Utils.isDesktop)
-                ListTile(
-                  title: const Text('在浏览器中打开', style: TextStyle(fontSize: 14)),
-                  onTap: () {
-                    Utils.launchURL(imageUrl);
-                    Get.back();
-                  },
-                ),
             ],
           ),
         ),

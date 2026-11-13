@@ -23,7 +23,6 @@ import '../../../pages/feed/reply/emoji_panel.dart';
 import '../../../pages/feed/reply/reply_dialog.dart' show ReplyType;
 import '../../../pages/feed/reply/toolbar_icon_button.dart';
 import '../../../utils/extensions.dart';
-import '../../../utils/utils.dart';
 
 enum PanelType { none, keyboard, emoji }
 
@@ -209,9 +208,9 @@ class _ReplyPageState extends State<ReplyPage>
             padding: const EdgeInsets.only(bottom: 10),
             child: Scrollbar(
               controller: _scrollController,
-              thumbVisibility: Utils.isDesktop,
-              interactive: Utils.isDesktop,
-              thickness: Utils.isDesktop ? 8 : 0,
+              thumbVisibility: false,
+              interactive: false,
+              thickness: 0,
               child: ListView.separated(
                 controller: _scrollController,
                 scrollDirection: Axis.horizontal,

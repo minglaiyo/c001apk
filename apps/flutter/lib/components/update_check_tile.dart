@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -115,16 +114,14 @@ class AppUpdates {
             await updater.preferences.skip(release.version.toString());
           case UpdateAction.download:
             List<String> abis = const [];
-            if (Platform.isAndroid) {
-              try {
-                abis = (await DeviceInfoPlugin().androidInfo).supportedAbis;
-              } catch (_) {
-                // Fall back to the release page if device information fails.
-              }
+            try {
+              abis = (await DeviceInfoPlugin().androidInfo).supportedAbis;
+            } catch (_) {
+              // Fall back to the release page if device information fails.
             }
             if (context.mounted) {
               await _open(context,
-                  release.downloadFor(Platform.operatingSystem, abis: abis),
+                  release.downloadFor('android', abis: abis),
                   fallback: release.page);
             }
           case UpdateAction.later:

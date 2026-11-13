@@ -16,7 +16,6 @@ import '../../utils/extensions.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/utils.dart';
 import '../../utils/web_session.dart';
-import '../../utils/web_runtime.dart';
 
 enum WebviewMenuItem {
   Refresh,
@@ -59,10 +58,9 @@ class _WebviewPageState extends State<WebviewPage> {
   }
 
   Future<void> _prepareSession() async {
-    await WebRuntime.ensureReady();
-    await prepareWebSession(
+        await prepareWebSession(
         (origin, domain, name, value) async {
-          await WebRuntime.cookies.setCookie(
+          await CookieManager.instance().setCookie(
               url: WebUri.uri(origin),
               domain: domain,
               name: name,
@@ -71,7 +69,7 @@ class _WebviewPageState extends State<WebviewPage> {
         },
         includeAccount: !_isLogin,
         removeCookie: (name) async {
-          await WebRuntime.cookies.deleteCookie(
+          await CookieManager.instance().deleteCookie(
               url: WebUri('https://www.coolapk.com/'),
               domain: '.coolapk.com',
               name: name);
@@ -80,7 +78,7 @@ class _WebviewPageState extends State<WebviewPage> {
             'account.coolapk.com',
             'coolapk.com'
           ]) {
-            await WebRuntime.cookies.deleteCookie(
+            await CookieManager.instance().deleteCookie(
                 url: WebUri('https://$host/'), domain: host, name: name);
           }
         });
@@ -100,7 +98,7 @@ class _WebviewPageState extends State<WebviewPage> {
     }
     _savingLogin = true;
     try {
-      final cookies = await WebRuntime.cookies
+      final cookies = await CookieManager.instance()
           .getCookies(url: WebUri(Constants.URL_COOLAPK));
       final values = {
         for (final cookie in cookies) cookie.name: cookie.value.toString()
@@ -228,11 +226,10 @@ class _WebviewPageState extends State<WebviewPage> {
               return const Center(child: ExpressiveLoadingIndicator());
             }
             if (snapshot.hasError) {
-              return _error(WebRuntime.errorMessage(snapshot.error));
+              return _error('网页加载失败，请检查网络后重试');
             }
             if (_pageError != null) return _error(_pageError!);
             return InAppWebView(
-              webViewEnvironment: WebRuntime.environment,
               initialSettings: InAppWebViewSettings(
                 useHybridComposition: false,
                 mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,

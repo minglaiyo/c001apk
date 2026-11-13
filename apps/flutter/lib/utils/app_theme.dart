@@ -28,8 +28,6 @@ ThemeData buildAppTheme(
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: <TargetPlatform, PageTransitionsBuilder>{
         TargetPlatform.android: AppPredictiveBackPageTransitionsBuilder(),
-        TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
-        TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
       },
     ),
     popupMenuTheme: PopupMenuThemeData(

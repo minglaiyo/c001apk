@@ -7,7 +7,6 @@ import 'package:c001apk_flutter/logic/app_update/app_release.dart';
 import 'package:c001apk_flutter/utils/storage_util.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:window_manager/window_manager.dart';
 
 const sample = '''# Markdown 本地验收
 
@@ -50,13 +49,6 @@ Future<void> main() async {
   final temp = await Directory.systemTemp.createTemp('c001apk-md-preview-');
   Hive.init(temp.path);
   GStorage.settings = await Hive.openBox('settings');
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    await windowManager.ensureInitialized();
-    await windowManager.waitUntilReadyToShow(
-        const WindowOptions(
-            size: Size(1280, 720), title: 'c001apk M3E Markdown 本地验收'),
-        () async => windowManager.show());
-  }
   runApp(const PreviewApp());
 }
 

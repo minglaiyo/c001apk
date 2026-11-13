@@ -19,7 +19,6 @@ import '../../../logic/network/network_repo.dart';
 import '../../../pages/feed/reply/emoji_panel.dart';
 import '../../../pages/feed/reply/toolbar_icon_button.dart';
 import '../../../utils/extensions.dart';
-import '../../../utils/utils.dart';
 
 /// From Pilipala
 
@@ -52,7 +51,7 @@ class _ReplyDialogState extends State<ReplyDialog> with WidgetsBindingObserver {
       TextEditingController(
           text: widget.targetType == 'tag' ? '#${widget.title}# ' : null);
   final FocusNode _replyContentFocusNode = FocusNode();
-  late double _emoteHeight = Utils.isDesktop ? 255.0 : 0.0;
+  late double _emoteHeight = 0.0;
   double _keyboardHeight = 0.0; // 键盘高度
   final _debouncer = Debouncer(milliseconds: 200); // 设置延迟时间
 
@@ -432,9 +431,9 @@ class _ReplyDialogState extends State<ReplyDialog> with WidgetsBindingObserver {
                     margin: const EdgeInsets.only(bottom: 10),
                     child: Scrollbar(
                       controller: _scrollController,
-                      thumbVisibility: Utils.isDesktop,
-                      interactive: Utils.isDesktop,
-                      thickness: Utils.isDesktop ? 8 : 0,
+                      thumbVisibility: false,
+                      interactive: false,
+                      thickness: 0,
                       child: ListView.separated(
                         controller: _scrollController,
                         scrollDirection: Axis.horizontal,

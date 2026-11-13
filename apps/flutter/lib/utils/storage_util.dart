@@ -249,7 +249,7 @@ class GStorage {
 
   static Future<void> init() async {
     final Directory dir = await getApplicationSupportDirectory();
-    final path = await resolveHivePath(dir, windows: Platform.isWindows);
+    final path = await resolveHivePath(dir);
     await Hive.initFlutter(path);
     regAdapter();
     searchHistory = await Hive.openBox('searchHistory');

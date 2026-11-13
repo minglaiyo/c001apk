@@ -626,8 +626,7 @@ Widget header(
                   onSelected: () =>
                       showCollectionPickerDialog(context, data.id),
                 ),
-              if (Utils.isSupportWebview())
-                MorePanelAction(
+              MorePanelAction(
                   icon: Icons.error_outline,
                   label: '举报',
                   onSelected: () => report(data.id, ReportType.Feed),

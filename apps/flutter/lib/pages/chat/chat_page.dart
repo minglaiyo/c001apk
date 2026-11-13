@@ -76,11 +76,7 @@ class _ChatPageState extends State<ChatPage> {
                 case ChatMenuType.block:
                   GStorage.onBlock(_uid);
                 case ChatMenuType.report:
-                  if (Utils.isSupportWebview()) {
-                    report(_uid, ReportType.User);
-                  } else {
-                    SmartDialog.showToast('当前平台暂不支持此功能');
-                  }
+                  report(_uid, ReportType.User);
               }
             },
             itemBuilder: (_) => const [

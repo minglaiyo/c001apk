@@ -168,6 +168,44 @@ void main() {
         }
         return opened.length > 1;
       });
+      // Android-only 后下载地址依赖设备 ABI；测试环境合成 arm64。
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+              const MethodChannel('dev.fluttercommunity.plus/device_info'),
+              (call) async {
+        return {
+          'version': <String, dynamic>{
+            'baseOS': 'android-13',
+            'codename': 'REL',
+            'incremental': '1',
+            'previewSdkInt': 0,
+            'release': '13',
+            'sdkInt': 33,
+            'securityPatch': '2023-08-01',
+          },
+          'board': 'probe',
+          'bootloader': 'probe',
+          'brand': 'google',
+          'device': 'pixel7',
+          'display': 'probe',
+          'fingerprint': 'probe',
+          'hardware': 'probe',
+          'host': 'probe',
+          'id': 'probe',
+          'manufacturer': 'Google',
+          'model': 'Pixel 7',
+          'product': 'pixel7',
+          'supported32BitAbis': <dynamic>[],
+          'supported64BitAbis': <dynamic>['arm64-v8a'],
+          'supportedAbis': <dynamic>['arm64-v8a'],
+          'tags': 'release-keys',
+          'type': 'user',
+          'isPhysicalDevice': false,
+          'systemFeatures': <dynamic>[],
+          'serialNumber': 'probe',
+          'isLowRamDevice': false,
+        };
+      });
       final service = UpdateService(
           preferences: UpdatePreferences(GStorage.settings),
           dio: Dio()..httpClientAdapter = ReleaseAdapter(),

@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:hive/hive.dart';
-import 'package:window_manager/window_manager.dart';
 
 import 'markdown_preview.dart' show sample;
 
@@ -20,10 +19,6 @@ Future<void> main() async {
   final temp = await Directory.systemTemp.createTemp('c001apk-export-preview-');
   Hive.init(temp.path);
   GStorage.settings = await Hive.openBox('settings');
-  await windowManager.ensureInitialized();
-  await windowManager.waitUntilReadyToShow(
-      const WindowOptions(size: Size(1280, 720), title: 'c001apk M3E 保存验收'),
-      () => windowManager.show());
   runApp(const ExportPreview());
 }
 

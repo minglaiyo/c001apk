@@ -14,7 +14,6 @@ import '../../logic/model/feed/datum.dart';
 import '../../utils/date_util.dart';
 import '../../utils/extensions.dart';
 import '../../utils/storage_util.dart';
-import '../../utils/utils.dart';
 
 class NotificationCard extends StatelessWidget {
   const NotificationCard({
@@ -73,8 +72,7 @@ class NotificationCard extends StatelessWidget {
                               onBlock?.call(data.uid);
                             },
                           ),
-                          if (Utils.isSupportWebview())
-                            MorePanelAction(
+                          MorePanelAction(
                               icon: Icons.error_outline,
                               label: '举报',
                               onSelected: () =>

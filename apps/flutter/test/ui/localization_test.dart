@@ -530,12 +530,13 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     var closeCalls = 0;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('window_manager'), (call) async {
-      if (call.method == 'close') closeCalls++;
+        SystemChannels.platform, (call) async {
+      if (call.method == 'SystemNavigator.pop') closeCalls++;
       return null;
     });
     addTearDown(() => tester.binding.defaultBinaryMessenger
-        .setMockMethodCallHandler(const MethodChannel('window_manager'), null));
+        .setMockMethodCallHandler(
+            const MethodChannel('flutter/platform'), null));
     await tester.pumpWidget(const C001APKAPP());
     await tester.pumpAndSettle();
     for (final destination in ['主页', '关注', '我的']) {
