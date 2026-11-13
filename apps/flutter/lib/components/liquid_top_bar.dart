@@ -146,8 +146,10 @@ class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
                           maxWidth:
                               widget.compactTitle ? double.infinity : 720),
                       child: Row(children: [
-                        Expanded(
+                        Flexible(
+                          fit: widget.compactTitle ? FlexFit.tight : FlexFit.loose,
                           child: Align(
+                              widthFactor: widget.compactTitle ? null : 1,
                               alignment: Alignment.centerLeft,
                               child: SizedBox(
                                 key: const ValueKey('glass-top-title'),

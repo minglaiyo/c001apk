@@ -6,6 +6,7 @@ import '../../components/expressive_loading_indicator.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../utils/html_text_util.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import '../../components/app_sheet.dart';
@@ -20,6 +21,7 @@ import '../../logic/content_filter/content_filter_projection.dart';
 import '../../logic/content_filter/content_filter_rule.dart';
 import '../../logic/model/feed_article/feed_article.dart';
 import '../../components/feed_article_body.dart';
+import '../../components/reading_presentation.dart';
 import '../../components/footer.dart';
 import '../../components/status_views.dart';
 import '../../components/sliver_pinned_box_adapter.dart';
@@ -86,6 +88,49 @@ class _FeedPageState extends State<FeedPage> {
   final _replyKeys = <int, GlobalKey>{};
   final _titleVisible = ValueNotifier<bool>(false);
   bool _showSource = false;
+  Datum? _supplementData;
+
+  void _updateSupplement(BuildContext context) {
+    final state = _feedController.feedState.value;
+    if (state is! Success || identical(state.response, _supplementData)) return;
+    final data = state.response as Datum;
+    _supplementData = data;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !context.mounted) return;
+      ReadingSupplement(
+          _id,
+          Card.outlined(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => Get.toNamed('/u/${data.uid}'),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('本文作者', style: TextStyle(fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      Expanded(
+                          child: Text(
+                              data.userInfo?.username ??
+                                  data.username ??
+                                  '查看作者',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w700))),
+                      const Icon(Icons.chevron_right, size: 20),
+                    ]),
+                  ],
+                ),
+              ),
+            ),
+          )).dispatch(context);
+    });
+  }
 
   bool get _hasMarkdown {
     final state = _feedController.feedState.value;
@@ -288,10 +333,35 @@ class _FeedPageState extends State<FeedPage> {
                 itemCount: _feedController.articleList!.length + 2,
                 itemBuilder: (context, index) {
                   if (index == 0) {
-                    return header(
-                      context,
-                      feedState.response!,
-                      true,
+                    final data = feedState.response as Datum;
+                    final wide = ReadingPresentation.of(context);
+                    final title = data.messageTitle.isNullOrEmpty
+                        ? data.title.orEmpty
+                        : data.messageTitle!;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (wide && title.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 28, 16, 16),
+                            child: ContentFilterText(
+                              source: title,
+                              builder: (title) => Text(
+                                parseHtmlString(title),
+                                style: const TextStyle(
+                                    fontSize: 32,
+                                    height: 1.25,
+                                    fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                          ),
+                        header(
+                          context,
+                          data,
+                          true,
+                        ),
+                        if (wide) const SizedBox(height: 20),
+                      ],
                     );
                   } else if (index == _feedController.articleList!.length + 1) {
                     return Padding(
@@ -317,6 +387,14 @@ class _FeedPageState extends State<FeedPage> {
                   } else {
                     return LayoutBuilder(builder: (_, constraints) {
                       final article = _feedController.articleList![index - 1];
+                      // The controller prepends the feed title for mobile.
+                      // Wide reading has already placed it above the author.
+                      if (ReadingPresentation.of(context) &&
+                          article.type == 'title' &&
+                          article.title ==
+                              (feedState.response as Datum).title) {
+                        return const SizedBox.shrink();
+                      }
                       return ContentFilterText(
                           key: ValueKey('article:$_id:$index'),
                           source: article.type == 'title' ||
@@ -339,6 +417,7 @@ class _FeedPageState extends State<FeedPage> {
                                 }),
                                 _feedController.articleImgList!,
                                 forcePlain: _showSource,
+                                wideReading: ReadingPresentation.of(context),
                                 mediaItems: mediaForDatum(feedState.response!),
                                 contentId: feedState.response!.id?.toString(),
                               ));
@@ -366,7 +445,68 @@ class _FeedPageState extends State<FeedPage> {
     SmartDialog.showToast(notice.isEmpty ? '账号详情已更新' : notice);
   }
 
-  Widget _buildPinWidget() {
+  void _changeReplySort(ReplySortType selection) {
+    _feedController.replySelection.value = selection;
+    _feedController.fromFeedAuthor = selection == ReplySortType.author ? 1 : 0;
+    _feedController.listType = switch (selection) {
+      ReplySortType.def => 'lastupdate_desc',
+      ReplySortType.dateline => 'dateline_desc',
+      ReplySortType.hot => 'popular',
+      ReplySortType.author => '',
+    };
+    _refreshKey.currentState?.show();
+  }
+
+  Widget _buildPinWidget(BuildContext context) {
+    if (ReadingPresentation.of(context)) {
+      return SliverPinnedBoxAdapter(
+        child: Material(
+          color: Theme.of(context).colorScheme.surface,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(children: [
+              Expanded(
+                  child: Text('评论 · ${_feedController.replyNum}',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w700))),
+              Obx(() => PopupMenuButton<ReplySortType>(
+                    tooltip: '评论排序',
+                    initialValue: _feedController.replySelection.value,
+                    onSelected: _changeReplySort,
+                    itemBuilder: (_) => [
+                      for (final option in _shirtSizeOptions)
+                        CheckedPopupMenuItem(
+                            value: option.$1,
+                            checked: option.$1 ==
+                                _feedController.replySelection.value,
+                            child: Text(option.$2))
+                    ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text(_shirtSizeOptions
+                            .firstWhere((option) =>
+                                option.$1 ==
+                                _feedController.replySelection.value)
+                            .$2),
+                        const Icon(Icons.expand_more, size: 20),
+                      ]),
+                    ),
+                  )),
+              if (GlobalData().isLogin)
+                IconButton(
+                    tooltip: '回复',
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: () => _onReply(
+                        ReplyType.feed,
+                        _feedController.id,
+                        _feedController.feedUsername,
+                        null)),
+            ]),
+          ),
+        ),
+      );
+    }
     return SliverPinnedBoxAdapter(
       child: Container(
         color: Theme.of(context).colorScheme.surface,
@@ -404,27 +544,7 @@ class _FeedPageState extends State<FeedPage> {
                             value: shirt.$1, label: Text(shirt.$2));
                       }).toList(),
                       onSelectionChanged: (Set<ReplySortType> newSelection) {
-                        _feedController.replySelection.value =
-                            newSelection.first;
-                        switch (newSelection.first) {
-                          case ReplySortType.def:
-                            _feedController.listType = 'lastupdate_desc';
-                            _feedController.fromFeedAuthor = 0;
-                            break;
-                          case ReplySortType.dateline:
-                            _feedController.listType = 'dateline_desc';
-                            _feedController.fromFeedAuthor = 0;
-                            break;
-                          case ReplySortType.hot:
-                            _feedController.listType = 'popular';
-                            _feedController.fromFeedAuthor = 0;
-                            break;
-                          case ReplySortType.author:
-                            _feedController.listType = '';
-                            _feedController.fromFeedAuthor = 1;
-                            break;
-                        }
-                        _refreshKey.currentState?.show();
+                        _changeReplySort(newSelection.first);
                       },
                     ),
                   ),
@@ -731,9 +851,25 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Widget _buildScreen(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth >= 600 &&
+          MediaQuery.sizeOf(context).shortestSide >= 600;
+      return ReadingPresentation(
+        wide: wide,
+        child: Builder(builder: _buildReadingScreen),
+      );
+    });
+  }
+
+  Widget _buildReadingScreen(BuildContext context) {
+    final wide = ReadingPresentation.of(context);
+    _updateSupplement(context);
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       floatingActionButton: Obx(
-        () => _feedController.feedState.value is Success && GlobalData().isLogin
+        () => _feedController.feedState.value is Success &&
+                !wide &&
+                GlobalData().isLogin
             ? ScrollHideAnimator(
                 scrollController: _scrollController,
                 builder: (context, animation) => SlideTransition(
@@ -765,6 +901,16 @@ class _FeedPageState extends State<FeedPage> {
         preferredSize: const Size(double.infinity, 56),
         child: Obx(
           () => AppBar(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            surfaceTintColor: wide ? Colors.transparent : null,
+            shape: wide
+                ? Border(
+                    bottom: BorderSide(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: .5)))
+                : null,
             leading: widget.onClose == null
                 ? null
                 : BackButton(onPressed: widget.onClose),
@@ -790,7 +936,11 @@ class _FeedPageState extends State<FeedPage> {
                         isHeader: true,
                       ),
                       Success() => Text(
-                        _feedController.feedTypeName!,
+                        wide
+                            ? (_feedController.articleList.isNullOrEmpty
+                                ? '帖子'
+                                : '文章')
+                            : _feedController.feedTypeName ?? '动态',
                         textAlign: TextAlign.start,
                       ),
                       _ => null,
@@ -801,6 +951,13 @@ class _FeedPageState extends State<FeedPage> {
             ),
             actions: switch (_feedController.feedState.value) {
               Success(:final response, :final isPublic) => [
+                    if (wide)
+                      IconButton(
+                        tooltip: '查看作者',
+                        onPressed: () =>
+                            Get.toNamed('/u/${_feedController.feedUid}'),
+                        icon: const Icon(Icons.person_outline),
+                      ),
                     if (isPublic && GlobalData().isLogin)
                       IconButton(
                         tooltip: '账号信息暂不可用',
@@ -919,12 +1076,14 @@ class _FeedPageState extends State<FeedPage> {
                     parent: BouncingScrollPhysics(),
                   ),
                   slivers: [
+                    if (wide)
+                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
                     _feedController.articleList.isNullOrEmpty
                         ? SliverToBoxAdapter(
                             child: _buildFeedContent(
                                 _feedController.feedState.value))
                         : _buildFeedContent(_feedController.feedState.value),
-                    _buildPinWidget(),
+                    _buildPinWidget(context),
                     _buildFeedReply(_feedController.loadingState.value),
                   ],
                 ),

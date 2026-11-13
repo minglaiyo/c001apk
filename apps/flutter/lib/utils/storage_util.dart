@@ -684,6 +684,7 @@ class SettingsBoxKey {
       followType = 'followType',
       imageQuality = 'imageQuality',
       mediaAutoLoad = MediaAutoLoadMode.storageKey,
+      disableHdr = 'disableHdr',
       imageDim = 'imageDim',
       openInBrowser = 'openInBrowser',
       showSquare = 'showSquare',

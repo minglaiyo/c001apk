@@ -17,6 +17,7 @@ import '../../components/imageview.dart';
 import '../../components/like_button.dart';
 import '../../components/no_splash_factory.dart';
 import '../feed_navigation.dart';
+import '../reading_presentation.dart';
 import '../content_filter_gate.dart';
 import '../content_filter_text.dart';
 import '../../logic/content_filter/content_filter_projection.dart';
@@ -104,7 +105,7 @@ class FeedCard extends StatelessWidget {
               if (compact)
                 _summary(context)
               else ...[
-                ..._message(),
+                ..._message(context),
                 if (hasVoteData(data)) VoteCard(data: data),
                 if (!data.picArr.isNullOrEmpty) _image(),
                 if (!data.forwardSourceType.isNullOrEmpty)
@@ -448,7 +449,8 @@ class FeedCard extends StatelessWidget {
     );
   }
 
-  List<Widget> _message() {
+  List<Widget> _message(BuildContext context) {
+    final reading = isFeedContent && ReadingPresentation.of(context);
     return [
       if (!data.messageTitle.isNullOrEmpty)
         Padding(
@@ -459,7 +461,7 @@ class FeedCard extends StatelessWidget {
           ),
           child: htmlText(
             data.messageTitle.orEmpty,
-            fontSize: 16,
+            fontSize: reading ? 28 : 16,
             isBold: true,
             picArr: data.picArr,
             mediaItems: mediaForDatum(data),
@@ -477,7 +479,8 @@ class FeedCard extends StatelessWidget {
             source: data.message.orEmpty,
             builder: (message) => FeedText(
                   message,
-                  fontSize: 16,
+                  fontSize: reading ? 18 : 16,
+                  lineHeight: reading ? 1.7 : 1.5,
                   preview: !isFeedContent,
                   forcePlain: forcePlain,
                   picArr: data.picArr,

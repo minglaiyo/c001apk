@@ -34,6 +34,7 @@ class GlassSurface extends StatelessWidget {
     required Size extent,
     required ThemeData theme,
     required LiquidGlassLevel level,
+    BorderRadius? borderRadius,
     bool shadow = true,
     double press = 0,
     double glow = 1,
@@ -46,6 +47,7 @@ class GlassSurface extends StatelessWidget {
           dispersion: 0,
           tint: theme.colorScheme.surfaceContainer,
           level: level,
+          borderRadius: borderRadius,
           shadow: shadow,
           press: press,
           glow: glow);
@@ -264,6 +266,7 @@ class LiquidNavigationBar extends StatefulWidget {
       required this.onDestinationSelected,
       this.program,
       this.refract = true,
+      this.direction = Axis.horizontal,
       this.level = LiquidGlassLevel.medium,
       this.glow = 1})
       : labels = const ['主页', '关注', '我的'],
@@ -277,6 +280,7 @@ class LiquidNavigationBar extends StatefulWidget {
       this.selectedPosition,
       this.program,
       this.refract = true,
+      this.direction = Axis.horizontal,
       this.level = LiquidGlassLevel.medium,
       this.glow = 1})
       : tabs = true;
@@ -291,6 +295,7 @@ class LiquidNavigationBar extends StatefulWidget {
   final ValueChanged<int> onDestinationSelected;
   final ui.FragmentProgram? program;
   final bool refract, tabs;
+  final Axis direction;
   final LiquidGlassLevel level;
   final List<String> labels;
 
@@ -300,19 +305,22 @@ class LiquidNavigationBar extends StatefulWidget {
 
 class _BasicNavigationState extends State<LiquidNavigationBar> {
   int? _dragIndex;
+  bool get _vertical => widget.direction == Axis.vertical;
 
   @override
   Widget build(BuildContext context) => SafeArea(
       top: false,
-      bottom: !widget.tabs,
-      minimum: widget.tabs
+      bottom: !widget.tabs && !_vertical,
+      minimum: widget.tabs || _vertical
           ? EdgeInsets.zero
           : const EdgeInsets.fromLTRB(20, 14, 20, 12),
       child: Center(
           heightFactor: 1,
           child: ConstrainedBox(
-              constraints:
-                  BoxConstraints(maxWidth: widget.tabs ? double.infinity : 248),
+              constraints: _vertical
+                  ? const BoxConstraints(maxHeight: 176, maxWidth: 128)
+                  : BoxConstraints(
+                      maxWidth: widget.tabs ? double.infinity : 248),
               child: LayoutBuilder(builder: (context, bounds) {
                 if (widget.labels.isEmpty || bounds.maxWidth <= 0) {
                   return const SizedBox.shrink();
@@ -322,6 +330,7 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                 final height = widget.tabs
                     ? math.max(48.0, textHeight + 24)
                     : math.max(64.0, textHeight + 40);
+                final length = _vertical ? bounds.maxHeight : bounds.maxWidth;
                 // With a fractional position the pill follows the
                 // transition; without one it stays on the selected cell,
                 // exactly as before.
@@ -336,7 +345,9 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                     : effectivePosition.round()
                         .clamp(0, widget.labels.length - 1);
                 void drag(Offset point) => setState(() => _dragIndex =
-                    (point.dx / bounds.maxWidth * widget.labels.length)
+                    ((_vertical ? point.dy : point.dx) /
+                            length *
+                            widget.labels.length)
                         .floor()
                         .clamp(0, widget.labels.length - 1));
                 // The Row below has 4dp horizontal padding and equal-width
@@ -346,35 +357,63 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                     (bounds.maxWidth - 8) / widget.labels.length;
                 return _BasicRoundHitRegion(
                     child: ClipRRect(
-                        borderRadius: BorderRadius.circular(height / 2),
+                        borderRadius:
+                            BorderRadius.circular(_vertical ? 28 : height / 2),
                         child: GestureDetector(
                           key: ValueKey(widget.tabs
                               ? 'liquid-tabs-surface'
                               : 'liquid-drag-surface'),
                           behavior: HitTestBehavior.opaque,
-                          onHorizontalDragStart: (event) =>
-                              drag(event.localPosition),
-                          onHorizontalDragUpdate: (event) =>
-                              drag(event.localPosition),
-                          onHorizontalDragCancel: () =>
-                              setState(() => _dragIndex = null),
-                          onHorizontalDragEnd: (_) {
-                            final index = _dragIndex;
-                            setState(() => _dragIndex = null);
-                            if (index != null) {
-                              widget.onDestinationSelected(index);
-                            }
-                          },
+                          onHorizontalDragStart: _vertical
+                              ? null
+                              : (event) => drag(event.localPosition),
+                          onHorizontalDragUpdate: _vertical
+                              ? null
+                              : (event) => drag(event.localPosition),
+                          onHorizontalDragCancel: _vertical
+                              ? null
+                              : () => setState(() => _dragIndex = null),
+                          onHorizontalDragEnd: _vertical
+                              ? null
+                              : (_) {
+                                  final index = _dragIndex;
+                                  setState(() => _dragIndex = null);
+                                  if (index != null) {
+                                    widget.onDestinationSelected(index);
+                                  }
+                                },
+                          onVerticalDragStart: !_vertical
+                              ? null
+                              : (event) => drag(event.localPosition),
+                          onVerticalDragUpdate: !_vertical
+                              ? null
+                              : (event) => drag(event.localPosition),
+                          onVerticalDragCancel: !_vertical
+                              ? null
+                              : () => setState(() => _dragIndex = null),
+                          onVerticalDragEnd: !_vertical
+                              ? null
+                              : (_) {
+                                  final index = _dragIndex;
+                                  setState(() => _dragIndex = null);
+                                  if (index != null) {
+                                    widget.onDestinationSelected(index);
+                                  }
+                                },
                           child: SizedBox(
-                              height: height,
+                              height: _vertical ? length : height,
                               child: Stack(children: [
                                 Positioned.fill(
                                     child: IgnorePointer(
                                         child: GlassSurface.navigationBase(
                                             shader: null,
+                                            borderRadius: _vertical
+                                                ? BorderRadius.circular(28)
+                                                : null,
                                             enabled: widget.refract,
-                                            extent:
-                                                Size(bounds.maxWidth, height),
+                                            extent: _vertical
+                                                ? Size(bounds.maxWidth, length)
+                                                : Size(bounds.maxWidth, height),
                                             theme: theme,
                                             level: widget.level,
                                             shadow: false,
@@ -382,7 +421,9 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                 // Sliding pill: same rect as the per-cell
                                 // pill at integer positions, but it moves
                                 // continuously with effectivePosition.
-                                if (widget.selectedPosition != null)
+                                // (Horizontal tabs only; vertical rails
+                                // jump between cells.)
+                                if (widget.selectedPosition != null && !_vertical)
                                   Positioned(
                                       left: 4 +
                                           effectivePosition * cellWidth +
@@ -398,8 +439,11 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                                   BorderRadius.circular(
                                                       height / 2)))),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                  child: Row(
+                                  padding: _vertical
+                                      ? const EdgeInsets.symmetric(vertical: 4)
+                                      : const EdgeInsets.symmetric(horizontal: 4),
+                                  child: Flex(
+                                  direction: widget.direction,
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
                                     for (var i = 0;
@@ -445,12 +489,15 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                                   child: widget.tabs
                                                       ? Text(widget.labels[i],
                                                           maxLines: 1)
-                                                      : Column(mainAxisSize: MainAxisSize.min, children: [
+                                                      : Flex(direction: _vertical ? Axis.horizontal : Axis.vertical, mainAxisSize: MainAxisSize.min, children: [
                                                           Icon([
                                                             Icons.home_outlined,
                                                             Icons.feed_outlined,
                                                             Icons.person_outline
                                                           ][i % 3]),
+                                                          if (_vertical)
+                                                            const SizedBox(
+                                                                width: 10),
                                                           Text(widget.labels[i],
                                                               maxLines: 1),
                                                         ])),
@@ -473,7 +520,8 @@ class _BasicRoundHitBox extends RenderProxyBox {
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) =>
       RRect.fromRectAndRadius(
-              Offset.zero & size, Radius.circular(size.height / 2))
+              Offset.zero & size,
+              Radius.circular(size.height > size.width ? 28 : size.height / 2))
           .contains(position) &&
       super.hitTest(result, position: position);
 }
