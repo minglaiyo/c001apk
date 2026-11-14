@@ -1,9 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart' hide Response, FormData;
 
+import '../../components/app_sheet.dart';
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
+import '../../pages/feed/reply/reply_page.dart';
 import '../../pages/product/product_comparison_controller.dart';
 import '../../pages/product/product_config.dart';
 import '../../pages/product/product_config_ui.dart';
@@ -250,6 +253,26 @@ class _ProductPageState extends State<ProductPage> {
   /// When neither applies, no row and no spacing is left behind.
   /// The row is reactive: toggling a config on any product page
   /// updates the comparison count here.
+  /// 打开发点评弹层（底部滑入，与其他弹层一致的转场）。
+  Future<void> _openRating(ProductDetail detail) async {
+    if (!GlobalData().isLogin) {
+      SmartDialog.showToast('登录后才能发表点评');
+      return;
+    }
+    await showBottomSheetPage(
+      context: context,
+      page: ReplyPage(
+        title: detail.title,
+        targetType: 'product',
+        targetId: _id,
+        ratingItems: [
+          for (final item in detail.ratingItems)
+            {'id': item.id, 'name': item.name},
+        ],
+      ),
+    );
+  }
+
   Widget _buildConfigButtons(ProductDetail detail) {
     return Obx(() {
       final hasConfigs = detail.configs.isNotEmpty;
@@ -274,6 +297,17 @@ class _ProductPageState extends State<ProductPage> {
             child: OutlinedButton(
               onPressed: _openComparison,
               child: Text('对比（$comparisonCount）'),
+            ),
+          ),
+        );
+      }
+      if (detail.ratingItems.isNotEmpty) {
+        if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 10));
+        buttons.add(
+          Expanded(
+            child: FilledButton.tonal(
+              onPressed: () => _openRating(detail),
+              child: const Text('发表点评'),
             ),
           ),
         );

@@ -21,6 +21,7 @@ import '../../../logic/model/oss_upload/oss_upload_model.dart';
 import '../../../logic/network/network_repo.dart';
 import '../../../pages/feed/reply/emoji_panel.dart';
 import '../../../pages/feed/reply/reply_dialog.dart' show ReplyType;
+import '../../../pages/feed/reply/rating_panel.dart';
 import '../../../pages/feed/reply/toolbar_icon_button.dart';
 import '../../../utils/extensions.dart';
 
@@ -35,6 +36,7 @@ class ReplyPage extends StatefulWidget {
     this.targetType,
     this.targetId,
     this.title,
+    this.ratingItems,
   });
 
   final ReplyType? type;
@@ -43,6 +45,10 @@ class ReplyPage extends StatefulWidget {
   final String? targetType;
   final dynamic targetId;
   final String? title;
+
+  /// 点评子项定义（`[{id: 'v4_score_item_1', name: '续航'}, …]`）。
+  /// 非空时本页以「发表点评」模式工作（官方 type=rating 分支）。
+  final List<Map<String, dynamic>>? ratingItems;
 
   @override
   State<ReplyPage> createState() => _ReplyPageState();
@@ -66,6 +72,11 @@ class _ReplyPageState extends State<ReplyPage>
 
   final _checkBoxStream = StreamController<bool>();
   bool _checkBoxValue = false;
+
+  /// 点评表单当前值（评测面板 onChanged）。
+  RatingFormValue? _ratingValue;
+
+  bool get _isRating => widget.ratingItems?.isNotEmpty == true;
   late final _publisher = ReplyPublisher(
     isMounted: () => mounted,
     context: () => context,
@@ -126,12 +137,25 @@ class _ReplyPageState extends State<ReplyPage>
                   },
                 ),
               ),
+              if (_isRating) _buildRatingPanel(),
               _buildInputView(),
               _buildImagePreview(),
               _buildPanelContainer(),
             ],
           ),
         ));
+  }
+
+  /// 点评表单：总体/子项星级、优缺点与「已购买」，
+  /// 随面板值变化更新 [_ratingValue] 供发布使用。
+  Widget _buildRatingPanel() {
+    return SingleChildScrollView(
+      child: RatingPanel(
+        target: widget.title ?? widget.targetId?.toString() ?? '点评',
+        items: widget.ratingItems ?? const [],
+        onChanged: (value) => _ratingValue = value,
+      ),
+    );
   }
 
   Widget _buildPanelContainer() {
@@ -557,6 +581,43 @@ class _ReplyPageState extends State<ReplyPage>
         );
         if (pic == null) return;
         _pic = pic;
+      }
+      if (_isRating) {
+        final value = _ratingValue;
+        if (value == null || !value.valid) {
+          SmartDialog.dismiss();
+          SmartDialog.showToast('请给总体评分和每个分项都打分');
+          return;
+        }
+        // 字段口径照抄官方 rating 分支：
+        //   rating_score_1 = 总体分（1~5 原值）
+        //   v4_score_item_n = 子项分（星数 ×2，0~10 量纲）
+        //   publish_status 固定 0（点评不公开），comment_general 固定空串
+        final form = <String, dynamic>{
+          'id': '',
+          'message': _replyContentController.text,
+          'type': 'rating',
+          'status': '1',
+          'publish_status': '0',
+          if (widget.targetType != null) 'targetType': widget.targetType,
+          if (widget.targetId != null) 'targetId': widget.targetId,
+          'rating_score_1': value.overall.toString(),
+          'comment_good': value.good,
+          'comment_general': '',
+          'comment_bad': value.bad,
+          'buy_status': value.buyStatus ? '1' : '0',
+          'pic': _pic,
+        };
+        final items = widget.ratingItems ?? const [];
+        for (var i = 0; i < value.itemStars.length && i < items.length; i++) {
+          final key = items[i]['id']?.toString() ?? 'v4_score_item_${i + 1}';
+          form[key] = (value.itemStars[i] * 2).toString();
+        }
+        await _publisher.publish(
+          () => NetworkRepo.postCreateFeed(FormData.fromMap(form)),
+          successMessage: '点评成功',
+        );
+        return;
       }
       await _publisher.publish(
         widget.id == null

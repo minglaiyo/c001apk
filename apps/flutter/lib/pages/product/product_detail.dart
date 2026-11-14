@@ -10,10 +10,14 @@
 /// external tabs are skipped. Feed tabs are driven by
 /// `NetworkRepo.getProductFeeds`, not guessed.
 class ProductRatingItem {
-  const ProductRatingItem({required this.name, required this.score});
+  const ProductRatingItem(
+      {required this.name, required this.score, this.id = ''});
 
   final String name;
   final double score;
+
+  /// 服务端子项字段名（`v4_score_item_1..n`），点评提交时直接复用。
+  final String id;
 }
 
 class ProductTab {
@@ -219,7 +223,11 @@ ProductDetail parseProductDetail(String productId, dynamic data) {
           item['v4_score'] ??
           item['score']);
       if (score <= 0) continue;
-      ratingItems.add(ProductRatingItem(name: name, score: score));
+      ratingItems.add(ProductRatingItem(
+          name: name,
+          score: score,
+          id: _firstText(item, ['id', 'field', 'key']),
+      ));
     }
   }
   final specs = <String>[];
