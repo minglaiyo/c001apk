@@ -2,6 +2,7 @@ import '../../router/link_resolver.dart';
 import '../../utils/share_util.dart';
 import '../../utils/html_text_util.dart';
 import '../../constants/app_sizes.dart';
+import '../clamped_content.dart';
 import '../more_panel.dart';
 import 'feed_price_row.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
@@ -497,16 +498,35 @@ class FeedCard extends StatelessWidget {
         child: ContentFilterText(
             key: ValueKey('feed-message:${data.id}'),
             source: data.message.orEmpty,
-            builder: (message) => FeedText(
-                  message,
-                  fontSize: reading ? 18 : 16,
-                  lineHeight: reading ? 1.7 : 1.5,
-                  preview: !isFeedContent,
-                  forcePlain: forcePlain,
-                  picArr: data.picArr,
-                  mediaItems: mediaForDatum(data),
-                  contentId: data.id?.toString(),
-                )),
+            builder: (message) => isFeedContent
+                // 详情/文章正文：完整渲染，不做折叠。
+                ? FeedText(
+                    message,
+                    fontSize: reading ? 18 : 16,
+                    lineHeight: reading ? 1.7 : 1.5,
+                    forcePlain: forcePlain,
+                    picArr: data.picArr,
+                    mediaItems: mediaForDatum(data),
+                    contentId: data.id?.toString(),
+                  )
+                // 列表卡：最多 5 行 + 「查看更多」（与官方列表口径一致，
+                // 正文是 widget 树没有 maxLines，故按纯文本量行后裁切）。
+                : ClampedHtml(
+                    plainText: ClampedHtml.stripHtml(parseHtmlString(message)),
+                    fontSize: 16,
+                    onMore: () => FeedNavigation.open(
+                        context, '${data.id ?? data.entityId ?? ''}'),
+                    child: FeedText(
+                      message,
+                      fontSize: 16,
+                      lineHeight: 1.5,
+                      preview: true,
+                      forcePlain: forcePlain,
+                      picArr: data.picArr,
+                      mediaItems: mediaForDatum(data),
+                      contentId: data.id?.toString(),
+                    ),
+                  )),
       )
     ];
   }

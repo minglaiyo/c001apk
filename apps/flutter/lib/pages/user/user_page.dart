@@ -11,6 +11,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../../components/cards/user_info_card.dart';
+import '../../components/clamped_content.dart';
 import '../../components/content_filter_gate.dart';
 import '../../components/sticky_sliver_to_box_adapter.dart';
 import '../../logic/content_filter/content_filter_rule.dart';
@@ -111,10 +112,20 @@ class _UserPageState extends State<UserPage>
           ),
         );
       case Success():
-        return UserInfoCard(
-          data: userState.response!,
-          onFollow: _userController.onFollow,
-          onLocalFollow: _userController.onLocalFollow,
+        final data = userState.response!;
+        final bio = (data.bio ?? data.description ?? '').trim();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            UserInfoCard(
+              data: data,
+              onFollow: _userController.onFollow,
+              onLocalFollow: _userController.onLocalFollow,
+            ),
+            // 签名折叠 2 行：只有真被截断才出现「展开」。
+            if (bio.isNotEmpty)
+              ExpandableBio(text: bio, color: Theme.of(context).colorScheme.outline),
+          ],
         );
     }
     return const ExpressiveLoadingIndicator();
