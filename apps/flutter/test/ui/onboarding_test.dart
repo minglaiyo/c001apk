@@ -113,6 +113,21 @@ void main() {
   Future<void> next(WidgetTester tester) =>
       tap(tester, find.byKey(const ValueKey('onboarding-next')));
 
+  // The save a persisting tap starts is real Hive disk I/O with no bounded
+  // completion time, so the fixed 50 ms window inside [tap] cannot prove the
+  // write landed: on a loaded runner it expires mid-save. Poll for the result
+  // instead, pumping before each check so a condition read from the widget
+  // tree reflects the state the save has already written.
+  Future<void> settled(WidgetTester tester, bool Function() done) async {
+    for (var attempt = 0; attempt < 40; attempt++) {
+      await tester.pump();
+      if (done()) return;
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)));
+    }
+    fail('the save never completed');
+  }
+
   testWidgets(
       'four steps keep draft local then finish applies explicit choices',
       (tester) async {
@@ -137,11 +152,11 @@ void main() {
     expect(identity.calls, 0);
     await tap(tester, find.byKey(const ValueKey('onboarding-next')),
         persist: true);
+    await settled(tester, () => state.completed);
     expect(GStorage.hideHomePublishButton, isFalse);
     expect(GStorage.floatingNavigation, isFalse);
     expect(filter.enabled, isTrue);
     expect(filter.level, FilterLevel.standard);
-    expect(state.completed, isTrue);
     expect(state.active, isFalse);
     expect(finished, 1);
     expect(identity.calls, 0);
@@ -153,9 +168,9 @@ void main() {
     await show(tester);
     await tap(tester, find.text('我也会发布'));
     await tap(tester, find.text('跳过引导'), persist: true);
+    await settled(tester, () => state.completed);
     expect(GStorage.hideHomePublishButton, isTrue);
     expect(filter.enabled, isFalse);
-    expect(state.completed, isTrue);
     expect(identity.calls, 0);
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -186,6 +201,7 @@ void main() {
     await next(tester);
     await tap(tester, find.byKey(const ValueKey('onboarding-next')),
         persist: true);
+    await settled(tester, () => state.completed);
     expect(GStorage.floatingNavigation, isTrue);
     expect(GStorage.liquidGlass, isFalse);
     expect(filter.enabled, isFalse);
@@ -232,7 +248,7 @@ void main() {
     expect(find.text('4 / 4'), findsOneWidget);
     await tap(tester, find.byKey(const ValueKey('onboarding-next')),
         persist: true);
-    expect(state.completed, isTrue);
+    await settled(tester, () => state.completed);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -270,15 +286,9 @@ void main() {
       expect(saving || state.completed, isTrue,
           reason:
               'tapping 完成 did not start the save; the tap may have missed the button');
-      // The save runs after the final tap (see diagnostic above) but Hive +
-      // filter writes can outrun the tap's 50 ms window on a loaded runner,
-      // so wait for completion instead of asserting it immediately.
-      for (var i = 0; i < 20 && !state.completed; i++) {
-        await tester.runAsync(
-            () => Future<void>.delayed(const Duration(milliseconds: 100)));
-        await tester.pump();
-      }
-      expect(state.completed, isTrue);
+      // The save runs after the final tap (see diagnostic above), so wait for
+      // it to land rather than asserting against the tap's fixed window.
+      await settled(tester, () => state.completed);
       expect(GStorage.hideHomePublishButton, isFalse);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
@@ -308,6 +318,11 @@ void main() {
           await tester.tap(find.byKey(const ValueKey('onboarding-next')));
           await Future<void>.delayed(const Duration(milliseconds: 50));
         });
+        // The route only pops once the write resolves, so a save still in
+        // flight here leaves the exit transition unscheduled and the page
+        // never disposes. The frame that drops 正在保存… is the one that
+        // schedules the pop, so the page stays mounted for the check below.
+        await settled(tester, () => find.text('正在保存…').evaluate().isEmpty);
       } else {
         await tester.tap(find.text('取消'));
       }
