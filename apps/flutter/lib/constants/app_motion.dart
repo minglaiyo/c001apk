@@ -22,6 +22,15 @@ abstract final class AppDurations {
 
   /// 图片查看器的缩放过渡。
   static const imageViewer = Duration(milliseconds: 255);
+
+  /// 控件级反馈（导航栏形变、弹层、淡入/缩放指示器）。
+  static const control = Duration(milliseconds: 200);
+
+  /// 即时吸附（滚动到目标位置等快速位移）。
+  static const instant = Duration(milliseconds: 100);
+
+  /// 尺寸过渡（AnimatedSize 等形变动画）。
+  static const size = Duration(milliseconds: 250);
 }
 
 /// 全局动效曲线 token。
@@ -34,4 +43,10 @@ abstract final class AppCurves {
 
   /// 滚动显隐（正向显示、反向隐藏共用）。
   static const scrollHide = Curves.easeInOut;
+
+  /// 进入/位移收尾（控件吸附、列表项入场）。
+  static const easeOut = Curves.easeOut;
+
+  /// 通用平滑过渡（页面切换、滚动定位）。
+  static const ease = Curves.ease;
 }

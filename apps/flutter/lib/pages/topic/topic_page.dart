@@ -1,6 +1,6 @@
 import '../../utils/share_util.dart';
-import '../../components/expressive_loading_indicator.dart';
 import '../../components/liquid_popup_menu.dart';
+import '../../components/status_views.dart';
 // ignore_for_file: constant_identifier_names
 
 import 'package:flutter/material.dart';
@@ -121,25 +121,17 @@ class _TopicPageState extends State<TopicPage> with TickerProviderStateMixin {
   Widget _buildBody(LoadingState topicState) {
     switch (topicState) {
       case Empty():
-        return GestureDetector(
+        return EmptyStatusView(
+          text: '暂无内容',
           onTap: _topicController.onReGetTopicData,
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.all(10.0),
-            child: const Text('暂无内容'),
-          ),
         );
       case Error():
-        return GestureDetector(
+        return ErrorStatusView(
+          message: topicState.errMsg,
           onTap: _topicController.onReGetTopicData,
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.all(10.0),
-            child: Text(topicState.errMsg),
-          ),
         );
     }
-    return const ExpressiveLoadingIndicator();
+    return const LoadingStatusView();
   }
 
   @override

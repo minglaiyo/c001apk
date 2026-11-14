@@ -10,6 +10,7 @@ import '../../logic/content_filter/content_filter_rule.dart';
 import '../../logic/onboarding/onboarding_state.dart';
 import '../../logic/szlm_identity_service.dart';
 import '../settings/device_identity_page.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({
@@ -461,7 +462,7 @@ class _AppearancePreview extends StatelessWidget {
                 data: MediaQuery.of(context)
                     .copyWith(textScaler: TextScaler.noScaling),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: AppRadius.sheetAll,
                   child: Container(
                     width: 320,
                     height: 132,

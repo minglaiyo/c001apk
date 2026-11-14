@@ -6,6 +6,7 @@ import '../utils/storage_util.dart';
 import 'expressive_navigation_bar.dart';
 import 'liquid_navigation_bar.dart';
 import 'scroll_hiding_action.dart';
+import 'package:c001apk_flutter/constants/app_motion.dart';
 
 /// The page subtree stays in the same slot when navigation style or width changes.
 ///
@@ -37,8 +38,8 @@ class _AdaptiveMainScaffoldState extends State<AdaptiveMainScaffold>
     with SingleTickerProviderStateMixin {
   late final _barAnimation = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
-      reverseDuration: const Duration(milliseconds: 150),
+      duration: AppDurations.control,
+      reverseDuration: AppDurations.fast,
       value: 1);
 
   @override

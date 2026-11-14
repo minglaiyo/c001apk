@@ -24,6 +24,7 @@ import '../../../pages/feed/reply/reply_dialog.dart' show ReplyType;
 import '../../../pages/feed/reply/rating_panel.dart';
 import '../../../pages/feed/reply/toolbar_icon_button.dart';
 import '../../../utils/extensions.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 enum PanelType { none, keyboard, emoji }
 
@@ -272,8 +273,8 @@ class _ReplyPageState extends State<ReplyPage>
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
+          topLeft: AppRadius.card,
+          topRight: AppRadius.card,
         ),
         color: Theme.of(context).colorScheme.surface,
       ),

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../../components/expressive_refresh_indicator.dart';
 import '../../../components/network_image.dart';
+import '../../../components/status_views.dart';
 import '../../../logic/model/feed/datum.dart';
 import '../../../logic/state/loading_state.dart';
 import '../../../utils/extensions.dart';
@@ -12,6 +13,7 @@ import '../../../router/link_resolver.dart';
 import '../../product/rating_chart.dart' show parseHotCount;
 import '../../carousel/carousel_page.dart';
 import 'topic_grid_controller.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 /// Items of [items] that render as grid cells: topic entries on the 话题
 /// tab, product entries on the 数码 tab. Banners, feeds and other card
@@ -40,7 +42,7 @@ class TopicGridCell extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        borderRadius: AppRadius.cardAll,
         child: Column(
           mainAxisSize: MainAxisSize.max,
           children: [
@@ -279,30 +281,22 @@ class _TopicCategoryGridState extends State<TopicCategoryGrid> {
           );
         }
         if (state is Error) {
-          return GestureDetector(
+          return ErrorStatusView(
+            message: state.errMsg,
             onTap: () {
               unawaited(_reload(controller));
             },
-            child: Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(10),
-              child: Text(state.errMsg),
-            ),
           );
         }
         if (state is Empty) {
-          return GestureDetector(
+          return EmptyStatusView(
+            text: '暂无内容',
             onTap: () {
               unawaited(_reload(controller));
             },
-            child: Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(10),
-              child: const Text('暂无内容'),
-            ),
           );
         }
-        return const Center(child: CircularProgressIndicator());
+        return const LoadingStatusView();
       }),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../components/status_views.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
@@ -129,14 +130,12 @@ class _CollectionPickerDialogState extends State<_CollectionPickerDialog> {
       content: SizedBox(
         width: double.maxFinite,
         child: _loading
-            ? const SizedBox(
-                height: 80,
-                child: Center(child: CircularProgressIndicator()),
-              )
+            ? const LoadingStatusView()
             : _error != null
-                ? Text(_error!)
+                ? ErrorStatusView(message: _error!)
                 : _collections.isEmpty
-                    ? const Text('暂无自建收藏单，先新建一个（建议测试单）。')
+                    ? const EmptyStatusView(
+                        text: '暂无自建收藏单，先新建一个（建议测试单）。')
                     : Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [

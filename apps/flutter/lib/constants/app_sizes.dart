@@ -21,6 +21,12 @@ abstract final class AppRadius {
 
   /// 便捷构造：小控件整圆角。
   static BorderRadius get smallAll => const BorderRadius.all(small);
+
+  /// 便捷构造：底部弹层整圆角。
+  static BorderRadius get sheetAll => const BorderRadius.all(sheet);
+
+  /// 便捷构造：玻璃面板整圆角。
+  static BorderRadius get glassAll => const BorderRadius.all(glass);
 }
 
 /// 间距 token。

@@ -4,6 +4,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../utils/extensions.dart';
 import '../utils/storage_util.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
+import 'package:c001apk_flutter/constants/app_motion.dart';
 
 /// A floating back-to-top button, modelled on TiebaLite's
 /// `DefaultBackToTopFAB` (`ui/widgets/compose/Buttons.kt`).
@@ -101,10 +103,10 @@ class _BackToTopActionState extends State<BackToTopAction> {
     final colors = Theme.of(context).colorScheme;
     return AnimatedOpacity(
       opacity: _visible ? 1 : 0,
-      duration: const Duration(milliseconds: 200),
+      duration: AppDurations.control,
       child: AnimatedScale(
         scale: _visible ? 1 : 0.8,
-        duration: const Duration(milliseconds: 200),
+        duration: AppDurations.control,
         child: IgnorePointer(
           ignoring: !_visible,
           child: GestureDetector(
@@ -113,9 +115,9 @@ class _BackToTopActionState extends State<BackToTopAction> {
             child: Material(
               color: colors.primaryContainer,
               elevation: 4,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.cardAll,
               child: InkWell(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.cardAll,
                 onTap: widget.controller?.animToTop,
                 onLongPress:
                     widget.onLongPress == null ? null : _onLongPress,

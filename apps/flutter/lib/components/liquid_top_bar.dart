@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../utils/storage_util.dart';
 import '../utils/extensions.dart';
 import 'basic_glass.dart';
+import 'package:c001apk_flutter/constants/app_motion.dart';
 export 'basic_glass.dart' show LiquidGlassButton;
 
 /// Glass title builder: context plus the bar's show progress.
@@ -73,8 +74,8 @@ class _LiquidTopBarScaffoldState extends State<LiquidTopBarScaffold>
   // relayouts once instead of once per frame.
   late final _barAnimation = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
-      reverseDuration: const Duration(milliseconds: 150),
+      duration: AppDurations.control,
+      reverseDuration: AppDurations.fast,
       value: 1);
 
   @override

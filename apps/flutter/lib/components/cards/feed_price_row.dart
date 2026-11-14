@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../logic/model/feed/feed_price.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 /// 动态卡片文本上方的价格行：左侧金额、旁边配置、右侧 listing 链接。
 /// 价格与链接都不存在时不绘制。视觉跟随主线的 M3 配色与字号体系。
@@ -57,7 +58,7 @@ class FeedPriceRow extends StatelessWidget {
         if (link != null)
           InkWell(
             onTap: () => onOpenLink?.call(link!.url),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.smallAll,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               child: Row(mainAxisSize: MainAxisSize.min, children: [

@@ -8,6 +8,7 @@ import '../../../components/expressive_loading_indicator.dart';
 import '../../../components/expressive_refresh_indicator.dart';
 import '../../../components/scroll_hide_animator.dart';
 import '../../../components/scroll_hiding_action.dart';
+import '../../../components/status_views.dart';
 import '../../../pages/home/app/app_list_controller.dart';
 import '../../../pages/home/return_top_controller.dart';
 import '../../../utils/extensions.dart';
@@ -115,21 +116,13 @@ class _AppListPageState extends State<AppListPage>
         ),
       ),
       onLoading: const Center(child: ExpressiveLoadingIndicator()),
-      onEmpty: GestureDetector(
+      onEmpty: EmptyStatusView(
+        text: '暂无内容',
         onTap: _appListController.onReload,
-        child: Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.all(10.0),
-          child: const Text('暂无内容'),
-        ),
       ),
-      onError: (error) => GestureDetector(
+      onError: (error) => ErrorStatusView(
+        message: error ?? '加载失败，请重试',
         onTap: _appListController.onReload,
-        child: Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.all(10.0),
-          child: Text(error ?? '加载失败，请重试'),
-        ),
       ),
     );
   }

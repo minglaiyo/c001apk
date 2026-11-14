@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../logic/model/feed/entity.dart';
 import '../../utils/extensions.dart';
 import '../mouse_drag_scroll.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 class IconLinkGridCard extends StatefulWidget {
   const IconLinkGridCard({super.key, required this.dataList});
@@ -38,7 +39,7 @@ class _IconLinkGridCardState extends State<IconLinkGridCard> {
     return Material(
       clipBehavior: Clip.hardEdge,
       color: Theme.of(context).colorScheme.onInverseSurface,
-      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      borderRadius: AppRadius.cardAll,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -79,7 +80,7 @@ class _IconLinkGridCardState extends State<IconLinkGridCard> {
                 data.pic.orEmpty,
                 height: 30,
                 width: 30,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.smallAll,
               ),
               Text(
                 data.title.orEmpty,

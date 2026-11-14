@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 
 import '../../components/cards/feed_card.dart';
 import '../../components/adaptive_card_list.dart';
+import '../../components/confirm_dialog.dart';
+import '../../components/status_views.dart';
 import '../../pages/history/history_controller.dart';
 
 // ignore: constant_identifier_names
@@ -59,26 +61,15 @@ class _HistoryPageState extends State<HistoryPage> {
                   ),
                   if (_controller.dataList.isNotEmpty)
                   IconButton(
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(
-                            '确定清除全部${_type == HistoryType.Favorite ? '收藏' : '浏览历史'}？'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Get.back(),
-                            child: const Text('取消'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Get.back();
-                              _controller.clearAll();
-                            },
-                            child: const Text('确定'),
-                          ),
-                        ],
-                      ),
-                    ),
+                    onPressed: () async {
+                      final confirmed = await showConfirmDialog(
+                        context: context,
+                        title: '确定清除全部${_type == HistoryType.Favorite ? '收藏' : '浏览历史'}？',
+                        confirmLabel: '确定',
+                        cancelLabel: '取消',
+                      );
+                      if (confirmed) _controller.clearAll();
+                    },
                     icon: const Icon(Icons.clear_all),
                     tooltip: '清除全部',
                   ),
@@ -90,9 +81,7 @@ class _HistoryPageState extends State<HistoryPage> {
           builder: (context) {
             final allItems = _controller.dataList;
             if (allItems.isEmpty) {
-              return const Center(
-                child: Text('暂无内容'),
-              );
+              return const EmptyStatusView();
             }
             final types = <String>{
               for (final item in allItems)

@@ -23,6 +23,7 @@ import '../../utils/utils.dart';
 import '../../components/confirm_dialog.dart';
 import 'chat_controller.dart';
 import 'chat_feed_picker.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 enum PanelType { none, keyboard, emoji }
 
@@ -262,8 +263,8 @@ class _ChatPageState extends State<ChatPage> {
                       fillColor: Theme.of(context).colorScheme.surface,
                       border: OutlineInputBorder(
                           borderSide: BorderSide.none,
-                          borderRadius: BorderRadius.circular(8)),
-                      contentPadding: const EdgeInsets.all(10)),
+                          borderRadius: AppRadius.smallAll),
+                      contentPadding: AppSpacing.pageInsets),
                 ),
               )),
           Row(children: [

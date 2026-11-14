@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../components/status_views.dart';
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
 import 'product_comparison_controller.dart';
@@ -195,37 +196,14 @@ class _ProductConfigDetailsDialogState
     return AlertDialog(
       title: Text(title),
       content: _loading
-          ? const SizedBox(
-              height: 140,
-              child: Center(child: CircularProgressIndicator()),
-            )
+          ? const LoadingStatusView()
           : _error != null
-              ? Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_error!),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: _load,
-                          child: const Text('重试'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('关闭'),
-                        ),
-                      ],
-                    ),
-                  ],
+              ? ErrorStatusView(
+                  message: _error!,
+                  onTap: _load,
                 )
               : _sections.isEmpty
-                  ? const SizedBox(
-                      height: 160,
-                      child: Center(child: Text('暂无参数')),
-                    )
+                  ? const EmptyStatusView(text: '暂无参数')
                   : ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 540),
                       child: ListView(
@@ -403,34 +381,14 @@ class _ProductComparisonDialogState extends State<ProductComparisonDialog> {
           ),
         ),
         body: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const LoadingStatusView()
             : _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('对比加载失败'),
-                        const SizedBox(height: 8),
-                        Text(_error!),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextButton(
-                              onPressed: _load,
-                              child: const Text('重试'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('关闭'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                ? ErrorStatusView(
+                    message: '对比加载失败',
+                    onTap: _load,
                   )
                 : _columns.isEmpty
-                    ? const Center(child: Text('暂无可对比的配置'))
+                    ? const EmptyStatusView(text: '暂无可对比的配置')
                     : _buildComparisonBody(context),
       ),
     );

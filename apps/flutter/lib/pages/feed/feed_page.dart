@@ -42,6 +42,7 @@ import '../../utils/markdown_content.dart';
 import '../../components/content_export_button.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/utils.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 enum FeedMenuItem {
   Copy,
@@ -102,7 +103,7 @@ class _FeedPageState extends State<FeedPage> {
           Card.outlined(
             margin: const EdgeInsets.symmetric(horizontal: 4),
             child: InkWell(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.cardAll,
               onTap: () => Get.toNamed('/u/${data.uid}'),
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -246,16 +247,12 @@ class _FeedPageState extends State<FeedPage> {
   Widget _buildFeedContent(LoadingState feedState) {
     switch (feedState) {
       case Empty():
-        return GestureDetector(
+        return EmptyStatusView(
+          text: '暂无内容',
           onTap: () {
             _feedController.setFeedState(LoadingState.loading());
             _feedController.getFeedData();
           },
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.all(10.0),
-            child: const Text('暂无内容'),
-          ),
         );
       case Error():
         return _buildErrorWithSnapshot(
@@ -731,7 +728,7 @@ class _FeedPageState extends State<FeedPage> {
       if (target != null && target.mounted) {
         await Scrollable.ensureVisible(
           target,
-          duration: const Duration(milliseconds: 400),
+          duration: AppDurations.viewSwitch,
           alignment: 0.1,
         );
         await HapticFeedback.mediumImpact();
@@ -740,8 +737,8 @@ class _FeedPageState extends State<FeedPage> {
       if (!_scrollController.hasClients) return;
       await _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
+        duration: AppDurations.scrollHide,
+        curve: AppCurves.easeOut,
       );
       await Future<void>.delayed(const Duration(milliseconds: 100));
     }

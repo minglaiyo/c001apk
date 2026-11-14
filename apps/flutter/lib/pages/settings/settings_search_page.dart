@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'settings_page.dart' show SettingsDetailPage;
 import 'settings_search_index.dart';
+import '../../components/status_views.dart';
 
 /// Search across settings, modelled on TiebaLite's settings search:
 /// typing filters the index, tapping a result opens its section and
@@ -50,7 +51,7 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
         ],
       ),
       body: results.isEmpty
-          ? const Center(child: Text('没有找到相关设置'))
+          ? const EmptyStatusView(text: '没有找到相关设置')
           : ListView.builder(
               itemCount: results.length,
               itemBuilder: (context, index) {

@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'keyboard_scroll_region.dart';
 import 'app_navigation_history.dart';
+import 'package:c001apk_flutter/constants/app_motion.dart';
 
 /// Fallback keyboard navigation for routes whose scroll controllers are not
 /// primary. Controls inside the route get the first chance to handle each key.
@@ -146,7 +147,7 @@ class _AppKeyboardNavigationState extends State<AppKeyboardNavigation> {
         .clamp(position.minScrollExtent, position.maxScrollExtent)
         .toDouble();
     unawaited(position.animateTo(next,
-        duration: const Duration(milliseconds: 100), curve: Curves.easeOut));
+        duration: AppDurations.instant, curve: AppCurves.easeOut));
     return KeyEventResult.handled;
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'liquid_popup_menu.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 /// Settings-domain dropdown picker in the Yuxiximyxx `GlassDropdownPicker`
 /// shape, adapted to the fork's own glass panel: the trigger row is just
@@ -61,7 +62,7 @@ class GlassDropdownPicker<T> extends StatelessWidget {
     return Builder(
       builder: (context) => InkWell(
         onTap: enabled ? () => _openMenu(context) : null,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.smallAll,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Row(

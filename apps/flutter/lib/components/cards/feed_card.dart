@@ -255,7 +255,7 @@ class FeedCard extends StatelessWidget {
               : null,
           borderRadius: const BorderRadius.all(AppRadius.card),
           child: Padding(
-            padding: const EdgeInsets.all(10),
+            padding: AppSpacing.pageInsets,
             child: data.forwardSourceFeed == null
                 ? Text(
                     '动态已被删除',
@@ -335,7 +335,7 @@ class FeedCard extends StatelessWidget {
               data.extraUrl!, data.extraTitle ?? '', true, context),
           borderRadius: const BorderRadius.all(AppRadius.card),
           child: Padding(
-            padding: const EdgeInsets.all(10),
+            padding: AppSpacing.pageInsets,
             child: Row(
               children: [
                 !data.extraPic.isNullOrEmpty
@@ -415,7 +415,7 @@ class FeedCard extends StatelessWidget {
           }),
           borderRadius: const BorderRadius.all(AppRadius.card),
           child: Padding(
-            padding: const EdgeInsets.all(10),
+            padding: AppSpacing.pageInsets,
             child: ContentFilterText(
                 source: reply.message ?? '',
                 builder: (message) => htmlText(

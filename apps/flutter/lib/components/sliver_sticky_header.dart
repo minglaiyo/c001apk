@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:c001apk_flutter/constants/app_motion.dart';
 
 /// https://gist.github.com/aarajput/d4fb5b0651d1a0d3f383596fb267ffde
 
@@ -324,7 +325,7 @@ class _RenderSliverStickyHeader extends RenderSliver
     final RenderObject? descendant,
     final Rect? rect,
     final Duration duration = Duration.zero,
-    final Curve curve = Curves.ease,
+    final Curve curve = AppCurves.ease,
   }) {
     assert(child != null || descendant == null);
 

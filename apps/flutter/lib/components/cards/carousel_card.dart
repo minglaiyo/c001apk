@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../logic/model/feed/entity.dart';
 import '../../utils/extensions.dart';
 import '../mouse_drag_scroll.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 class CarouselCard extends StatefulWidget {
   const CarouselCard({super.key, required this.dataList});
@@ -59,7 +60,7 @@ class _CarouselCardState extends State<CarouselCard> {
               // back to the normal 10.
               height: (constraints.maxWidth / 4.5).clamp(0.0, 240.0),
               child: ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                borderRadius: AppRadius.cardAll,
                 child: Stack(
                   alignment: AlignmentDirectional.bottomEnd,
                   children: [

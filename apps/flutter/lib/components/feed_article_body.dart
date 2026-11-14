@@ -9,6 +9,7 @@ import '../components/imageview.dart';
 import '../logic/model/feed_article/feed_article.dart';
 import '../utils/extensions.dart';
 import '../logic/media/feed_media.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 Widget feedArticleBody(
   double maxWidth,
@@ -90,15 +91,15 @@ Widget feedArticleBody(
                 child: InkWell(
                   onTap: () =>
                       openLink(data.url.orEmpty, null, true, context),
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  borderRadius: AppRadius.cardAll,
                   child: Ink(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(12)),
+                      borderRadius: AppRadius.cardAll,
                       color:
                           Theme.of(Get.context!).colorScheme.onInverseSurface,
                     ),
-                    padding: const EdgeInsets.all(10),
+                    padding: AppSpacing.pageInsets,
                     child: Text(data.title.orEmpty),
                   ),
                 ),

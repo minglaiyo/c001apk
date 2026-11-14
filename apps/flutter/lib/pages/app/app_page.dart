@@ -1,6 +1,7 @@
 import '../../utils/share_util.dart';
 import '../../utils/download_util.dart';
 import '../../components/expressive_loading_indicator.dart';
+import '../../components/status_views.dart';
 // ignore_for_file: constant_identifier_names
 
 import 'dart:math';
@@ -79,22 +80,14 @@ class _AppPageState extends State<AppPage> with TickerProviderStateMixin {
   Widget _buildAppInfo(AppController controller) {
     switch (controller.appState.value) {
       case Empty():
-        return GestureDetector(
+        return EmptyStatusView(
+          text: '暂无内容',
           onTap: controller.regetData,
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.all(10.0),
-            child: const Text('暂无内容'),
-          ),
         );
       case Error():
-        return GestureDetector(
+        return ErrorStatusView(
+          message: (controller.appState.value as Error).errMsg,
           onTap: controller.regetData,
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.all(10.0),
-            child: Text((controller.appState.value as Error).errMsg),
-          ),
         );
       case Success(:final response):
         return AppInfoCard(

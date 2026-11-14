@@ -27,6 +27,7 @@ import '../../utils/device_util.dart';
 import '../../utils/extensions.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/utils.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 /// 去除多行字符串中每行 `|` 之前的缩进（替代 package:indent 的 trimMargin）。
 extension _StringTrimMargin on String {
@@ -95,7 +96,7 @@ class _UserPageState extends State<UserPage>
           },
           child: Container(
             alignment: Alignment.center,
-            padding: const EdgeInsets.all(10.0),
+            padding: AppSpacing.pageInsets,
             child: const Text('暂无内容'),
           ),
         );
@@ -107,7 +108,7 @@ class _UserPageState extends State<UserPage>
           },
           child: Container(
             alignment: Alignment.center,
-            padding: const EdgeInsets.all(10.0),
+            padding: AppSpacing.pageInsets,
             child: Text(userState.errMsg),
           ),
         );

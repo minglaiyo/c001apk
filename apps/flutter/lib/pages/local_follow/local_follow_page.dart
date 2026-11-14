@@ -9,6 +9,7 @@ import '../../components/common_body.dart';
 import '../../components/liquid_top_bar.dart';
 import '../../components/liquid_popup_menu.dart';
 import '../../components/network_image.dart';
+import '../../components/status_views.dart';
 import '../../logic/local_follow/local_follow_store.dart';
 import '../../utils/global_data.dart';
 import '../../utils/storage_util.dart';
@@ -211,15 +212,10 @@ class _LocalFollowFeedViewState extends State<LocalFollowFeedView> {
           valueListenable:
               GStorage.settings.listenable(keys: [LocalFollowStore.usersKey]),
           builder: (context, _, __) => LocalFollowStore().users.isEmpty
-              ? Center(
-                  child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                      GlobalData().isLogin
-                          ? '还没有悄悄关注的用户\n在设置中开启后，长按用户主页的关注按钮即可添加'
-                          : '还没有本地关注的用户\n在用户主页点击“本地关注”，即可在这里查看动态',
-                      textAlign: TextAlign.center),
-                ))
+              ? EmptyStatusView(
+                  text: GlobalData().isLogin
+                      ? '还没有悄悄关注的用户\n在设置中开启后，长按用户主页的关注按钮即可添加'
+                      : '还没有本地关注的用户\n在用户主页点击“本地关注”，即可在这里查看动态')
               : commonBody(_controller),
         )),
       ]);

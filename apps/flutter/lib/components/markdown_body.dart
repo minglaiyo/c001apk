@@ -11,6 +11,7 @@ import '../utils/storage_util.dart';
 import 'html_text.dart';
 import 'imageview.dart';
 import '../logic/media/feed_media.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 /// Posts opt into Markdown without changing the legacy comment/chat renderer.
 class FeedText extends StatelessWidget {
@@ -167,7 +168,7 @@ class MarkdownBody extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
               color: colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8)),
+              borderRadius: AppRadius.smallAll),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SelectableText(element.text.replaceFirst(RegExp(r'\n$'), ''),

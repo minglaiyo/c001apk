@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../components/expressive_loading_indicator.dart';
 import '../../components/item_card.dart';
 import '../../components/network_image.dart';
+import '../../components/status_views.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/network/network_repo.dart';
 import '../../logic/state/loading_state.dart';
@@ -10,6 +12,7 @@ import '../../utils/date_util.dart';
 import '../../utils/extensions.dart';
 import '../../router/link_resolver.dart';
 import '../../utils/global_data.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 /// 云端浏览历史页，B 层参考级。
 ///
@@ -189,12 +192,12 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
       ),
     );
     return Material(
-      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      borderRadius: AppRadius.cardAll,
       color: Theme.of(context).colorScheme.onInverseSurface,
       child: url.isEmpty
           ? body
           : InkWell(
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
+              borderRadius: AppRadius.cardAll,
               onTap: () => openLink(url, title, true, context),
               child: body,
             ),
@@ -399,10 +402,10 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
     final url =
         row.url.orEmpty.isNotEmpty ? row.url.orEmpty : '/product/${detail.id}';
     return Material(
-      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      borderRadius: AppRadius.cardAll,
       color: Theme.of(context).colorScheme.onInverseSurface,
       child: InkWell(
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        borderRadius: AppRadius.cardAll,
         onTap: () => openLink(url, detail.title, true, context),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -486,26 +489,17 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
             ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const LoadingStatusView()
                 : _error != null
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(_error!),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: () => _load(reset: true),
-                              child: const Text('重试'),
-                            ),
-                          ],
-                        ),
+                    ? ErrorStatusView(
+                        message: _error!,
+                        onTap: () => _load(reset: true),
                       )
                     : filtered.isEmpty
-                        ? Center(
-                            child: Text(_serverEmpty
+                        ? EmptyStatusView(
+                            text: _serverEmpty
                                 ? '服务端返回为空：云端暂无浏览记录，或接口未返回条目'
-                                : '暂无内容'))
+                                : '暂无内容')
                         : ListView.builder(
                             padding: EdgeInsets.only(
                               left: 10,
@@ -527,7 +521,7 @@ class _CloudHistoryPageState extends State<CloudHistoryPage> {
                                   padding: const EdgeInsets.all(16),
                                   child: Center(
                                     child: _loadingMore
-                                        ? const CircularProgressIndicator()
+                                        ? const ExpressiveLoadingIndicator()
                                         : TextButton(
                                             onPressed: () =>
                                                 _load(reset: false),

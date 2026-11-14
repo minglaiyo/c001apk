@@ -4,6 +4,7 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart' hide Response, FormData;
 
 import '../../components/app_sheet.dart';
+import '../../components/status_views.dart';
 import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
 import '../../pages/feed/reply/reply_page.dart';
@@ -15,6 +16,8 @@ import '../../pages/product/product_feed_content.dart';
 import '../../pages/product/product_feed_controller.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
+import 'package:c001apk_flutter/constants/app_motion.dart';
 
 /// The real product page. The route used to point at [TopicPage] as a
 /// placeholder, so opening a product from search results showed a topic
@@ -430,7 +433,7 @@ class _ProductPageState extends State<ProductPage> {
                 children: [
                   if (hasLogo)
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.cardAll,
                       child: SizedBox(
                         width: 120,
                         height: double.infinity,
@@ -457,7 +460,7 @@ class _ProductPageState extends State<ProductPage> {
                       if (detail.score > 0) ...[
                         InkWell(
                           onTap: () => _showRatingDetail(detail),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: AppRadius.smallAll,
                           child: Row(
                             children: [
                               Text(
@@ -690,21 +693,15 @@ class _ProductPageState extends State<ProductPage> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
             appBar: AppBar(title: const Text('数码产品')),
-            body: const Center(child: CircularProgressIndicator()),
+            body: const LoadingStatusView(),
           );
         }
         if (snapshot.hasError || !snapshot.hasData) {
           return Scaffold(
             appBar: AppBar(title: const Text('数码产品')),
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(snapshot.error?.toString() ?? '产品详情加载失败'),
-                  const SizedBox(height: 8),
-                  TextButton(onPressed: _retry, child: const Text('重试')),
-                ],
-              ),
+            body: ErrorStatusView(
+              message: snapshot.error?.toString() ?? '产品详情加载失败',
+              onTap: _retry,
             ),
           );
         }
@@ -737,7 +734,7 @@ class _ProductPageState extends State<ProductPage> {
               child: Column(
                 children: [
                   AnimatedSize(
-                    duration: const Duration(milliseconds: 250),
+                    duration: AppDurations.size,
                     alignment: Alignment.topCenter,
                     child: _buildHeader(detail),
                   ),

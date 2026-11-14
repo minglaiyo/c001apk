@@ -1,5 +1,6 @@
 import '../../../../components/expressive_loading_indicator.dart';
 import '../../../../components/expressive_refresh_indicator.dart';
+import '../../../../components/status_views.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -91,26 +92,20 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
   Widget _buildBody() {
     switch (_loadingState) {
       case Empty():
-        return GestureDetector(
+        return EmptyStatusView(
+          text: '暂无内容',
           onTap: () {
             setState(() => _loadingState = LoadingState.loading());
             _getData();
           },
-          child: const Padding(
-            padding: EdgeInsets.all(10.0),
-            child: Text('暂无内容'),
-          ),
         );
       case Error():
-        return GestureDetector(
+        return ErrorStatusView(
+          message: (_loadingState as Error).errMsg,
           onTap: () {
             setState(() => _loadingState = LoadingState.loading());
             _getData();
           },
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Text((_loadingState as Error).errMsg),
-          ),
         );
       case Success(:final response):
         List<Datum> dataList = response as List<Datum>;

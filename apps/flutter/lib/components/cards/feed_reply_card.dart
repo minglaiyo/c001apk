@@ -258,7 +258,7 @@ class FeedReplyCard extends StatelessWidget {
         onTap: () => openLink(feed.url ?? ''),
         borderRadius: const BorderRadius.all(AppRadius.card),
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: AppSpacing.pageInsets,
           child: Row(
             children: [
               if (!feed.pic.isNullOrEmpty) ...[

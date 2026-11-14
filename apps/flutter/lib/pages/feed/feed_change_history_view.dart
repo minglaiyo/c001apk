@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../components/status_views.dart';
 import '../../logic/network/network_repo.dart';
 import '../../pages/feed/feed_change_history.dart';
 
@@ -50,29 +51,22 @@ class _FeedChangeHistoryDialogState extends State<_FeedChangeHistoryDialog> {
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const LoadingStatusView();
             }
             if (snapshot.hasError) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('编辑记录加载失败'),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _future =
+              return ErrorStatusView(
+                message: '编辑记录加载失败',
+                onTap: () {
+                  setState(() {
+                    _future =
                             NetworkRepo.getFeedChangeHistory(widget.feedId);
-                      });
-                    },
-                    child: const Text('重试'),
-                  ),
-                ],
+                  });
+                },
               );
             }
             final items = snapshot.data ?? [];
             if (items.isEmpty) {
-              return const Text('暂无编辑记录');
+              return const EmptyStatusView(text: '暂无编辑记录');
             }
             return SingleChildScrollView(
               child: Column(

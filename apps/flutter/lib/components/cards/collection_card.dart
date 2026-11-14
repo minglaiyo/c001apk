@@ -7,6 +7,7 @@ import '../../logic/network/api_failure.dart';
 import '../../logic/network/network_repo.dart';
 import '../../pages/collection/collection_dialogs.dart';
 import '../../pages/ffflist/ffflist_page.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 class CollectionCard extends StatelessWidget {
   const CollectionCard({super.key, required this.data});
@@ -21,12 +22,12 @@ class CollectionCard extends StatelessWidget {
         'title': data.title,
         'type': FFFListType.COLLECTION_ITEM,
       }),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.cardAll,
       child: Ink(
         decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.onInverseSurface,
-            borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.all(10),
+            borderRadius: AppRadius.cardAll),
+        padding: AppSpacing.pageInsets,
         child: Row(
           children: [
             clipNetworkImage(

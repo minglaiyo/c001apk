@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:c001apk_flutter/constants/app_motion.dart';
 
 /// A floating capsule tip shown at the top of the home feed after a
 /// refresh, modelled on TiebaLite's `RefreshTip` in
@@ -46,7 +47,7 @@ class NewFeedTip extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return AnimatedOpacity(
       opacity: opacity,
-      duration: const Duration(milliseconds: 200),
+      duration: AppDurations.control,
       child: Material(
         elevation: 4,
         shape: const StadiumBorder(),

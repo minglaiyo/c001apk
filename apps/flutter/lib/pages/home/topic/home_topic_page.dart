@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../pages/home/topic/controller.dart';
 import '../../../pages/home/home_page.dart' show TabType;
+import '../../../components/status_views.dart';
 import 'topic_grid_page.dart';
 
 class HomeTopicPage extends StatefulWidget {
@@ -200,21 +201,13 @@ class _HomeTopicPageState extends State<HomeTopicPage>
           ],
         );
       },
-      onEmpty: GestureDetector(
+      onEmpty: EmptyStatusView(
+        text: '暂无内容',
         onTap: _homeTopicController.onReload,
-        child: Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.all(10.0),
-          child: const Text('暂无内容'),
-        ),
       ),
-      onError: (error) => GestureDetector(
+      onError: (error) => ErrorStatusView(
+        message: error ?? '加载失败，请重试',
         onTap: _homeTopicController.onReload,
-        child: Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.all(10.0),
-          child: Text(error ?? '加载失败，请重试'),
-        ),
       ),
     );
   }

@@ -54,7 +54,7 @@ Widget commonBody(
             if (leading == null) return Center(child: body);
             // Keep system messages reachable even if private messages fail or are empty.
             return Column(children: [
-              Padding(padding: const EdgeInsets.all(10), child: leading),
+              Padding(padding: AppSpacing.pageInsets, child: leading),
               Expanded(child: Center(child: body)),
             ]);
           }));

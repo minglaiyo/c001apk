@@ -19,6 +19,8 @@ import '../../../logic/network/network_repo.dart';
 import '../../../pages/feed/reply/emoji_panel.dart';
 import '../../../pages/feed/reply/toolbar_icon_button.dart';
 import '../../../utils/extensions.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
+import 'package:c001apk_flutter/constants/app_motion.dart';
 
 /// From Pilipala
 
@@ -220,8 +222,8 @@ class _ReplyDialogState extends State<ReplyDialog> with WidgetsBindingObserver {
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
+          topLeft: AppRadius.card,
+          topRight: AppRadius.card,
         ),
         color: Theme.of(context).colorScheme.surface,
       ),
@@ -465,8 +467,8 @@ class _ReplyDialogState extends State<ReplyDialog> with WidgetsBindingObserver {
                 }
               }),
           AnimatedSize(
-            curve: Curves.easeInOut,
-            duration: const Duration(milliseconds: 300),
+            curve: AppCurves.scrollHide,
+            duration: AppDurations.scrollHide,
             child: Container(
               width: double.infinity,
               // height: _keyBoardKey.currentState?.selected == true

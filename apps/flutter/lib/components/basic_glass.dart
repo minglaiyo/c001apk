@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../constants/liquid_glass_level.dart';
+import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 /// Public backend: ordinary translucent/frosted surfaces and navigation.
 /// The official source assembly supplies the same API with its own renderer.
@@ -189,7 +190,7 @@ class LiquidGlassPanel extends StatelessWidget {
       required this.child,
       required this.enabled,
       required this.level,
-      this.borderRadius = const BorderRadius.all(Radius.circular(28))});
+      this.borderRadius = const BorderRadius.all(AppRadius.glass)});
   final Widget child;
   final bool enabled;
   final LiquidGlassLevel level;
@@ -408,7 +409,7 @@ class _BasicNavigationState extends State<LiquidNavigationBar> {
                                         child: GlassSurface.navigationBase(
                                             shader: null,
                                             borderRadius: _vertical
-                                                ? BorderRadius.circular(28)
+                                                ? AppRadius.glassAll
                                                 : null,
                                             enabled: widget.refract,
                                             extent: _vertical

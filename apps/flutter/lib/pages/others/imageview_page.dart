@@ -11,6 +11,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
 import '../../constants/app_motion.dart';
+import '../../components/status_views.dart';
 import '../../utils/download_util.dart';
 import '../../utils/utils.dart';
 
@@ -90,7 +91,7 @@ class _ImageViewPageState extends State<ImageViewPage> {
     final next = (current + delta).clamp(0, _imgList.length - 1);
     if (next == current) return;
     unawaited(_pageController.animateToPage(next,
-        duration: AppDurations.imageViewer, curve: Curves.ease));
+        duration: AppDurations.imageViewer, curve: AppCurves.ease));
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
@@ -220,7 +221,7 @@ class _ImageViewPageState extends State<ImageViewPage> {
             ].join('/')),
           ),
           body: _imgList.isEmpty
-              ? const Center(child: Text('暂无图片'))
+              ? const EmptyStatusView(text: '暂无图片')
               : Stack(
                   alignment: Alignment.center,
                   children: [

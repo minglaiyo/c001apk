@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../components/cards/search_history_card.dart';
+import '../../components/confirm_dialog.dart';
 import '../../pages/search/search_page_controller.dart';
 import '../../pages/search/search_suggestion.dart';
 import '../../utils/extensions.dart';
@@ -234,24 +235,15 @@ class _SearchPageState extends State<SearchPage> {
                     ),
                     IconButton(
                       tooltip: '清除全部',
-                      onPressed: () => showDialog(
+                      onPressed: () async {
+                        final confirmed = await showConfirmDialog(
                           context: context,
-                          builder: (context) => AlertDialog(
-                                title: const Text('确定清除全部搜索历史？'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Get.back(),
-                                    child: const Text('取消'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Get.back();
-                                      _searchPageController.clearAll();
-                                    },
-                                    child: const Text('确定'),
-                                  )
-                                ],
-                              )),
+                          title: '确定清除全部搜索历史？',
+                          confirmLabel: '确定',
+                          cancelLabel: '取消',
+                        );
+                        if (confirmed) _searchPageController.clearAll();
+                      },
                       icon: const Icon(Icons.clear_all),
                     )
                   ],

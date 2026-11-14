@@ -35,6 +35,7 @@ import 'device_identity_page.dart';
 import 'settings_search_index.dart';
 import 'settings_search_page.dart';
 import 'content_filter_page.dart';
+import 'package:c001apk_flutter/constants/app_motion.dart';
 
 enum ImageQuality {
   AUTO,
@@ -214,7 +215,7 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
       if (target != null && target.mounted) {
         await Scrollable.ensureVisible(
           target,
-          duration: const Duration(milliseconds: 300),
+          duration: AppDurations.scrollHide,
           alignment: 0.15,
         );
         return;
@@ -222,8 +223,8 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
       if (!_scrollController.hasClients) return;
       await _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
+        duration: AppDurations.control,
+        curve: AppCurves.easeOut,
       );
       await Future<void>.delayed(const Duration(milliseconds: 50));
     }
