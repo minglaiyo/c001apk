@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -25,6 +26,7 @@ import '../../components/settings/switch_item.dart';
 import '../../constants/constants.dart';
 import '../../pages/blacklist/black_list_page.dart' show BlackListType;
 import '../../utils/cache_util.dart';
+import '../../utils/http_log.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/global_data.dart';
 import '../../logic/local_follow/local_follow_store.dart';
@@ -444,8 +446,8 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
                 ),
               ),
             ]),
-            const ExpressiveListSection(children: [
-              SettingsItemLocator(
+            ExpressiveListSection(children: [
+              const SettingsItemLocator(
                 itemId: 'recordHistory',
                 child: SwitchItem(
                   icon: Icons.history,
@@ -455,7 +457,7 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
                   defaultValue: true,
                 ),
               ),
-              SettingsItemLocator(
+              const SettingsItemLocator(
                 itemId: 'openInBrowser',
                 child: SwitchItem(
                   icon: Icons.travel_explore,
@@ -465,7 +467,7 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
                   defaultValue: false,
                 ),
               ),
-              SettingsItemLocator(
+              const SettingsItemLocator(
                 itemId: 'clipboardLink',
                 child: SwitchItem(
                   icon: Icons.content_paste,
@@ -475,6 +477,30 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
                   defaultValue: true,
                 ),
               ),
+              const SettingsItemLocator(
+                itemId: 'recordHttpLog',
+                child: SwitchItem(
+                  icon: Icons.bug_report_outlined,
+                  title: '记录 HTTP 请求日志',
+                  subtitle: '排查接口问题用；敏感字段脱敏后保存在本机，仅保留 7 天',
+                  boxKey: SettingsBoxKey.recordHttpLog,
+                  defaultValue: false,
+                ),
+              ),
+              if (GStorage.recordHttpLog)
+                SettingsItemLocator(
+                  itemId: 'clearHttpLog',
+                  child: ListTile(
+                    leading: const Icon(Icons.delete_sweep_outlined),
+                    title: const Text('清空 HTTP 请求日志'),
+                    subtitle: const Text('删除本机已记录的请求日志'),
+                    onTap: () async {
+                      final removed = await HttpLog.clear();
+                      SmartDialog.showToast(
+                          removed == 0 ? '没有可清空的日志' : '已清空 $removed 个日志文件');
+                    },
+                  ),
+                ),
             ]),
           ],
         SettingsSection.storage => [

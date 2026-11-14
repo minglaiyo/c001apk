@@ -54,7 +54,7 @@ void main() {
   });
 
   testWidgets('一行签名不显示展开按钮', (tester) async {
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
             body: ExpandableBio(text: '简短签名', padding: EdgeInsets.zero))));
     expect(find.text('展开'), findsNothing);

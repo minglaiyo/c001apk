@@ -473,6 +473,15 @@ class GStorage {
     return settings.get(SettingsBoxKey.recordHistory, defaultValue: true);
   }
 
+  /// 是否记录 HTTP 请求日志（排查用，默认关闭）。
+  static bool get recordHttpLog {
+    return settings.get(SettingsBoxKey.recordHttpLog, defaultValue: false);
+  }
+
+  static void setRecordHttpLog(bool value) {
+    settings.put(SettingsBoxKey.recordHttpLog, value);
+  }
+
   static void setRecordHistory(bool value) {
     settings.put(SettingsBoxKey.recordHistory, value);
   }
@@ -689,6 +698,7 @@ class SettingsBoxKey {
       openInBrowser = 'openInBrowser',
       showSquare = 'showSquare',
       recordHistory = 'recordHistory',
+      recordHttpLog = 'recordHttpLog',
       showEmoji = 'showEmoji',
       checkUpdate = 'checkUpdate',
       checkCount = 'checkCount',

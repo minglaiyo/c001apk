@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 import '../../constants/constants.dart';
 import '../../utils/global_data.dart';
+import '../../utils/http_log.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/token_util.dart';
 import 'api_failure.dart';
@@ -162,6 +165,10 @@ class ApiInterceptor extends Interceptor {
             '${cookie.isEmpty ? '' : '$cookie; '}validate=$validation';
       }
     }
+    // 请求日志计时起点（开关关闭时 HttpLog.record 内部零开销）。
+    if (GStorage.recordHttpLog) {
+      options.extra['httpLogStart'] = DateTime.now();
+    }
   }
 
   @override
@@ -181,6 +188,11 @@ class ApiInterceptor extends Interceptor {
         // into a transport failure that invites an accidental duplicate.
       }
     }
+    _recordHttpLog(
+      response.requestOptions,
+      status: response.statusCode,
+      respBody: response.data?.toString(),
+    );
     handler.next(response);
   }
 
@@ -195,7 +207,34 @@ class ApiInterceptor extends Interceptor {
         displayType: SmartToastType.onlyRefresh,
       );
     }
+    _recordHttpLog(
+      err.requestOptions,
+      status: err.response?.statusCode,
+      respBody: err.response?.data?.toString(),
+      error: '${err.type.name}: ${err.message ?? err.error ?? ''}',
+    );
     super.onError(err, handler);
+  }
+
+  /// 写一条请求日志（开关关闭或未开始计时时直接返回）。
+  void _recordHttpLog(
+    RequestOptions options, {
+    int? status,
+    String? respBody,
+    String? error,
+  }) {
+    final start = options.extra['httpLogStart'];
+    if (start is! DateTime) return;
+    final body = options.data;
+    unawaited(HttpLog.record(
+      method: options.method,
+      url: options.uri.toString(),
+      status: status,
+      elapsed: DateTime.now().difference(start),
+      reqBody: body is FormData ? body.fields.toString() : body?.toString(),
+      respBody: respBody,
+      error: error,
+    ));
   }
 
   static Future<String> dioError(DioException error) async {
