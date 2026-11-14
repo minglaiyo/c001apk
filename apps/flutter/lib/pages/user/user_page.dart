@@ -5,12 +5,14 @@ import '../../components/expressive_loading_indicator.dart';
 
 import 'dart:math';
 
+import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../../components/cards/user_info_card.dart';
 import '../../components/content_filter_gate.dart';
+import '../../components/sticky_sliver_to_box_adapter.dart';
 import '../../logic/content_filter/content_filter_rule.dart';
 import '../../components/footer.dart';
 import '../../components/status_views.dart';
@@ -19,6 +21,7 @@ import '../../components/adaptive_card_list.dart';
 import '../../logic/model/feed/datum.dart';
 import '../../logic/state/loading_state.dart';
 import '../../pages/user/user_controller.dart';
+import '../../pages/user/user_tabs.dart';
 import '../../utils/device_util.dart';
 import '../../utils/extensions.dart';
 import '../../utils/storage_util.dart';
@@ -57,7 +60,8 @@ class UserPage extends StatefulWidget {
   State<UserPage> createState() => _UserPageState();
 }
 
-class _UserPageState extends State<UserPage> {
+class _UserPageState extends State<UserPage>
+    with TickerProviderStateMixin {
   final String _uid = Get.parameters['uid'].orEmpty;
   late final ScrollController _scrollController =
       _userController.scrollController ??= ScrollController();
@@ -67,9 +71,12 @@ class _UserPageState extends State<UserPage> {
     UserController(uid: _uid),
     tag: _uid + _random,
   );
+  late final TabController _tabController =
+      TabController(length: UserTabType.values.length, vsync: this);
 
   @override
   void dispose() {
+    _tabController.dispose();
     _userController.scrollController?.dispose();
     Get.delete<UserController>(
       tag: _uid + _random,
@@ -111,6 +118,16 @@ class _UserPageState extends State<UserPage> {
         );
     }
     return const ExpressiveLoadingIndicator();
+  }
+
+  /// 「动态」标签：沿用本页 UserController 的列表，包成独立滚动视图。
+  Widget _userFeedView(BuildContext context) {
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      slivers: [_buildUserFeed(_userController.loadingState.value)],
+    );
   }
 
   Widget _buildUserFeed(LoadingState loadingState) {
@@ -205,7 +222,15 @@ class _UserPageState extends State<UserPage> {
               notificationPredicate: (notification) {
                 final double offset = notification.metrics.pixels;
                 if (offset >= 0) {
-                  _userController.scrollRatio.value = min(1.0, offset / 105);
+                  final ratio = min(1.0, offset / 105);
+                  // 顶栏透明度不能在布局期同步触发重建（NestedScrollView +
+                  // TabBarView 下会「Build scheduled during frame」），
+                  // 改到帧后提交。
+                  if (_userController.scrollRatio.value != ratio) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) _userController.scrollRatio.value = ratio;
+                    });
+                  }
                 }
                 return notification.depth == 0;
               },
@@ -219,19 +244,61 @@ class _UserPageState extends State<UserPage> {
                 }
               },
               child: _userController.userState.value is Success
-                  ? CustomScrollView(
+                  ? ExtendedNestedScrollView(
                       key: PageStorageKey('user-reading:$_uid'),
                       controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
-                      ),
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child:
-                              _buildUserInfo(_userController.userState.value),
-                        ),
-                        _buildUserFeed(_userController.loadingState.value),
-                      ],
+                      onlyOneScrollInBody: true,
+                      headerSliverBuilder: (context, innerBoxIsScrolled) {
+                        return [
+                          SliverToBoxAdapter(
+                            child: _buildUserInfo(
+                                _userController.userState.value),
+                          ),
+                          SliverOverlapAbsorber(
+                            handle: ExtendedNestedScrollView
+                                .sliverOverlapAbsorberHandleFor(context),
+                            sliver: StickySliverToBoxAdapter(
+                              child: Container(
+                                color: Theme.of(context).colorScheme.surface,
+                                child: TabBar(
+                                  controller: _tabController,
+                                  isScrollable: true,
+                                  tabAlignment: TabAlignment.start,
+                                  tabs: [
+                                    for (final type in UserTabType.values)
+                                      Tab(text: type.label),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ];
+                      },
+                      body: LayoutBuilder(builder: (context, _) {
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            top: ExtendedNestedScrollView
+                                        .sliverOverlapAbsorberHandleFor(
+                                            context)
+                                    .layoutExtent ??
+                                0,
+                          ),
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              // 「动态」沿用本页已加载的 UserController 列表，
+                              // 其余四个标签各自分页。
+                              _userFeedView(context),
+                              for (final type in UserTabType.values.skip(1))
+                                UserTabContent(
+                                  uid: _uid,
+                                  type: type,
+                                  random: _random,
+                                ),
+                            ],
+                          ),
+                        );
+                      }),
                     )
                   : Center(
                       child: _buildUserInfo(_userController.userState.value),

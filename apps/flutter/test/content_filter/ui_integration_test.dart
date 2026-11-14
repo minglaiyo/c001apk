@@ -157,20 +157,26 @@ void main() {
         getPages: [GetPage(name: '/u/:uid', page: () => const UserPage())]));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    final scroll = find.byType(CustomScrollView);
+    // 个人主页改为「用户信息 + 五标签」的 NestedScrollView 结构：
+    // 偏移量从内部滚动位置读取，而不是页面级 controller。
+    final scroll = find.byType(CustomScrollView).last;
+    double offset() =>
+        tester.state<ScrollableState>(find.byType(Scrollable).last).position
+            .pixels;
     await tester.drag(scroll, const Offset(0, -360));
     await tester.pumpAndSettle();
-    final before = tester.widget<CustomScrollView>(scroll).controller!.offset;
-    expect(before, greaterThan(200));
+    final before = offset();
+    // 用户信息已移出滚动区（进 NestedScrollView 头部），列表本身可滚动量
+    // 变小；这里只要求产生了实际滚动，随后的偏移还原断言才是重点。
+    expect(before, greaterThan(50));
     await tester.runAsync(() => service.setRuleDisabled(authorRule, false));
     await tester.pumpAndSettle();
     expect(find.text('内容已过滤'), findsOneWidget);
-    expect(scroll, findsNothing);
+    expect(find.byType(CustomScrollView), findsNothing);
     await tester.runAsync(() => service.setRuleDisabled(authorRule, true));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(tester.widget<CustomScrollView>(scroll).controller!.offset,
-        closeTo(before, 1));
+    expect(offset(), closeTo(before, 1));
     await tester.pumpWidget(const SizedBox.shrink());
   });
   tearDownAll(() async {
