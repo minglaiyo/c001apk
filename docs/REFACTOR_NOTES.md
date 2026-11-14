@@ -146,3 +146,48 @@ design token、openLink 路由单源、CommonController mixin 分层、ScrollHid
 - `tool/assemble_private_extensions.dart` 白名单已裁掉 windows/runner 段；
   若私有实现仓库仍下发 windows 文件，assemble 会拒绝（当前 fork 未启用私有装配）。
 - 新签名与上游历史签名互不覆盖：装有上游签名包的设备需先卸载再装本 fork 包。
+
+---
+
+# 2026-11-15：上游同步 + 三仓库功能移植（v1.7.0）
+
+## 上游同步（TG-Twilight/c001apk 1.5.1 / 1.5.2）
+
+- **1.5.2 阅读修复**：`reading_presentation.dart` 抽取、详情页宽屏阅读模式
+  （窄屏才显示悬浮回复键、标题显示「帖子/文章」、宽屏加「查看作者」）、
+  玻璃导航支持 `direction` 竖排（与功能线的 glow/滑动 pill 合成，滑动 pill 仅横向生效）、
+  `html_text` / `markdown_body` / `feed_article_body` 修复。
+- **设备标识加固**：`szlm_identity_service` 与 `szlm_duid_client` 重写（含配套单测）。
+- 1.5.1 的可编辑主页标签与静默过滤与本 fork 功能线实现语义重复，冲突取功能线演进版本。
+
+## 移植自 Costben/c001apk（Compose 端的解析口径）
+
+- **动态价格行情行**（`logic/model/feed/feed_price.dart` + `components/cards/feed_price_row.dart`）：
+  到手价（`tsubid=6` / `tsubdata.final_price` + `config_name`）与二手交易价
+  （`ershou_info.product_price`，配置名 `configTitle` 或 `ram+rom` 兜底）；
+  缺失/为零/非法金额一律隐藏而非读成「免费」；闲鱼外链单独识别。
+  `Datum` 增加 `tsubid/tsubdata/ershou_info/extraData/publishStatus` 字段。
+- **仅自己可见徽章**：`publishStatus == 2` 时在时间旁展示锁形徽标。
+
+## 移植自 kongwufang/c001apk_next
+
+- **发产品点评**（`pages/feed/reply/rating_panel.dart`）：总体 + 子项 5 星、优缺点、
+  已购买；量纲口径照抄官方（`rating_score_1` 原值 1~5，`v4_score_item_n` 星数×2，
+  `publish_status` 固定 0），复用 `ReplyPublisher` 的验证码与信封校验链路；
+  产品页「发表点评」入口与参数/对比同行。
+- **个人主页五标签**（`pages/user/user_tabs.dart`）：动态/点评/图文/问答/酷图，
+  `uid` 显式携带；点评与酷图走 `/v6/page/dataList?url=`；页面改为
+  NestedScrollView（用户信息进头部、TabBar 固定），「动态」沿用已加载列表。
+- **正文折叠与签名展开**（`components/clamped_content.dart`）：列表卡正文 5 行 +
+  「查看更多」（用 TextPainter 量纯文本行数后裁切，因正文是 widget 树无 maxLines）；
+  个人主页签名折叠 2 行且只有真被截断才出现「展开」（此前 bio 未渲染）。
+- **HTTP 请求日志**（`utils/http_log.dart`）：默认关闭的排查开关，按天分文件、
+  2MB 轮转、保留 7 天；敏感字段脱敏保留长度；设置 → 浏览与隐私 可开关与清空。
+
+## 未移植（需新依赖或原生能力，记入后续）
+
+- 后台消息轮询与系统通知（需 flutter_local_notifications + workmanager）
+- 实况照片播放与导出（需 video_player）
+- 视频发布（腾讯云 VOD）、动态分享长图（需 qr 生成）
+- 扫码登录（依赖第三方自建服务端）、编辑资料与裁剪页（下一步）
+- coolapk-desktop 的 `docs/coolapk-api.md` 实测接口手册（可作为后续协议扩充参考）
