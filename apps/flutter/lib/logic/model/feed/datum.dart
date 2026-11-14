@@ -25,6 +25,13 @@ class Datum {
   dynamic lastupdate;
   ExtraDataArr? extraDataArr;
   // String? extraData;
+  // 价格行情与二手交易的原始载荷（tsubid/tsubdata/ershou_info），见 feed_price.dart。
+  dynamic tsubid;
+  dynamic tsubdata;
+  @JsonKey(name: 'ershou_info')
+  dynamic ershouInfo;
+  dynamic extraData;
+  dynamic publishStatus;
   dynamic id;
   dynamic type;
   // int? fid;
@@ -305,6 +312,11 @@ class Datum {
     this.lastupdate,
     this.extraDataArr,
     // this.extraData,
+    this.tsubid,
+    this.tsubdata,
+    this.ershouInfo,
+    this.extraData,
+    this.publishStatus,
     this.id,
     this.type,
     // this.fid,

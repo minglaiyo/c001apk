@@ -20,6 +20,11 @@ Datum _$DatumFromJson(Map<String, dynamic> json) => Datum(
       extraDataArr: json['extraDataArr'] == null
           ? null
           : ExtraDataArr.fromJson(json['extraDataArr'] as Map<String, dynamic>),
+      tsubid: json['tsubid'],
+      tsubdata: json['tsubdata'],
+      ershouInfo: json['ershou_info'],
+      extraData: json['extraData'],
+      publishStatus: json['publishStatus'],
       id: json['id'],
       type: json['type'],
       uid: json['uid'],
@@ -131,12 +136,7 @@ Datum _$DatumFromJson(Map<String, dynamic> json) => Datum(
       isOpenTitle: json['is_open_title'] as String?,
       itemNum: (json['item_num'] as num?)?.toInt(),
       isFollow: json['isFollow'],
-      // 手工同步：本地无 build_runner，vote 只保留原始 Map，内层不假设。
-      vote: json['vote'] is Map<String, dynamic>
-          ? json['vote'] as Map<String, dynamic>
-          : json['vote'] is Map
-              ? Map<String, dynamic>.from(json['vote'] as Map)
-              : null,
+      vote: json['vote'] as Map<String, dynamic>?,
     );
 
 Map<String, dynamic> _$DatumToJson(Datum instance) => <String, dynamic>{
@@ -149,6 +149,11 @@ Map<String, dynamic> _$DatumToJson(Datum instance) => <String, dynamic>{
       'pic': instance.pic,
       'lastupdate': instance.lastupdate,
       'extraDataArr': instance.extraDataArr,
+      'tsubid': instance.tsubid,
+      'tsubdata': instance.tsubdata,
+      'ershou_info': instance.ershouInfo,
+      'extraData': instance.extraData,
+      'publishStatus': instance.publishStatus,
       'id': instance.id,
       'type': instance.type,
       'uid': instance.uid,

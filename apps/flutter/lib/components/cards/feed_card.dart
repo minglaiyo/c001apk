@@ -3,6 +3,7 @@ import '../../utils/share_util.dart';
 import '../../utils/html_text_util.dart';
 import '../../constants/app_sizes.dart';
 import '../more_panel.dart';
+import 'feed_price_row.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -23,6 +24,7 @@ import '../content_filter_text.dart';
 import '../../logic/content_filter/content_filter_projection.dart';
 import '../../logic/content_filter/content_filter_rule.dart';
 import '../../logic/model/feed/datum.dart';
+import '../../logic/model/feed/feed_price.dart';
 import '../../logic/media/feed_media_context.dart';
 import '../../utils/date_util.dart';
 import '../../utils/extensions.dart';
@@ -106,6 +108,7 @@ class FeedCard extends StatelessWidget {
                 _summary(context)
               else ...[
                 ..._message(context),
+                _priceRow(context),
                 if (hasVoteData(data)) VoteCard(data: data),
                 if (!data.picArr.isNullOrEmpty) _image(),
                 if (!data.forwardSourceType.isNullOrEmpty)
@@ -129,6 +132,22 @@ class FeedCard extends StatelessWidget {
     );
   }
 
+  /// 价格行情行：到手价/交易价与二手 listing 外链。
+  /// 数据缺失时整体不绘制（见 FeedPriceRow）。
+  Widget _priceRow(BuildContext context) {
+    final price = data.priceDisplayOf;
+    final link = data.tradeLinkOf;
+    if (price == null && link == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: FeedPriceRow(
+        price: price,
+        link: link,
+        onOpenLink: (url) => openLink(url),
+      ),
+    );
+  }
+
   Widget _summary(BuildContext context) {
     final pictures = data.picArr ?? <String>[];
     final media = mediaGalleryArguments(pictures,
@@ -137,6 +156,7 @@ class FeedCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _priceRow(context),
         if (!data.messageTitle.isNullOrEmpty)
           Text(parseHtmlString(data.messageTitle!),
               maxLines: 2,
@@ -667,18 +687,26 @@ Widget bottomInfo(
       children: [
         Expanded(
           flex: 1,
-          child: Text(
-            isFeedContent
-                ? !data.ipLocation.isNullOrEmpty
-                    ? '发布于 ${data.ipLocation}'
-                    : ''
-                : DateUtil.fromToday(data.dateline),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-          ),
+          child: Row(children: [
+            if (data.isSelfOnly) ...[
+              const SelfOnlyBadge(),
+              const SizedBox(width: 6),
+            ],
+            Flexible(
+              child: Text(
+                isFeedContent
+                    ? !data.ipLocation.isNullOrEmpty
+                        ? '发布于 ${data.ipLocation}'
+                        : ''
+                    : DateUtil.fromToday(data.dateline),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+              ),
+            ),
+          ]),
         ),
         if (data.replynum != null)
           LikeButton(
