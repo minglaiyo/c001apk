@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:get/get.dart' hide Response, FormData;
+import 'package:get/get.dart' hide Response, FormData, MultipartFile;
 
 import '../../constants/constants.dart';
 import '../../logic/model/feed/data_list_model.dart';
@@ -249,6 +249,59 @@ class NetworkRepo {
     return Request().get(Api.getProfile,
         queryParameters: {'uid': uid},
         options: Options(extra: {'skipCaptcha': true}));
+  }
+
+  // ===== 编辑资料（接口口径经 c001apk_next 2026-09 抓包 + 实测核对）=====
+  // 成功响应是 {"data":...} 且不带 message；服务端失败时一定带 message。
+
+  /// 性别 / 生日 / 地区 / 签名。key 为空串时 value 是 JSON 串（生日、地区）。
+  static Future<Response> postChangeProfile({
+    required String key,
+    required String value,
+  }) {
+    return Request().post(
+      Api.getDataFromUrl('/v6/account/changeProfile'),
+      data: {'key': key, 'value': value},
+      options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+          extra: {'silentError': true}),
+    );
+  }
+
+  /// 生日 / 地区回到「保密」：key=birth 或 key=location。
+  static Future<Response> postResetProfile({required String key}) {
+    return Request().post(
+      Api.getDataFromUrl('/v6/account/resetProfile'),
+      data: {'key': key},
+      options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+          extra: {'silentError': true}),
+    );
+  }
+
+  /// 换头像：multipart，字段名固定 imgFile，filename 用图片 md5（无扩展名），
+  /// 返回 {"data":"<新头像 url>"}。
+  static Future<Response> postChangeAvatar({
+    required MultipartFile file,
+  }) {
+    return Request().post(
+      Api.getDataFromUrl('/v6/account/changeAvatar'),
+      data: FormData.fromMap({'imgFile': file}),
+      options: Options(
+          contentType: Headers.multipartFormDataContentType,
+          extra: {'silentError': true}),
+    );
+  }
+
+  /// 换主页背景图：OSS 上传完成后把完整 CDN 地址回传，返回 {"data":"上传成功"}。
+  static Future<Response> postChangeAvatarCover({required String url}) {
+    return Request().post(
+      Api.getDataFromUrl('/v6/account/changeAvatarCover'),
+      data: {'url': url},
+      options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+          extra: {'silentError': true}),
+    );
   }
 
   static Future<Response> onLogin(

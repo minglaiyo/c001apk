@@ -8,14 +8,13 @@ part of 'entity.dart';
 
 Entity _$EntityFromJson(Map<String, dynamic> json) => Entity(
       entityType: json['entityType'] as String?,
-      title: json['title']?.toString(),
+      title: json['title'] as String?,
       url: json['url'] as String?,
       pic: json['pic'] as String?,
       logo: json['logo'] as String?,
       userAvatar: json['userAvatar'] as String?,
       username: json['username'] as String?,
-      // 手工同步：本地无 build_runner，热度字段多路兜底。
-      hotNum: json['hot_num'] ?? json['commentnum'] ?? json['comment_num'],
+      hotNum: json['hotNum'],
     );
 
 Map<String, dynamic> _$EntityToJson(Entity instance) => <String, dynamic>{
@@ -26,5 +25,5 @@ Map<String, dynamic> _$EntityToJson(Entity instance) => <String, dynamic>{
       'logo': instance.logo,
       'userAvatar': instance.userAvatar,
       'username': instance.username,
-      'hot_num': instance.hotNum,
+      'hotNum': instance.hotNum,
     };

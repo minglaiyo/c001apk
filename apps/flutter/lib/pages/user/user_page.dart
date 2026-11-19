@@ -25,6 +25,7 @@ import '../../pages/user/user_controller.dart';
 import '../../pages/user/user_tabs.dart';
 import '../../utils/device_util.dart';
 import '../../utils/extensions.dart';
+import '../../utils/global_data.dart';
 import '../../utils/storage_util.dart';
 import '../../utils/utils.dart';
 import 'package:c001apk_flutter/constants/app_sizes.dart';
@@ -341,6 +342,14 @@ class _UserPageState extends State<UserPage>
           
           actions: _userController.userState.value is Success
               ? [
+                  // 仅登录且查看自己主页时提供编辑资料入口。
+                  if (GlobalData().isLogin &&
+                      _userController.uid == GlobalData().uid)
+                    IconButton(
+                      onPressed: () => Get.toNamed('/editProfile'),
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: '编辑资料',
+                    ),
                   if (!_userController.isBlocked)
                     IconButton(
                       onPressed: () => Get.toNamed('/search', parameters: {

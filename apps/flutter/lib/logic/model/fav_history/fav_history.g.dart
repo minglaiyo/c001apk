@@ -1,7 +1,4 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
-// NOTE: hand-updated for HiveField(8) (feedTypeName) because build_runner
-// is unavailable in this environment. Field layout matches fav_history.dart;
-// records written before this change have 8 fields, so fields[8] reads null.
 
 part of 'fav_history.dart';
 
@@ -27,7 +24,7 @@ class FavHistoryItemAdapter extends TypeAdapter<FavHistoryItem> {
       message: fields[4] as String?,
       device: fields[5] as String?,
       dateline: fields[6] as String?,
-      time: (fields[7] as num?)?.toInt(),
+      time: fields[7] as int?,
       feedTypeName: fields[8] as String?,
     );
   }

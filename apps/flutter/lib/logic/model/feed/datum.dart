@@ -239,6 +239,18 @@ class Datum {
   String? bio;
   dynamic feed;
   dynamic gender;
+  // 个人主页资料字段：生日与地区（编辑资料页回显用），以及官方禁言标记。
+  // 禁言判据来自 c001apk_next 对官方反编译与实测的核对：仅 disallowPost
+  // 非空且 == 1 时展示「该用户禁言中」，其余值一律不显示。
+  dynamic disallowPost;
+  dynamic birthyear;
+  dynamic birthmonth;
+  dynamic birthday;
+  String? province;
+  String? city;
+
+  /// 官方禁言标记：官方 UserProfile 仅在 disallowPost 非空且 == 1 时展示。
+  bool get isSilenced => '${disallowPost ?? 0}' == '1';
   String? logo;
   String? apkversionname;
   dynamic apkversioncode;
@@ -457,6 +469,12 @@ class Datum {
     this.bio,
     this.feed,
     this.gender,
+    this.disallowPost,
+    this.birthyear,
+    this.birthmonth,
+    this.birthday,
+    this.province,
+    this.city,
     this.logo,
     this.apkversionname,
     this.apkversioncode,

@@ -191,3 +191,40 @@ design token、openLink 路由单源、CommonController mixin 分层、ScrollHid
 - 视频发布（腾讯云 VOD）、动态分享长图（需 qr 生成）
 - 扫码登录（依赖第三方自建服务端）、编辑资料与裁剪页（下一步）
 - coolapk-desktop 的 `docs/coolapk-api.md` 实测接口手册（可作为后续协议扩充参考）
+
+---
+
+# 2026-11-20：上游同步（11-17 置顶评论/酷币折叠）+ 编辑资料与禁言标识移植
+
+## 上游同步（TG-Twilight/c001apk 2026-11-17/18）
+
+- 置顶评论（楼主长按置顶/取消置顶，换置顶需确认）与纯酷币评论自动折叠
+  （设置 → 阅读与评论 开关）；冲突解决沿用「上游分组为骨架 + 本仓库特性重套」：
+  SettingsItemLocator 重新包裹全部条目，settings_search_index 同步新分组并
+  补充「自动折叠酷币评论」「HTTP 日志」可搜索项；置顶动作并入统一 MorePanel。
+- README 合并保留双方内容；CI 取本仓库 fork 化版本；版本 1.7.1+20261120。
+
+## 布局对齐设计规范
+
+- 酷币折叠条重做为内嵌圆角小卡（AppRadius.card / AppSpacing），箭头随展开
+  状态旋转（AppDurations.control / AppCurves.ease）。
+- 详情页置顶回复反色为圆角小卡突出；楼中楼行配色语义保持不变。
+
+## 移植自 kongwufang/c001apk_next（编辑资料 + 禁言标识）
+
+- **编辑资料页**（`pages/user/edit_profile_page.dart`，路由 `/editProfile`，
+  仅登录查看自己主页时在主页 AppBar 显示入口）：
+  性别 / 生日 / 地区 / 签名走 `POST /v6/account/changeProfile`（key+value，
+  生日与地区 value 为 JSON 串且 key 为空），成功返回完整资料直接回写回显；
+  生日 / 地区保密走 `POST /v6/account/resetProfile`（key=birth / location）；
+  头像走 `POST /v6/account/changeAvatar`（multipart imgFile，filename=图片
+  md5 无扩展名）；背景图复用文章编辑器的 OSS 链路（uploadBucket=avatar &
+  uploadDir=cover）后走 `POST /v6/account/changeAvatarCover` 回传完整 CDN
+  地址。接口口径全部来自 c001apk_next 2026-09-24 抓包 + 实测核对。交互与
+  官方一致：每项「点一下存一下」。
+- **个人主页禁言标识**（`user_info_card.dart` + `Datum.isSilenced`）：
+  官方 UserProfile 仅在 `disallowPost` 非空且 == 1 时展示，红色 80% 背景白字
+  警告徽章，其余值（0 / 缺失 / null）一律不显示；不按群组数字或拉黑关系猜测。
+- 官方头像/背景图裁剪页依赖原生裁剪组件，仍记入未移植项（直传原图）。
+- 新增测试 `test/network/edit_profile_test.dart` 8 用例：禁言判据解析、
+  生日地区字段回显、4 个端点的请求形状（form / multipart / CDN 地址）。

@@ -35,6 +35,7 @@ import '../pages/settings/params_page.dart';
 import '../pages/product/product_page.dart';
 import '../pages/topic/topic_page.dart';
 import '../pages/user/user_page.dart';
+import '../pages/user/edit_profile_page.dart';
 import '../pages/webview/webview_page.dart';
 
 class AppPages {
@@ -122,6 +123,10 @@ class AppPages {
     _getPage(
       name: '/u/:uid',
       page: () => const UserPage(),
+    ),
+    _getPage(
+      name: '/editProfile',
+      page: () => const EditProfilePage(),
     ),
     _getPage(
       name: '/apk/:packageName',

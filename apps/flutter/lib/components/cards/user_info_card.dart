@@ -231,6 +231,40 @@ class UserInfoCard extends StatelessWidget {
                   ),
                 ),
               ),
+              // 官方禁言标记：判据与样式参考官方实现，逆向核对记录见
+              // c001apk_next 2026-11-15 文档。
+              if (data.isSilenced) ...[
+                const SizedBox(width: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                  decoration: const BoxDecoration(
+                    color: Color(0xCCF44336),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          size: 12, color: Colors.white),
+                      SizedBox(width: 3),
+                      Text(
+                        '该用户禁言中',
+                        style: TextStyle(
+                          height: 1,
+                          fontSize: 12,
+                          color: Colors.white,
+                        ),
+                        strutStyle: StrutStyle(
+                          height: 1,
+                          leading: 0,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
