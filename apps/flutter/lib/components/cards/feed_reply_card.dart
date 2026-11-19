@@ -35,6 +35,8 @@ class FeedReplyCard extends StatelessWidget {
     this.onReply,
     this.onDelete,
     this.onLike,
+    this.onToggleTop,
+    this.isPinned,
   });
 
   final Datum data;
@@ -45,6 +47,12 @@ class FeedReplyCard extends StatelessWidget {
   final Function(dynamic id, dynamic uname, dynamic fid)? onReply;
   final Function(dynamic id, dynamic fid)? onDelete;
   final Function(dynamic id, dynamic like)? onLike;
+
+  /// Feed author only: pins or unpins this top-level reply.
+  final Future<void> Function(Datum reply)? onToggleTop;
+
+  /// Whether the server currently pins this reply, independent of sort order.
+  final bool? isPinned;
 
   @override
   Widget build(BuildContext context) => ContentFilterGate(
@@ -92,6 +100,16 @@ class FeedReplyCard extends StatelessWidget {
                   onPressed: () => showMorePanel(
                         context: context,
                         actions: [
+                          if (!isReply2Reply && onToggleTop != null)
+                            MorePanelAction(
+                              icon: (isPinned ?? isTopReply)
+                                  ? Icons.vertical_align_bottom
+                                  : Icons.vertical_align_top,
+                              label: (isPinned ?? isTopReply)
+                                  ? '取消置顶'
+                                  : '置顶',
+                              onSelected: () => onToggleTop!(data),
+                            ),
                           MorePanelAction(
                             icon: Icons.block,
                             label: '屏蔽',

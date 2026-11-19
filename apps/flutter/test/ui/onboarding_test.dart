@@ -95,15 +95,37 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  // Saving mixes real Hive IO with frame-driven work. Alternate real waits
+  // and frames until the save's own notification instead of relying on a
+  // fixed delay, so slower CI runners do not race the assertions.
+  Future<void> tapAndAwaitSave(WidgetTester tester, Finder finder) async {
+    var saved = false;
+    void changed() => saved = true;
+
+    state.addListener(changed);
+    try {
+      await tester.runAsync(() async {
+        await tester.tap(finder);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      });
+      for (var i = 0; i < 100 && !saved; i++) {
+        await tester.pump();
+        if (saved) break;
+        await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 20)));
+      }
+      expect(saved, isTrue, reason: 'onboarding save did not complete');
+    } finally {
+      state.removeListener(changed);
+    }
+  }
+
   Future<void> tap(WidgetTester tester, Finder finder,
       {bool persist = false}) async {
     await tester.ensureVisible(finder);
     await tester.pumpAndSettle();
     if (persist) {
-      await tester.runAsync(() async {
-        await tester.tap(finder);
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-      });
+      await tapAndAwaitSave(tester, finder);
     } else {
       await tester.tap(finder);
     }
@@ -314,15 +336,8 @@ void main() {
         await next(tester);
         await next(tester);
         await next(tester);
-        await tester.runAsync(() async {
-          await tester.tap(find.byKey(const ValueKey('onboarding-next')));
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-        });
-        // The route only pops once the write resolves, so a save still in
-        // flight here leaves the exit transition unscheduled and the page
-        // never disposes. The frame that drops 正在保存… is the one that
-        // schedules the pop, so the page stays mounted for the check below.
-        await settled(tester, () => find.text('正在保存…').evaluate().isEmpty);
+        await tapAndAwaitSave(
+            tester, find.byKey(const ValueKey('onboarding-next')));
       } else {
         await tester.tap(find.text('取消'));
       }

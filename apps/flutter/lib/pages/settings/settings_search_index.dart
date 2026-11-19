@@ -74,66 +74,74 @@ const List<SettingsSearchEntry> settingsSearchEntries = [
   ),
   SettingsSearchEntry(
     title: '分栏阅读',
-    section: SettingsSection.appearance,
+    section: SettingsSection.reading,
     itemId: 'readingMode',
     keywords: ['双栏', '横屏', '单页'],
   ),
   SettingsSearchEntry(
     title: '字体大小',
-    section: SettingsSection.appearance,
+    section: SettingsSection.reading,
     itemId: 'fontSize',
     keywords: ['字号', '文字大小'],
   ),
-  // 关注与内容
+  SettingsSearchEntry(
+    title: '显示表情',
+    section: SettingsSection.reading,
+    itemId: 'showEmoji',
+    keywords: ['表情', '图片'],
+  ),
+  SettingsSearchEntry(
+    title: '自动折叠酷币评论',
+    section: SettingsSection.reading,
+    itemId: 'foldCoinReplies',
+    keywords: ['酷币', '评论', '折叠'],
+  ),
+  // 关注
   SettingsSearchEntry(
     title: '悄悄关注',
-    section: SettingsSection.content,
+    section: SettingsSection.follow,
     itemId: 'quietFollow',
     keywords: ['关注', '长按'],
   ),
   SettingsSearchEntry(
     title: '本地关注',
-    section: SettingsSection.content,
+    section: SettingsSection.follow,
     itemId: 'localFollow',
     keywords: ['游客', '关注', '名单'],
   ),
   SettingsSearchEntry(
     title: '管理关注名单',
-    section: SettingsSection.content,
+    section: SettingsSection.follow,
     itemId: 'manageLocalFollow',
     keywords: ['本地关注', '悄悄关注', '名单', '取消关注'],
   ),
-  SettingsSearchEntry(
-    title: '显示表情',
-    section: SettingsSection.content,
-    itemId: 'showEmoji',
-    keywords: ['表情', '图片'],
-  ),
-  // 浏览与隐私
+  // 图片与媒体
   SettingsSearchEntry(
     title: '自动加载实况图片',
-    section: SettingsSection.privacy,
+    section: SettingsSection.media,
     itemId: 'livePhotoAutoLoad',
     keywords: ['实况', '大图', '自动播放', '图片加载'],
   ),
+  // 内容屏蔽
   SettingsSearchEntry(
     title: '屏蔽傻逼内容',
-    section: SettingsSection.privacy,
+    section: SettingsSection.filter,
     itemId: 'contentFilter',
     keywords: ['内容过滤', '规则', '例外', '屏蔽'],
   ),
   SettingsSearchEntry(
     title: '用户黑名单',
-    section: SettingsSection.privacy,
+    section: SettingsSection.filter,
     itemId: 'userBlacklist',
     keywords: ['屏蔽用户', '黑名单', '隐藏动态'],
   ),
   SettingsSearchEntry(
     title: '话题黑名单',
-    section: SettingsSection.privacy,
+    section: SettingsSection.filter,
     itemId: 'topicBlacklist',
     keywords: ['关键词', '过滤话题'],
   ),
+  // 浏览与隐私
   SettingsSearchEntry(
     title: '记录浏览历史',
     section: SettingsSection.privacy,
@@ -151,6 +159,18 @@ const List<SettingsSearchEntry> settingsSearchEntries = [
     section: SettingsSection.privacy,
     itemId: 'clipboardLink',
     keywords: ['剪贴板', '复制链接', '酷安链接', '跳转'],
+  ),
+  SettingsSearchEntry(
+    title: '记录 HTTP 请求日志',
+    section: SettingsSection.privacy,
+    itemId: 'recordHttpLog',
+    keywords: ['HTTP', '请求', '日志', '排查'],
+  ),
+  SettingsSearchEntry(
+    title: '清空 HTTP 请求日志',
+    section: SettingsSection.privacy,
+    itemId: 'clearHttpLog',
+    keywords: ['HTTP', '日志', '清空', '删除'],
   ),
   // 存储与更新
   SettingsSearchEntry(
