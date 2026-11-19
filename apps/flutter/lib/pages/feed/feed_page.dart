@@ -748,23 +748,39 @@ class _FeedPageState extends State<FeedPage> {
 
   Widget _buildCoinFoldBar(int count, bool expanded) {
     final colors = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: () => _feedController.showCoinReplies.value = !expanded,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(children: [
-          Icon(expanded ? Icons.unfold_less : Icons.unfold_more,
-              size: 18, color: colors.outline),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              expanded ? '已展开 $count 条酷币评论' : '已折叠 $count 条酷币评论',
-              style: TextStyle(color: colors.outline),
-            ),
+    // 内嵌圆角小卡：与回复行（透明 + 分隔线）形成层次，圆角与卡片 token 一致；
+    // 箭头随展开状态旋转，给出明确的可点暗示。
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.page, 4, AppSpacing.page, 4),
+      child: Material(
+        color: colors.onInverseSurface,
+        borderRadius: const BorderRadius.all(AppRadius.card),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _feedController.showCoinReplies.value = !expanded,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(children: [
+              AnimatedRotation(
+                turns: expanded ? 0.5 : 0,
+                duration: AppDurations.control,
+                curve: AppCurves.ease,
+                child: Icon(Icons.expand_more, size: 18, color: colors.outline),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  expanded
+                      ? '已展开 $count 条酷币评论'
+                      : '已折叠 $count 条酷币评论',
+                  style: TextStyle(color: colors.outline),
+                ),
+              ),
+              Text(expanded ? '收起' : '展开',
+                  style: TextStyle(color: colors.primary)),
+            ]),
           ),
-          Text(expanded ? '收起' : '展开',
-              style: TextStyle(color: colors.primary)),
-        ]),
+        ),
       ),
     );
   }

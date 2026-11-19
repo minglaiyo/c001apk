@@ -67,12 +67,18 @@ class FeedReplyCard extends StatelessWidget {
 
   Widget _buildVisible(BuildContext context) {
     final isFeedReply = data.fetchType == 'feed_reply';
+    // 详情页回复列表行默认透明、靠分隔线分区；置顶回复反色为圆角小卡以示突出。
+    // 楼中楼行整体反色（其置顶行沿用透明）。非回复卡片上下文统一反色圆角。
+    final isPinnedTopReply = isFeedReply && !isReply2Reply && isTopReply;
+    final cardRadius =
+        !isFeedReply || isPinnedTopReply
+            ? const BorderRadius.all(AppRadius.card)
+            : null;
     return Material(
-      color: !isFeedReply || (isReply2Reply && !isTopReply)
+      color: !isFeedReply || isPinnedTopReply || (isReply2Reply && !isTopReply)
           ? Theme.of(context).colorScheme.onInverseSurface
           : Colors.transparent,
-      borderRadius:
-          !isFeedReply ? const BorderRadius.all(AppRadius.card) : null,
+      borderRadius: cardRadius,
       child: InkWell(
         onTap: () {
           if (isFeedReply && onReply != null) {
@@ -90,8 +96,7 @@ class FeedReplyCard extends StatelessWidget {
             'text': ContentFilterProjection.displayMessage(data)
           });
         },
-        borderRadius:
-            !isFeedReply ? const BorderRadius.all(AppRadius.card) : null,
+        borderRadius: cardRadius,
         child: Stack(
           children: [
             Align(
