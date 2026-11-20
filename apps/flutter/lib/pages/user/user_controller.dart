@@ -78,18 +78,27 @@ class UserController extends CommonController {
     this.userState.value = userState;
   }
 
+  /// 资料请求单独抽出，便于测试注入。
+  Future<LoadingState> fetchUserData() =>
+      NetworkRepo.getDataFromUrl(url: '/v6/user/space?uid=$uid');
+
   Future<void> onGetUserData() async {
-    LoadingState response =
-        await NetworkRepo.getDataFromUrl(url: '/v6/user/space?uid=$uid');
+    // 动态列表与资料请求并行：/u/:uid 传入的就是数字 uid，与资料回包一致，
+    // 无需等资料回包再发起列表请求，首屏少等一个来回。屏蔽判定读的是本机
+    // 名单，不依赖资料内容，可先行短路：已屏蔽用户直接不发列表请求。
+    // （此前 uid 会用资料回包重写一次；路由保证进来就是数字 uid，二者恒等，
+    // 不再中途改写以免列表分页与已发请求不一致。）
+    final locallyBlocked =
+        GStorage.checkUser(uid) && !revealedAuthorUids.contains(uid);
+    final feedFuture = locallyBlocked ? null : onGetData();
+    final LoadingState response = await fetchUserData();
     if (response is Success) {
-      uid = (response.response as Datum).uid.toString();
       username = (response.response as Datum).username;
-      isBlocked = GStorage.checkUser(uid);
-      if (!isBlocked || revealedAuthorUids.contains(uid)) {
-        onGetData();
-      } else {
-        setBlockedLoaidngState();
-      }
+    }
+    isBlocked = GStorage.checkUser(uid);
+    if (isBlocked && !revealedAuthorUids.contains(uid)) {
+      if (feedFuture != null) await feedFuture;
+      if (!isClosed) setBlockedLoaidngState();
     }
     userState.value = response;
   }

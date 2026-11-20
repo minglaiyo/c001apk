@@ -29,6 +29,8 @@ void main() {
     directory = await Directory.systemTemp.createTemp('local-follow-list-');
     Hive.init(directory.path);
     GStorage.settings = await Hive.openBox('settings');
+    // 用户页控制器初始化即读本机屏蔽名单（并行化的先导短路），需要开箱。
+    GStorage.blackList = await Hive.openBox('blackList');
     Request();
     Request.dio.httpClientAdapter = EmptyUserAdapter();
     await LocalFollowStore().follow('42', '合成用户', '');

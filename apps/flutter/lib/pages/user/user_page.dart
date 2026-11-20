@@ -134,13 +134,19 @@ class _UserPageState extends State<UserPage>
   }
 
   /// 「动态」标签：沿用本页 UserController 的列表，包成独立滚动视图。
+  ///
+  /// 这里单独订阅 loadingState：动态回包/过滤重算只重建这一页 sliver，
+  /// 不再连带整页（封面图、头像、TabBar）一起重建。
   Widget _userFeedView(BuildContext context) {
-    return CustomScrollView(
-      physics: const AlwaysScrollableScrollPhysics(
-        parent: BouncingScrollPhysics(),
-      ),
-      slivers: [_buildUserFeed(_userController.loadingState.value)],
-    );
+    return Obx(() {
+      final loadingState = _userController.loadingState.value;
+      return CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        slivers: [_buildUserFeed(loadingState)],
+      );
+    });
   }
 
   Widget _buildUserFeed(LoadingState loadingState) {
