@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import '../../../pages/home/topic/controller.dart';
 import '../../../pages/home/home_page.dart' show TabType;
 import '../../../components/status_views.dart';
+import '../../../constants/app_motion.dart';
+import '../../../constants/app_sizes.dart';
 import 'topic_grid_page.dart';
 
 class HomeTopicPage extends StatefulWidget {
@@ -56,83 +58,67 @@ class _HomeTopicPageState extends State<HomeTopicPage>
         // 数码 tabs get it. The grid's and rail's own top padding no
         // longer carry the inset – the mask does that job – which also
         // removes the split-colour gap the inset used to leave.
-        // Scrollable rail, one roomy row per category on both tabs
-        // (15px text, vertical padding 10, the same row height on
-        // 话题 and 数码). The rail was fixed for a while, but with 24
-        // 话题 categories against 14 数码 ones the fixed rail squeezed
-        // 话题 rows far below 数码's roomy rows, so the user chose
-        // scrolling back. Only the rail scrolls; the right grid keeps
-        // its own scroll, and the mask band above still carries the
-        // top inset, so the list itself needs no top padding.
-        Widget railItem(int index) =>
-            IntrinsicHeight(
-              child: Obx(
-                () => InkWell(
-                  onTap: () {
-                    _homeTopicController.currentIndex.value =
-                        index;
-                    _controller.jumpToPage(index);
-                  },
-                  child: Ink(
-                    color: index ==
-                            _homeTopicController
-                                .currentIndex.value
-                        ? Theme.of(context)
-                            .colorScheme
-                            .onInverseSurface
-                        : Colors.transparent,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          height: double.infinity,
-                          width: 3,
-                          color: index ==
-                                  _homeTopicController
-                                      .currentIndex.value
-                              ? Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                              : Colors.transparent,
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Container(
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            child: Text(
-                                widget.tabType == TabType.TOPIC
-                                    ? data![0]
-                                        .entities![index]
-                                        .title
-                                        .toString()
-                                    : data![index]
-                                        .title
-                                        .toString(),
-                              style: TextStyle(
-                                color: index ==
-                                        _homeTopicController
-                                            .currentIndex
-                                            .value
-                                    ? Theme.of(context)
-                                        .colorScheme
-                                        .primary
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .onSurface,
-                                fontSize: 15,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ],
+        // Scrollable rail, one slim pill row per category on both tabs.
+        // The rail was fixed for a while, but with 24 话题 categories
+        // against 14 数码 ones the fixed rail squeezed 话题 rows far
+        // below 数码's roomy rows, so the user chose scrolling back.
+        // Only the rail scrolls; the right grid keeps its own scroll,
+        // and the mask band above still carries the top inset, so the
+        // list itself needs no top padding.
+        //
+        // 选中态是圆角胶囊（primaryContainer 底 + 加粗文字），背景与文字
+        // 颜色用 AnimatedContainer / AnimatedDefaultTextStyle 过渡，切换
+        // 分类时胶囊平滑地「点亮」，不再是灰块 + 左侧竖条的旧样式。
+        Widget railItem(int index) {
+          final colors = Theme.of(context).colorScheme;
+          final title = widget.tabType == TabType.TOPIC
+              ? data![0].entities![index].title.toString()
+              : data![index].title.toString();
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  _homeTopicController.currentIndex.value = index;
+                  _controller.jumpToPage(index);
+                },
+                borderRadius: AppRadius.cardAll,
+                child: Obx(() {
+                  final selected =
+                      index == _homeTopicController.currentIndex.value;
+                  return AnimatedContainer(
+                    duration: AppDurations.control,
+                    curve: AppCurves.ease,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? colors.primaryContainer
+                          : Colors.transparent,
+                      borderRadius: AppRadius.cardAll,
                     ),
-                  ),
-                ),
+                    child: AnimatedDefaultTextStyle(
+                      duration: AppDurations.control,
+                      curve: AppCurves.ease,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.w400,
+                        color: selected
+                            ? colors.onPrimaryContainer
+                            : colors.onSurfaceVariant,
+                      ),
+                      child: Text(title,
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                  );
+                }),
               ),
-            );
+            ),
+          );
+        }
         final count = widget.tabType == TabType.TOPIC
             ? data![0].entities!.length
             : data!.length;
