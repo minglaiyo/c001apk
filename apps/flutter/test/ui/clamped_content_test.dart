@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:c001apk_flutter/components/clamped_content.dart';
 import 'package:c001apk_flutter/components/markdown_body.dart';
+import 'package:c001apk_flutter/components/rich_preview.dart';
 import 'package:c001apk_flutter/components/html_text.dart';
 import 'package:c001apk_flutter/utils/html_text_util.dart';
 import 'package:c001apk_flutter/utils/storage_util.dart';
@@ -275,6 +276,113 @@ void main() {
         final previewText = tester.widgetList<Text>(find.byType(Text)).first;
         expect(previewText.maxLines, 5);
       });
+    });
+  });
+
+  group('RichPreview（非 markdown 预览，原生 maxLines 截断）', () {
+    // 与真实动态一致的结构：话题 <a> + 表情 token + <br> 换行 + 长正文。
+    final html =
+        '<a class="feed-link-topic" href="/t/笔记本电脑">#笔记本电脑#</a> '
+        '<a class="feed-link-topic" href="/t/电脑玩家">#电脑玩家#</a><br/>'
+        '[呲牙]中国自己的An网→闲鱼<br/>'
+        '${List.generate(9, (i) => '正文第 $i 行，这里有一段足够长的文字用于折行测试。').join('<br/>')}';
+
+    Future<void> pumpPreview(WidgetTester tester, TextScaler scaler,
+        {required void Function() onMore}) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: MediaQuery(
+            data: MediaQueryData(textScaler: scaler),
+            child: SingleChildScrollView(
+              child: SizedBox(
+                width: 360,
+                child: RichPreview(
+                  source: html,
+                  maxLines: 5,
+                  fontSize: 16,
+                  lineHeight: 1.5,
+                  onMore: onMore,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+    }
+
+    testWidgets('长正文折到 5 行：原生 maxLines，子树无 ClipRect，回调可用',
+        (tester) async {
+      var opened = 0;
+      await pumpPreview(tester, TextScaler.noScaling, onMore: () => opened++);
+      expect(find.text('查看更多'), findsOneWidget);
+      final previewText = tester
+          .widgetList<Text>(find.descendant(
+              of: find.byType(RichPreview), matching: find.byType(Text)))
+          .first;
+      expect(previewText.maxLines, 5);
+      expect(find.descendant(of: find.byType(RichPreview), matching: find.byType(ClipRect)),
+          findsNothing);
+      await tester.tap(find.text('查看更多'));
+      expect(opened, 1);
+    });
+
+    testWidgets('话题链接渲染为主题色、表情渲染为占位图', (tester) async {
+      await pumpPreview(tester, TextScaler.noScaling, onMore: () {});
+      // 话题文本在 span 树里着主题色、表情在树里是 WidgetSpan：递归检查。
+      final rich = tester.widgetList<RichText>(find.byType(RichText));
+      final topicTexts = <String>{};
+      final linkTopics = <String>{};
+      var hasEmoji = false;
+      void walk(InlineSpan span, bool link) {
+        if (span is WidgetSpan) {
+          hasEmoji = true;
+          return;
+        }
+        if (span is TextSpan) {
+          final isLink = link ||
+              span.style?.decoration == TextDecoration.none &&
+                  span.style?.color != null;
+          if ((span.text ?? '').isNotEmpty) {
+            topicTexts.add(span.text!);
+            if (isLink) linkTopics.add(span.text!);
+          }
+          for (final c in span.children ?? const <InlineSpan>[]) {
+            walk(c, isLink);
+          }
+        }
+      }
+      for (final r in rich) {
+        final root = r.text;
+        if (root is TextSpan) walk(root, false);
+      }
+      expect(topicTexts.any((t) => t.contains('#笔记本电脑#')), isTrue,
+          reason: '话题文本应出现在 span 树里');
+      expect(linkTopics.any((t) => t.contains('#笔记本电脑#')), isTrue,
+          reason: '话题应为主题色链接样式');
+      expect(hasEmoji, isTrue, reason: '表情应为 WidgetSpan 占位图');
+    });
+
+    testWidgets('缩放 1.3 下同样只依赖原生截断', (tester) async {
+      await pumpPreview(tester, const TextScaler.linear(1.3), onMore: () {});
+      expect(find.text('查看更多'), findsOneWidget);
+      final previewText = tester
+          .widgetList<Text>(find.descendant(
+              of: find.byType(RichPreview), matching: find.byType(Text)))
+          .first;
+      expect(previewText.maxLines, 5);
+      expect(find.descendant(of: find.byType(RichPreview), matching: find.byType(ClipRect)),
+          findsNothing);
+    });
+
+    testWidgets('短正文不折叠、无查看更多', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+              body: RichPreview(
+                  source: '[呲牙]短正文一条',
+                  maxLines: 5,
+                  onMore: () {}))));
+      expect(find.text('查看更多'), findsNothing);
     });
   });
 }

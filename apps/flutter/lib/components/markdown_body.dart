@@ -6,12 +6,12 @@ import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart
 import 'package:get/get.dart';
 import 'package:html/dom.dart' as dom;
 
-import '../utils/html_text_util.dart';
 import '../utils/markdown_content.dart';
 import '../utils/storage_util.dart';
-import 'clamped_content.dart';
+import 'clamped_content.dart' show ClampedMoreButton;
 import 'html_text.dart';
 import 'imageview.dart';
+import 'rich_preview.dart';
 import '../logic/media/feed_media.dart';
 import 'package:c001apk_flutter/constants/app_sizes.dart';
 
@@ -56,22 +56,16 @@ class FeedText extends StatelessWidget {
     final content =
         MarkdownContent.parse(source, showEmoji: GStorage.showEmoji);
     if (!content.isMarkdown) {
-      // 非 markdown：渲染为 widget 树（fwfh），无法交给文本引擎 maxLines，
-      // 走量行 + 裁切（ClampedHtml 内部按渲染端同一 textScaler 量高）。
+      // 非 markdown：预览把消息 HTML 解析成单一 TextSpan 树（含表情
+      // WidgetSpan），交给原生 maxLines 截断——与 markdown 预览同一路径，
+      // 任何字体缩放下都不可能出现「最后一行底部被裁掉」。
       if (preview && previewMaxLines != null && onPreviewMore != null) {
-        return ClampedHtml(
-          plainText: ClampedHtml.stripHtml(parseHtmlString(source)),
+        return RichPreview(
+          source: source,
           maxLines: previewMaxLines!,
-          fontSize: fontSize,
-          height: lineHeight,
           onMore: onPreviewMore!,
-          child: htmlText(source,
-              fontSize: fontSize,
-              lineHeight: lineHeight,
-              picArr: picArr,
-              mediaItems: mediaItems,
-              contentId: contentId,
-              contentType: contentType),
+          fontSize: fontSize,
+          lineHeight: lineHeight,
         );
       }
       return htmlText(source,
