@@ -63,6 +63,11 @@ class ClampedHtml extends StatelessWidget {
         // 宽度无界时不折叠（放在 Row / 横向滚动里时）。
         if (!constraints.hasBoundedWidth) return child;
 
+        // 量行与裁高都必须带渲染端同一 textScaler（系统字体大小与设置里的
+        // 字体档位都会缩放）：否则实际渲染的行高比估算大，最后一行底部会被
+        // ClipRect 切掉。行高直接取 TextPainter 量出的实际首行高度，不按
+        // fontSize * height 硬算。
+        final scaler = MediaQuery.textScalerOf(context);
         final painter = TextPainter(
           text: TextSpan(
             text: plainText,
@@ -70,8 +75,11 @@ class ClampedHtml extends StatelessWidget {
           ),
           maxLines: maxLines,
           textDirection: Directionality.of(context),
+          textScaler: scaler,
+          textWidthBasis: TextWidthBasis.parent,
         )..layout(maxWidth: constraints.maxWidth);
         final truncated = painter.didExceedMaxLines;
+        final lineHeight = painter.preferredLineHeight;
         painter.dispose();
         if (!truncated) return child;
 
@@ -82,7 +90,7 @@ class ClampedHtml extends StatelessWidget {
           children: [
             ConstrainedBox(
               constraints:
-                  BoxConstraints(maxHeight: maxLines * fontSize * height),
+                  BoxConstraints(maxHeight: maxLines * lineHeight),
               child: ClipRect(child: child),
             ),
             const SizedBox(height: 6),
@@ -148,10 +156,13 @@ class _ExpandableBioState extends State<ExpandableBio> {
       padding: widget.padding,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          // 与渲染端同一 textScaler：系统/应用内字体缩放下，
+          // 未缩放测量会低估行数，导致该展开的签名不出「展开」。
           final painter = TextPainter(
             text: TextSpan(text: widget.text, style: style),
             maxLines: null,
             textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context),
           )..layout(maxWidth: constraints.maxWidth);
           final needsExpand =
               painter.computeLineMetrics().length > widget.collapsedLines;
