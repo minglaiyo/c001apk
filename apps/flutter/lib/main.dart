@@ -20,6 +20,7 @@ import 'logic/cache/auto_cache_cleanup.dart';
 import 'logic/clipboard/clipboard_link_detector.dart';
 import 'logic/media/media_load_policy.dart';
 import 'logic/content_filter/app_content_filter.dart';
+import 'components/liquid_glass_shader.dart';
 import 'components/startup_monitor.dart';
 import 'constants/constants.dart';
 import 'logic/network/request.dart';
@@ -52,6 +53,7 @@ void main() async {
   await GStorage.init();
   MediaLoadPolicy.current = MediaLoadPolicy(GStorage.settings)..start();
   await AppContentFilter.init();
+  await LiquidGlassShaderLoader.load();
   final onboarding = OnboardingState.current = OnboardingState(
       settings: GStorage.settings, filter: AppContentFilter.service!);
   HttpOverrides.global = CustomHttpOverrides();

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../constants/liquid_glass_level.dart';
+import 'liquid_glass_shader.dart';
 import 'package:c001apk_flutter/constants/app_sizes.dart';
 
 /// Public backend: ordinary translucent/frosted surfaces and navigation.
@@ -101,6 +102,43 @@ class GlassSurface extends StatelessWidget {
           child: const SizedBox.expand(),
         ),
       );
+    }
+    // 真·液态玻璃：Impeller 的 ImageFilter.shader 对（先磨砂的）背景做
+    // 圆角矩形透镜折射 + RGB 色散 + 菲涅尔亮边。shader 程序缺失
+    // （非 Impeller / 资产异常）时回退到下面的磨砂 + 渐变。
+    final program = LiquidGlassShaderLoader.program;
+    if (program != null && ui.ImageFilter.isShaderFilterSupported) {
+      try {
+        final shader = program.fragmentShader();
+        final levelParams = _levelParams(level);
+        final glowFactor = 0.6 + 0.4 * glow.clamp(0.0, 1.0);
+        final t = baseTint;
+        shader.setFloat(2, radius.topLeft.x);
+        shader.setFloat(3, levelParams.thickness);
+        shader.setFloat(4, levelParams.edge);
+        shader.setFloat(5, levelParams.chroma);
+        shader.setFloat(6, depthEffect ? 0.16 : 0.10);
+        shader.setFloat(7, t.r);
+        shader.setFloat(8, t.g);
+        shader.setFloat(9, t.b);
+        shader.setFloat(10, t.a);
+        shader.setFloat(11, 0.55 * levelParams.highlight * glowFactor);
+        shader.setFloat(12, DateTime.now().millisecondsSinceEpoch / 1000.0);
+        final filter = ui.ImageFilter.compose(
+          outer: ui.ImageFilter.shader(shader),
+          inner: ui.ImageFilter.blur(
+              sigmaX: levelParams.sigma, sigmaY: levelParams.sigma),
+        );
+        return ClipRRect(
+          borderRadius: radius,
+          child: BackdropFilter(
+            filter: filter,
+            child: const SizedBox.expand(),
+          ),
+        );
+      } catch (_) {
+        // Impeller 后端异常或 shader 校验失败：走下面的假玻璃。
+      }
     }
     // Fake glass, made less flat: blur strength grows with the level
     // (the old code used sigma 4 for every non-low level), the tint is
@@ -525,4 +563,37 @@ class _BasicRoundHitBox extends RenderProxyBox {
               Radius.circular(size.height > size.width ? 28 : size.height / 2))
           .contains(position) &&
       super.hitTest(result, position: position);
+}
+
+/// 各玻璃档位的折射参数：档位越高，边缘折射带越宽、弯折越强、色散越
+/// 明显，磨砂 sigma 也随之增大。
+class _LevelParams {
+  const _LevelParams(
+      {required this.sigma,
+      required this.thickness,
+      required this.edge,
+      required this.chroma,
+      required this.highlight});
+  final double sigma;
+  final double thickness;
+  final double edge;
+  final double chroma;
+  final double highlight;
+}
+
+_LevelParams _levelParams(LiquidGlassLevel level) {
+  switch (level) {
+    case LiquidGlassLevel.medium:
+      return const _LevelParams(
+          sigma: 10, thickness: 20, edge: 0.55, chroma: 1.6, highlight: 0.7);
+    case LiquidGlassLevel.high:
+      return const _LevelParams(
+          sigma: 16, thickness: 30, edge: 0.85, chroma: 2.6, highlight: 0.85);
+    case LiquidGlassLevel.complete:
+      return const _LevelParams(
+          sigma: 22, thickness: 40, edge: 1.15, chroma: 3.6, highlight: 1.0);
+    case LiquidGlassLevel.low:
+      return const _LevelParams(
+          sigma: 4, thickness: 12, edge: 0.4, chroma: 1.0, highlight: 0.5);
+  }
 }
