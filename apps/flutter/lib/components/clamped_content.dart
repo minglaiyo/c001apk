@@ -45,16 +45,16 @@ class ClampedHtml extends StatelessWidget {
 
   final String moreLabel;
 
-  /// 把 HTML 剥成纯文本：正文结构规整（文本 + `<a>` 包起来的话题标签），
-  /// 解析后取文本即可；解析失败退回原文，量行数偏一点比整块不显示好。
-  static String stripHtml(String html) {
-    if (!html.contains('<')) return html;
-    try {
-      final text = html_parser.parse(html).documentElement?.text;
-      if (text != null && text.isNotEmpty) return text;
-    } catch (_) {}
-    return html;
-  }
+/// 把 HTML 剥成纯文本：正文结构规整（文本 + `<a>` 包起来的话题标签），
+/// 解析后取文本即可；解析失败退回原文，量行数偏一点比整块不显示好。
+static String stripHtml(String html) {
+  if (!html.contains('<')) return html;
+  try {
+    final text = html_parser.parse(html).documentElement?.text;
+    if (text != null && text.isNotEmpty) return text;
+  } catch (_) {}
+  return html;
+}
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +83,6 @@ class ClampedHtml extends StatelessWidget {
         painter.dispose();
         if (!truncated) return child;
 
-        final theme = Theme.of(context);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -94,24 +93,39 @@ class ClampedHtml extends StatelessWidget {
               child: ClipRect(child: child),
             ),
             const SizedBox(height: 6),
-            InkWell(
-              onTap: onMore,
-              borderRadius: BorderRadius.circular(4),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Text(
-                  moreLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-            ),
+            ClampedMoreButton(label: moreLabel, onTap: onMore),
           ],
         );
       },
+    );
+  }
+}
+
+/// 「查看更多」按钮：正文折叠（[ClampedHtml]）与 FeedText 原生预览截断共用，
+/// 保证两种折叠入口的样式与点击热区一致。
+class ClampedMoreButton extends StatelessWidget {
+  const ClampedMoreButton({super.key, required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+      ),
     );
   }
 }

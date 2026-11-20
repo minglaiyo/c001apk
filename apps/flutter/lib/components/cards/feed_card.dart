@@ -2,7 +2,6 @@ import '../../router/link_resolver.dart';
 import '../../utils/share_util.dart';
 import '../../utils/html_text_util.dart';
 import '../../constants/app_sizes.dart';
-import '../clamped_content.dart';
 import '../more_panel.dart';
 import 'feed_price_row.dart';
 import 'package:c001apk_flutter/components/network_image.dart';
@@ -509,23 +508,21 @@ class FeedCard extends StatelessWidget {
                     mediaItems: mediaForDatum(data),
                     contentId: data.id?.toString(),
                   )
-                // 列表卡：最多 5 行 + 「查看更多」（与官方列表口径一致，
-                // 正文是 widget 树没有 maxLines，故按纯文本量行后裁切）。
-                : ClampedHtml(
-                    plainText: ClampedHtml.stripHtml(parseHtmlString(message)),
+                // 列表卡：最多 5 行 + 「查看更多」（与官方列表口径一致）。
+                // markdown 走原生 maxLines 截断（文本引擎自己裁，不切字），
+                // 非 markdown 由 FeedText 内部走量行裁切。
+                : FeedText(
+                    message,
                     fontSize: 16,
-                    onMore: () => FeedNavigation.open(
+                    lineHeight: 1.5,
+                    preview: true,
+                    previewMaxLines: 5,
+                    onPreviewMore: () => FeedNavigation.open(
                         context, '${data.id ?? data.entityId ?? ''}'),
-                    child: FeedText(
-                      message,
-                      fontSize: 16,
-                      lineHeight: 1.5,
-                      preview: true,
-                      forcePlain: forcePlain,
-                      picArr: data.picArr,
-                      mediaItems: mediaForDatum(data),
-                      contentId: data.id?.toString(),
-                    ),
+                    forcePlain: forcePlain,
+                    picArr: data.picArr,
+                    mediaItems: mediaForDatum(data),
+                    contentId: data.id?.toString(),
                   )),
       )
     ];

@@ -6,8 +6,10 @@ import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart
 import 'package:get/get.dart';
 import 'package:html/dom.dart' as dom;
 
+import '../utils/html_text_util.dart';
 import '../utils/markdown_content.dart';
 import '../utils/storage_util.dart';
+import 'clamped_content.dart';
 import 'html_text.dart';
 import 'imageview.dart';
 import '../logic/media/feed_media.dart';
@@ -20,6 +22,8 @@ class FeedText extends StatelessWidget {
       this.fontSize = 16,
       this.lineHeight = 1.5,
       this.preview = false,
+      this.previewMaxLines,
+      this.onPreviewMore,
       this.forcePlain = false,
       this.picArr,
       this.mediaItems,
@@ -30,6 +34,13 @@ class FeedText extends StatelessWidget {
   final double fontSize;
   final double lineHeight;
   final bool preview;
+
+  /// 列表卡折叠行数；与 [onPreviewMore] 一起给出时启用「查看更多」折叠。
+  final int? previewMaxLines;
+
+  /// 点击「查看更多」（由调用方跳详情）。
+  final VoidCallback? onPreviewMore;
+
   final bool forcePlain;
   final List<String>? picArr;
   final List<FeedMedia>? mediaItems;
@@ -45,6 +56,24 @@ class FeedText extends StatelessWidget {
     final content =
         MarkdownContent.parse(source, showEmoji: GStorage.showEmoji);
     if (!content.isMarkdown) {
+      // 非 markdown：渲染为 widget 树（fwfh），无法交给文本引擎 maxLines，
+      // 走量行 + 裁切（ClampedHtml 内部按渲染端同一 textScaler 量高）。
+      if (preview && previewMaxLines != null && onPreviewMore != null) {
+        return ClampedHtml(
+          plainText: ClampedHtml.stripHtml(parseHtmlString(source)),
+          maxLines: previewMaxLines!,
+          fontSize: fontSize,
+          height: lineHeight,
+          onMore: onPreviewMore!,
+          child: htmlText(source,
+              fontSize: fontSize,
+              lineHeight: lineHeight,
+              picArr: picArr,
+              mediaItems: mediaItems,
+              contentId: contentId,
+              contentType: contentType),
+        );
+      }
       return htmlText(source,
           fontSize: fontSize,
           lineHeight: lineHeight,
@@ -54,10 +83,46 @@ class FeedText extends StatelessWidget {
           contentType: contentType);
     }
     if (preview) {
-      return Text(content.preview,
-          maxLines: 6,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: fontSize, height: 1.5));
+      if (previewMaxLines == null || onPreviewMore == null) {
+        return Text(content.preview,
+            maxLines: 6,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: fontSize, height: lineHeight));
+      }
+      // markdown 预览是单个原生 Text：截断交给文本引擎的 maxLines
+      // （行盒精确，任何缩放下都不会切掉半个字）。「是否截断」用同一
+      // 字符串、同一样式、同一 textScaler、同一宽度的 TextPainter 判定，
+      // 与渲染零误差。
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final style = TextStyle(fontSize: fontSize, height: lineHeight);
+          final painter = TextPainter(
+            text: TextSpan(text: content.preview, style: style),
+            maxLines: previewMaxLines,
+            textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context),
+            textWidthBasis: TextWidthBasis.parent,
+          )..layout(maxWidth: constraints.maxWidth);
+          final truncated = painter.didExceedMaxLines;
+          painter.dispose();
+          final text = Text(content.preview,
+              maxLines: truncated ? previewMaxLines : null,
+              overflow:
+                  truncated ? TextOverflow.ellipsis : TextOverflow.visible,
+              style: style);
+          if (!truncated) return text;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              text,
+              const SizedBox(height: 6),
+              ClampedMoreButton(
+                  label: '查看更多', onTap: onPreviewMore!),
+            ],
+          );
+        },
+      );
     }
     return MarkdownBody(
         content: content,

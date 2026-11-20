@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:c001apk_flutter/components/clamped_content.dart';
+import 'package:c001apk_flutter/components/markdown_body.dart';
 import 'package:c001apk_flutter/components/html_text.dart';
 import 'package:c001apk_flutter/utils/html_text_util.dart';
 import 'package:c001apk_flutter/utils/storage_util.dart';
@@ -214,6 +215,66 @@ void main() {
       // 且确实只裁到 5 行附近（不是把整块都放出来了）。
       expect(clip.height, greaterThanOrEqualTo(5 * lineHeight - 1.5));
       expect(clip.height, lessThanOrEqualTo(6 * lineHeight));
+    });
+
+    group('FeedText markdown 预览（原生 maxLines 截断）', () {
+      // 超过 5 行的 markdown 正文（引用 + 列表结构，与真实动态一致）。
+      final longMarkdown =
+          '> 引用内容用于小窗说明\n${List.generate(8, (i) => '- 新增测试条目第 $i 行内容').join('\n')}';
+
+      Future<void> pumpFeedText(
+          WidgetTester tester, String markdown,
+          {TextScaler scaler = TextScaler.noScaling,
+          void Function()? onMore}) async {
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: MediaQuery(
+              data: MediaQueryData(textScaler: scaler),
+              child: SingleChildScrollView(
+                child: SizedBox(
+                  width: 300,
+                  child: FeedText(
+                    markdown,
+                    preview: true,
+                    previewMaxLines: 5,
+                    onPreviewMore: onMore,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ));
+        await tester.pump();
+      }
+
+      testWidgets('长 markdown 折到 5 行：原生 maxLines，全链路无 ClipRect',
+          (tester) async {
+        var opened = 0;
+        await pumpFeedText(tester, longMarkdown, onMore: () => opened++);
+        expect(find.text('查看更多'), findsOneWidget);
+        // 预览 Text 的 maxLines 就是 5（截断由文本引擎自己做，任何缩放下
+        // 都不会切掉半个字）——这正是放弃手工 ClipRect 的意义。
+        final previewText = tester.widgetList<Text>(find.byType(Text)).first;
+        expect(previewText.maxLines, 5);
+        expect(find.descendant(of: find.byType(FeedText), matching: find.byType(ClipRect)), findsNothing);
+        await tester.tap(find.text('查看更多'));
+        expect(opened, 1);
+      });
+
+      testWidgets('短 markdown 不折叠、无查看更多', (tester) async {
+        await pumpFeedText(tester, '> 一行小窗\n- 一个短条目');
+        expect(find.text('查看更多'), findsNothing);
+        expect(find.descendant(of: find.byType(FeedText), matching: find.byType(ClipRect)), findsNothing);
+      });
+
+      testWidgets('缩放 1.3 下同样只依赖原生截断', (tester) async {
+        await pumpFeedText(tester, longMarkdown,
+            scaler: const TextScaler.linear(1.3), onMore: () {});
+        expect(find.text('查看更多'), findsOneWidget);
+        expect(find.descendant(of: find.byType(FeedText), matching: find.byType(ClipRect)), findsNothing);
+        final previewText = tester.widgetList<Text>(find.byType(Text)).first;
+        expect(previewText.maxLines, 5);
+      });
     });
   });
 }
