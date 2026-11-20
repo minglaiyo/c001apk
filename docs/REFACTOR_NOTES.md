@@ -228,3 +228,19 @@ design token、openLink 路由单源、CommonController mixin 分层、ScrollHid
 - 官方头像/背景图裁剪页依赖原生裁剪组件，仍记入未移植项（直传原图）。
 - 新增测试 `test/network/edit_profile_test.dart` 8 用例：禁言判据解析、
   生日地区字段回显、4 个端点的请求形状（form / multipart / CDN 地址）。
+
+---
+
+# 2026-11-21：正文折叠最终方案（原生 maxLines，参考 PiliPlus）
+
+真机验证 1.7.2 在字体缩放下列表卡正文仍会被裁掉最后一行底部：量行 +
+ClipRect 的手工裁切在真实字体回退/fwfh 渲染度量下无法做到与渲染零误差。
+
+参照 bggRGjQaUbCoE/PiliPlus 的 TextMore/richNodes 方案重构：新增
+components/rich_preview.dart——把消息 HTML 解析成单一 TextSpan 树
+（话题链接着主题色、表情 token 转内联 WidgetSpan 占位图），交给原生
+Text.rich(maxLines) 截断；「是否截断」用同一棵 span 树的 TextPainter
+（占位尺寸手动注入）判定，与渲染零误差。markdown 预览同路径（原生
+Text maxLines）。ClampedHtml 不再出现在预览链路上（保留类与测试）。
+版本 1.7.3+20261121；新增 RichPreview 4 个测试（长文折叠/样式递归
+校验/1.3 倍缩放/短文），全量 689 用例通过，analyze 零告警。
