@@ -13,7 +13,6 @@ import '../../pages/message/message_controller.dart';
 import '../../pages/notification/notification_page.dart';
 import '../../utils/extensions.dart';
 import '../../utils/global_data.dart';
-import '../../logic/announcements/app_announcements.dart';
 import '../../utils/storage_util.dart';
 
 class MessagePage extends StatefulWidget {
@@ -73,7 +72,6 @@ class _MessagePageState extends State<MessagePage>
       );
 
   Widget _messages(BuildContext context) {
-    final announcements = AppAnnouncements.service;
     Widget list() => ExpressiveListSection(
           padding: EdgeInsets.zero,
           children: [
@@ -82,10 +80,9 @@ class _MessagePageState extends State<MessagePage>
                     context,
                     _iconList[index],
                     _titleList[index],
-                    (_messageController.thirdList.getOrNull(index) ?? 0) +
-                        (index == 4 ? announcements?.unreadCount ?? 0 : 0),
+                    _messageController.thirdList.getOrNull(index) ?? 0,
                     () {
-                      if (!GlobalData().isLogin && index != 4) return;
+                      if (!GlobalData().isLogin) return;
                       Get.toNamed('/notification', arguments: {
                         'type': NotificationType.values[index],
                         if (index == 4)
@@ -104,9 +101,7 @@ class _MessagePageState extends State<MessagePage>
                   )),
           ],
         );
-    return announcements == null
-        ? list()
-        : AnimatedBuilder(animation: announcements, builder: (_, __) => list());
+    return list();
   }
 
   @override

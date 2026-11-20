@@ -20,8 +20,7 @@ import 'logic/cache/auto_cache_cleanup.dart';
 import 'logic/clipboard/clipboard_link_detector.dart';
 import 'logic/media/media_load_policy.dart';
 import 'logic/content_filter/app_content_filter.dart';
-import 'components/announcement_monitor.dart';
-import 'logic/announcements/app_announcements.dart';
+import 'components/startup_monitor.dart';
 import 'constants/constants.dart';
 import 'logic/network/request.dart';
 import 'logic/onboarding/onboarding_state.dart';
@@ -55,7 +54,6 @@ void main() async {
   await AppContentFilter.init();
   final onboarding = OnboardingState.current = OnboardingState(
       settings: GStorage.settings, filter: AppContentFilter.service!);
-  await AppAnnouncements.initialize();
   HttpOverrides.global = CustomHttpOverrides();
 
   if (Platform.isAndroid) {
@@ -73,10 +71,8 @@ void main() async {
 
   Request().captchaVerifier = verifyCaptcha;
   final links = AndroidLinks(onOpen: openLink, onboarding: onboarding)..listen();
-  runApp(AnnouncementMonitor(
-      service: AppAnnouncements.service!,
-      onboarding: onboarding,
-      child: const C001APKAPP()));
+  runApp(StartupMonitor(
+      onboarding: onboarding, child: const C001APKAPP()));
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(links.ready());
   });

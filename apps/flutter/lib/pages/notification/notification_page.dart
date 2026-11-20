@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import '../../components/common_body.dart';
 import '../../components/cards/message_card.dart';
 import '../../pages/notification/notification_controller.dart';
-import '../../components/announcement_entry.dart';
 import '../../utils/global_data.dart';
 
 // ignore: constant_identifier_names
@@ -62,9 +61,6 @@ class _NotificationPageState extends State<NotificationPage> {
           body: SafeArea(
               top: false,
               child: Column(children: [
-                if (type == NotificationType.MESSAGE)
-                  const Padding(
-                      padding: EdgeInsets.all(10), child: AnnouncementEntry()),
                 Expanded(
                     child: Center(
                         child: TextButton(
@@ -97,8 +93,6 @@ class _NotificationPageState extends State<NotificationPage> {
             : null,
         leading: type == NotificationType.MESSAGE
             ? Column(children: [
-                const AnnouncementEntry(),
-                const SizedBox(height: 8),
                 Material(
                   color: Theme.of(context).colorScheme.onInverseSurface,
                   borderRadius: BorderRadius.circular(12),

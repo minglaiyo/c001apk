@@ -912,30 +912,6 @@ void main() {
   });
 
   testWidgets(
-      'guest inbox keeps c001apk assistant reachable without account notices',
-      (tester) async {
-    tester.view.physicalSize = const Size(500, 1000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final adapter = EmptyGuestAdapter();
-    Request.dio.httpClientAdapter = adapter;
-    await tester.runAsync(() => AccountStore().useGuest());
-    await tester.pumpWidget(const C001APKAPP());
-    await tester.pumpAndSettle();
-    await tester.tap(mainDestination('我的'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('私信与信息'));
-    await tester.tap(find.text('私信与信息'));
-    await tester.pumpAndSettle();
-    expect(find.text('c001apk 小助手'), findsOneWidget);
-    expect(find.text('登录后查看私信与酷安通知'), findsOneWidget);
-    expect(find.text('酷安小秘书'), findsNothing);
-    expect(adapter.notificationPages, isEmpty);
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
-
-  testWidgets(
       'dynamic color disables the entire color picker and restores its selection',
       (tester) async {
     tester.view.physicalSize = const Size(500, 900);

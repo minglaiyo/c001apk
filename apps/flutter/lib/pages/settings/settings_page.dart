@@ -13,8 +13,6 @@ import '../../components/dialog.dart';
 import '../../components/expressive_list_section.dart';
 import '../../components/keyboard_scroll_region.dart';
 import '../../components/update_check_tile.dart';
-import '../../components/announcement_monitor.dart';
-import '../../logic/announcements/app_announcements.dart';
 import '../../logic/app_update/update_preferences.dart';
 import '../../logic/cache/auto_cache_cleanup.dart';
 import '../../logic/accounts/account_store.dart';
@@ -552,8 +550,6 @@ class _SettingsDetailPageState extends State<SettingsDetailPage> {
                 itemId: 'checkUpdateNow',
                 child: UpdateCheckTile(),
               ),
-              if (AppAnnouncements.service != null)
-                AnnouncementAutoCheckTile(service: AppAnnouncements.service!),
               if (Platform.isAndroid)
                 const SettingsItemLocator(
                   itemId: 'checkInstalledAppUpdate',

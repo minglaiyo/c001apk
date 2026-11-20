@@ -1,10 +1,9 @@
 import 'dart:async';
 
-import 'package:c001apk_flutter/components/announcement_monitor.dart';
+import 'package:c001apk_flutter/components/startup_monitor.dart';
 import 'package:c001apk_flutter/components/onboarding_gate.dart';
 import 'package:c001apk_flutter/components/prompt_navigation.dart';
 import 'package:c001apk_flutter/components/update_check_tile.dart';
-import 'package:c001apk_flutter/logic/announcements/announcement_service.dart';
 import 'package:c001apk_flutter/logic/app_update/update_preferences.dart';
 import 'package:c001apk_flutter/logic/app_update/update_service.dart';
 import 'package:c001apk_flutter/logic/content_filter/content_filter_service.dart';
@@ -20,7 +19,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
-import '../announcements/fixtures.dart';
 import '../update/app_update_test.dart' show ReleaseAdapter;
 
 class _MainProbe extends StatefulWidget {
@@ -47,7 +45,7 @@ void main() {
   const channel = MethodChannel('app.awavenue.c001apk/links');
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  late Box<dynamic> settings, filters, announcements;
+  late Box<dynamic> settings, filters;
   late ContentFilterService filter;
   late OnboardingState state;
 
@@ -61,8 +59,6 @@ void main() {
     Get.testMode = true;
     await settings.clear();
     filters = await Hive.openBox('startup-filters', bytes: Uint8List(0));
-    announcements =
-        await Hive.openBox('startup-announcements', bytes: Uint8List(0));
     filter = ContentFilterService(filters);
     state = OnboardingState(settings: settings, filter: filter);
   });
@@ -71,7 +67,7 @@ void main() {
     OnboardingState.current = null;
     state.dispose();
     filter.dispose();
-    await Future.wait([filters.close(), announcements.close()]);
+    await filters.close();
     channel.setMethodCallHandler(null);
     messenger.setMockMethodCallHandler(channel, null);
     Get.reset();
@@ -126,18 +122,13 @@ void main() {
       (tester) async {
     var mainMounted = false;
     var updateChecks = 0;
-    final service = AnnouncementService(announcements,
-        dio: Dio()..httpClientAdapter = AnnouncementAdapter());
-    addTearDown(service.dispose);
-    await tester.pumpWidget(AnnouncementMonitor(
-        service: service,
+    await tester.pumpWidget(StartupMonitor(
         onboarding: state,
         checkUpdates: () async {
           expect(mainMounted, true);
           expect(state.active, false);
           updateChecks++;
         },
-        updatePromptShown: () => false,
         child: GetMaterialApp(
             navigatorObservers: [PromptNavigationObserver()],
             home: OnboardingGate(
@@ -153,48 +144,6 @@ void main() {
     state.end();
     await drain(tester);
     expect(updateChecks, 1);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('announcement resumes on home after guide returns to settings',
-      (tester) async {
-    await tester.runAsync(state.skip);
-    final adapter = AnnouncementAdapter()
-      ..index = indexJson(1, [noticeJson('a', important: true)])
-      ..pendingBody = Completer<void>();
-    final service = AnnouncementService(announcements,
-        dio: Dio()..httpClientAdapter = adapter,
-        clock: () => DateTime.utc(2026, 10, 27));
-    addTearDown(service.dispose);
-    await tester.pumpWidget(AnnouncementMonitor(
-        service: service,
-        onboarding: state,
-        checkUpdates: () async {},
-        updatePromptShown: () => false,
-        child: GetMaterialApp(
-            navigatorObservers: [PromptNavigationObserver()],
-            home: const Scaffold(body: Text('主页面')))));
-    await drain(tester);
-    expect(adapter.bodyRequests, 1);
-    Get.to(() => const Scaffold(body: Text('设置')), routeName: '/settings');
-    await tester.pumpAndSettle();
-    Get.to(() => OnboardingPage(state: state), routeName: '/onboarding');
-    await tester.pumpAndSettle();
-    adapter.pendingBody!.complete();
-    await drain(tester);
-    expect(find.text('知道了'), findsNothing);
-    expect(service.pendingImportant, isNotNull);
-    await tester.tap(find.text('取消'));
-    await tester.pumpAndSettle();
-    expect(Get.currentRoute, '/settings');
-    await drain(tester);
-    expect(find.text('知道了'), findsNothing);
-    Get.back();
-    await drain(tester);
-    expect(find.text('知道了'), findsOneWidget);
-    expect(adapter.bodyRequests, 1);
-    await tester.tap(find.text('知道了'));
-    await drain(tester);
     await tester.pumpWidget(const SizedBox());
   });
 
