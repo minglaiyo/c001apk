@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:c001apk_flutter/components/clamped_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,9 +7,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// 视觉证据：同一篇正文、同一种字体缩放（1.2 倍），
 /// 左右对比「修复前的裁切算法」与「修复后（当前代码）」的渲染结果。
 /// 用 `flutter test --update-goldens test/ui/truncation_proof_test.dart`
-/// 生成 PNG。
+/// 在本机（Windows）生成 PNG。对比图仅作说明用途，不进 CI：
+/// golden 像素对比跨平台（字体光栅化）必然不一致。
 void main() {
-  testWidgets('生成修复前后对比图', (tester) async {
+  testWidgets(
+    '生成修复前后对比图',
+    // 对比图由 Windows 本机手动生成；golden 像素对比跨平台必不一致，不进 CI。
+    skip: !Platform.isWindows,
+    (tester) async {
     const bodyStyle = TextStyle(fontSize: 16, height: 1.5);
     const text = '中国自己的An网→闲鱼\n'
         '以158购入小米新国标充电宝Pro，无后盖背板功能完好，'
