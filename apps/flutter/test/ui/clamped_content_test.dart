@@ -1,8 +1,21 @@
+import 'dart:io';
+
 import 'package:c001apk_flutter/components/clamped_content.dart';
+import 'package:c001apk_flutter/components/html_text.dart';
+import 'package:c001apk_flutter/utils/html_text_util.dart';
+import 'package:c001apk_flutter/utils/storage_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
 
 void main() {
+  // 真实渲染链路测试需要 showEmoji 读 settings box。
+  setUpAll(() async {
+    final temp =
+        await Directory.systemTemp.createTemp('clamped-content-');
+    Hive.init(temp.path);
+    GStorage.settings = await Hive.openBox('settings');
+  });
   test('stripHtml 去掉标签文本，纯文本原样返回', () {
     expect(ClampedHtml.stripHtml('普通文本'), '普通文本');
     expect(ClampedHtml.stripHtml('<p>第一段</p><p>第二段</p>'), '第一段第二段');
@@ -147,6 +160,60 @@ void main() {
 
       await tester.pumpWidget(scaled);
       expect(find.text('展开'), findsOneWidget);
+    });
+
+    testWidgets('真实 htmlText 链路（话题链接+换行）缩放 1.2 下 5 行完整保留',
+        (tester) async {
+      // 模拟真实动态正文结构：话题 <a> 行内标签 + 换行 <br> + 短行正文
+      // （每行 ≤16 字，360 宽、1.2 倍缩放下不二次折行，行界确定）。
+      final message = '<a class="feed-link-topic" href="/t/笔记本电脑">'
+          '#笔记本电脑#</a> <a class="feed-link-topic" href="/t/电脑玩家">'
+          '#电脑玩家#</a>\n'
+          '${List.generate(7, (i) => '正文第 $i 行内容用于测试').join('\n')}';
+      const scaler = TextScaler.linear(1.2);
+      const bodyStyle = TextStyle(fontSize: 16, height: 1.5);
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: MediaQuery(
+            data: const MediaQueryData(textScaler: scaler),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 行高参照：与正文同样式、同缩放的单行。
+                  const Text('参照行', style: bodyStyle, textDirection: TextDirection.ltr),
+                  SizedBox(
+                    width: 360,
+                    child: ClampedHtml(
+                      // 与生产一致的量行口径。
+                      plainText:
+                          ClampedHtml.stripHtml(parseHtmlString(message)),
+                      maxLines: 5,
+                      fontSize: 16,
+                      height: 1.5,
+                      onMore: () {},
+                      child: htmlText(message,
+                          fontSize: 16, lineHeight: 1.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ));
+      expect(find.text('查看更多'), findsOneWidget);
+
+      final lineHeight =
+          tester.getSize(find.text('参照行')).height;
+      final clip = tester.getSize(find
+          .descendant(
+              of: find.byType(ClampedHtml), matching: find.byType(ClipRect))
+          .first);
+      // 裁切框装得下渲染端前 5 行（每行取整误差 ≤1 物理像素/行），
+      // 且确实只裁到 5 行附近（不是把整块都放出来了）。
+      expect(clip.height, greaterThanOrEqualTo(5 * lineHeight - 1.5));
+      expect(clip.height, lessThanOrEqualTo(6 * lineHeight));
     });
   });
 }
